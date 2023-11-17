@@ -1,0 +1,49 @@
+# -*- mode: makefile -*-
+
+TARGET = pwb
+
+PREFIX ?= /usr/local
+
+# Change if source files not in base directory:
+SRC = .
+
+CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb
+LFLAGS =
+LDFLAGS = -ltinfo
+
+# Build module list (info make -> "Functions" -> "File Name Functions")
+MODULES = $(addsuffix .o,$(basename $(wildcard $(SRC)/*.c)))
+
+# Libraries need header files.  Set the following accordingly:
+HEADERS =
+
+# Declare non-filename targets
+.PHONY: all install uninstall clean help
+
+all: $(TARGET)
+
+$(TARGET) : $(MODULES)
+	$(CC) $(LFLAGS) -o $@ $(MODULES) $(LDFLAGS)
+
+%o : %c
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+For executable target:
+install:
+	install -D -mode=775 $(TARGET) $(PREFIX)/bin
+
+# Remove the ones you don't need:
+uninstall:
+	rm -f $(PREFIX)/bin/$(TARGET)
+
+clean:
+	rm -f $(TARGET)
+	rm -f $(MODULES)
+
+help:
+	@echo "Makefile options:"
+	@echo
+	@echo "  install    to install project"
+	@echo "  uninstall  to uninstall project"
+	@echo "  clean      to remove generated files"
+	@echo "  help       this display"
