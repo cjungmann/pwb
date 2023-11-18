@@ -7,9 +7,9 @@ PREFIX ?= /usr/local
 # Change if source files not in base directory:
 SRC = .
 
-CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb
+CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb -fsanitize=address
 LFLAGS =
-LDFLAGS = -ltinfo
+LDFLAGS = -ltinfo -fsanitize=address
 
 # Build module list (info make -> "Functions" -> "File Name Functions")
 MODULES = $(addsuffix .o,$(basename $(wildcard $(SRC)/*.c)))
