@@ -57,7 +57,7 @@ void test_llist(void)
    while (*++ptr != NULL)
       APPEND_LLIST(&llist_tail, llist_tail, *ptr, strlen(*ptr));
 
-   int len = get_llist_length(llist_head);
+   int len = get_llist_content_length(llist_head);
    printf("The length of the string is %d.\n", len);
    char *buff = (char*)alloca(len+1);
    concatenate_llist(buff, len+1, llist_head);
@@ -69,8 +69,8 @@ void test_read_file(void)
    FILE *strm = fopen("main.c", "r");
    if (strm)
    {
-      LINDEX *lindex = NULL;
-      if (index_lines(&lindex, strm))
+      LINDEX *lindex = index_lines(strm);
+      if (lindex)
       {
          const char **ptr = lindex->larray;
          const char **end = ptr + lindex->count;

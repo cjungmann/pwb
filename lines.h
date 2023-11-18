@@ -20,14 +20,14 @@ struct line_index {
 };
 
 void destroy_llist(LLIST *llist);
-int get_llist_length(const LLIST *llist);
+int get_llist_content_length(const LLIST *llist);
 int concatenate_llist(char *buff, int bufflen, const LLIST *llist);
 int count_llist_lines(LLIST *llist);
 
 LLIST* fill_llist(LLIST *llist, FILE *stream);
 
 void destroy_lindex(LINDEX *index);
-bool index_lines(LINDEX **index, FILE *stream);
+LINDEX *index_lines(FILE *stream);
 
 #define APPEND_LLIST(llist_out, llist_in, value, vlen)  {  \
    LLIST *newllist = (LLIST*)alloca(sizeof(LLIST));        \
@@ -35,7 +35,7 @@ bool index_lines(LINDEX **index, FILE *stream);
                                                            \
    newllist->text = (char*)alloca(vlen+1);                 \
    memcpy(newllist->text, (value), vlen);                  \
-   newllist->text[vlen] = '\0';                             \
+   newllist->text[vlen] = '\0';                            \
                                                            \
    if ((llist_in) != NULL)                                 \
       ((LLIST*)(llist_in))->next = newllist;               \

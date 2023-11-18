@@ -1,3 +1,8 @@
+/**
+ * @file lines.c
+ * @brief Set of functions that enable indexed access to the lines of a file.
+ */
+
 #include "lines.h"
 
 #include <stdio.h>     // for fgets
@@ -6,8 +11,13 @@
 #include <assert.h>
 
 /**
- * @brief Frees list if heap-allocated
- * @param "llist"  pointer to heap-allocated llist
+ * @brief Uses `free` to return allocated memory to the heap.
+ * @param "llist"  pointer to llist to be destroyed
+ *
+ * This function will cause an error if any part of the LLIST
+ * is stack memory.  The programmer is respopnsible for ensuring
+ * that all allocated parts of the LLIST (the LLIST pointer and
+ * its ::text member) are from the heap.
  */
 void destroy_llist(LLIST *llist)
 {
@@ -27,8 +37,9 @@ void destroy_llist(LLIST *llist)
 /**
  * @brief Calculate the length of the list prior to call to @ref concatenate_llist.
  * @param "llist"  pointer to llist
+ * @return cumulative number of characters in all the list elements.
  */
-int get_llist_length(const LLIST *llist)
+int get_llist_content_length(const LLIST *llist)
 {
    int length = 0;
 
@@ -49,14 +60,14 @@ int get_llist_length(const LLIST *llist)
  * @param "llist"   pointer to llist from which text will be copied.
  *
  * Submit a buffer and its length to limit the copy length.
- * Use @ref get_llist_length to determine the length of the list.
+ * Use @ref get_llist_content_length to determine the length of the list.
  * Remember to add an extra byte to the buffer for the terminating '\0'
  * character.
  *
  * The primary purpose of this function is to facilitate collecting
  * sections of a very long text line without committing huge blocks
  * of memory.  Use the macro @ref APPEND_LLIST to make a stack-based
- * list of parts, use @ref get_llist_length to measure the size, allocate
+ * list of parts, use @ref get_llist_content_length to measure the size, allocate
  * sufficient memory, then use this function to copy the parts to the
  * memory.
  */
@@ -97,8 +108,17 @@ int concatenate_llist(char *buff, int bufflen, const LLIST *llist)
    return target - buff;
 }
 
-bool is_end_char(char v) { return v=='\n'; }
-
+/**
+ * @brief Read one line from a file
+ * @param "stream"  Open stream handle from which to read
+ * @return `malloc`ed memory with the contents of the line.
+ *
+ * Reads lines of arbitrary length.  Line contents first go into
+ * a stack-based LLIST to accommodate unexpected line lengths.
+ * Upon finding the newline or EOF, the size of the line is
+ * determined, the contents of the line are copied to heap
+ * memory and returned.
+ */
 char *read_line_from_stream(FILE *stream)
 {
    char *line_contents = NULL;
@@ -134,7 +154,7 @@ char *read_line_from_stream(FILE *stream)
   save_head:
    if (llhead)
    {
-      int linelen = get_llist_length(llhead);
+      int linelen = get_llist_content_length(llhead);
       ++linelen;
       line_contents = (char*)malloc(linelen);
       if (line_contents)
@@ -144,6 +164,15 @@ char *read_line_from_stream(FILE *stream)
    return line_contents;
 }
 
+
+/**
+ * @brief Returns number of elements in a LLIST list.
+ * @param "llist"   Item whose elements are to be enumerated
+ * @return number of elements in the LLIST
+ *
+ * This function is used to help prepare an array of char*
+ * for the final index product
+ */
 int count_llist_lines(LLIST *llist)
 {
    int count = 0;
@@ -158,6 +187,15 @@ int count_llist_lines(LLIST *llist)
 
 /**
  * @brief Make a list of strings from lines of text from `stream`.
+ * @param "llist"   LLIST object to which new LLIST elements will be appended.
+ *                  This is expected to be NULL, but allows for adding to a
+ *                  list.
+ * @param "stream"  Open stream from which lines will be read
+ *
+ * This function creates a heap-allocated linked list of strings, each
+ * string being one complete line from the @p stream file.
+ *
+ * Use @ref destroy_llist to dispose of the result.
  */
 LLIST* fill_llist(LLIST *llist, FILE *stream)
 {
@@ -187,6 +225,13 @@ LLIST* fill_llist(LLIST *llist, FILE *stream)
 }
 
 
+/**
+ * @brief Returns memory from LINDEX to the heap
+ * @param "index"   Product of the @ref index_lines function
+ *
+ * Frees all memory managed by the @p index, then the @p index
+ * itself.
+ */
 void destroy_lindex(LINDEX *index)
 {
    if (index)
@@ -202,38 +247,67 @@ void destroy_lindex(LINDEX *index)
          destroy_llist(index->llist);
          index->llist = NULL;
       }
+
+      free(index);
    }
 }
 
-bool index_lines(LINDEX **index, FILE *stream)
+/**
+ * @brief Return data package includeing linked list and array of text lines.
+ * @param "stream"   open stream to text file to be read
+ * @return pointer to @ref LINDEX package of text lines
+ *
+ * First reads text lines into a linked list of text (@ref LLIST),
+ * the makes an array of char* pointing to each element of the list
+ * to allow indexed access to the content.
+ *
+ * The resultant struct is a heap item, and should be destroyed using
+ * the @ref destroy_lindex function.
+ */
+LINDEX *index_lines(FILE *stream)
 {
+   LINDEX *newindex = NULL;
+
    LLIST *llist = fill_llist(NULL, stream);
    if (llist)
    {
       int count = count_llist_lines(llist);
-      if (count > 0)
+      if (count == 0)
+         destroy_llist(llist);
+      else
       {
          char **line_vector = (char**)malloc(count * sizeof(char*));
-         LLIST *lptr = llist;
-         char **cptr = line_vector;
-         while (lptr)
+         if (line_vector == NULL)
+            destroy_llist(llist);
+         else
          {
-            *cptr = lptr->text;
+            LLIST *lptr = llist;
+            char **cptr = line_vector;
+            while (lptr)
+            {
+               *cptr = lptr->text;
 
-            lptr = lptr->next;
-            ++cptr;
+               lptr = lptr->next;
+               ++cptr;
+            }
+
+            newindex = (LINDEX*)malloc(sizeof(LINDEX));
+            if (newindex == NULL)
+            {
+               free(line_vector);
+               destroy_llist(llist);
+            }
+            else
+            {
+               memset(newindex, 0, sizeof(LINDEX));
+               newindex->count = count;
+               newindex->llist = llist;
+               newindex->larray = (const char **)line_vector;
+            }
          }
-
-         LINDEX *newindex = (LINDEX*)malloc(sizeof(LINDEX));
-         memset(newindex, 0, sizeof(LINDEX));
-         newindex->count = count;
-         newindex->llist = llist;
-         newindex->larray = (const char **)line_vector;
-
-         *index = newindex;
-         return true;
       }
    }
-   return false;
+
+   return newindex;
 }
 
