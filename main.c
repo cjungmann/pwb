@@ -7,6 +7,7 @@
 #include "terminal.h"
 #include "screen.h"
 #include "lines.h"
+#include "pager.h"
 
 void demo_attributes(void)
 {
@@ -87,6 +88,29 @@ void test_read_file(void)
    }
 }
 
+void demo_pager(void)
+{
+   FILE *strm = fopen("main.c", "r");
+   if (strm)
+   {
+      LINDEX *lindex = index_lines(strm);
+      if (lindex)
+      {
+         DPARMS dparms = { 2, 2, 2, 2,
+            0, 0,
+            get_lindex_row_count(lindex),
+            (void*)lindex,
+            lindex_line_printer
+         };
+
+         print_page(&dparms);
+
+
+         destroy_lindex(lindex);
+      }
+   }
+}
+
 int main(int argc, const char **argv)
 {
    get_terminfo_values();
@@ -108,6 +132,8 @@ int main(int argc, const char **argv)
             test_llist();
          else if (strcmp(buff, "f")==0)
             test_read_file();
+         else if (strcmp(buff, "p")==0)
+            demo_pager();
          else if (strcmp(buff, "s")==0)
          {
             int rows, cols;
