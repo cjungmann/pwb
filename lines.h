@@ -26,9 +26,6 @@ int count_llist_lines(LLIST *llist);
 
 LLIST* fill_llist(LLIST *llist, FILE *stream);
 
-void destroy_lindex(LINDEX *index);
-LINDEX *index_lines(FILE *stream);
-
 #define APPEND_LLIST(llist_out, llist_in, value, vlen)  {  \
    LLIST *newllist = (LLIST*)alloca(sizeof(LLIST));        \
    memset(newllist, 0, sizeof(LLIST));                     \
@@ -41,6 +38,15 @@ LINDEX *index_lines(FILE *stream);
       ((LLIST*)(llist_in))->next = newllist;               \
    *(llist_out) = newllist;                                \
 }
+
+
+void destroy_lindex(LINDEX *index);
+LINDEX *index_lines(FILE *stream);
+
+int get_lindex_row_count(const LINDEX *lindex);
+const char *get_lindex_line(const LINDEX *lindex, int index);
+
+int lindex_line_printer(int row_index, int indicated, int length, void *dsource);
 
 
 #endif

@@ -9,6 +9,7 @@
 #include <stdlib.h>   // free()
 #include <string.h>   // strlen()
 #include <assert.h>
+#include <errno.h>
 
 /**
  * @brief Uses `free` to return allocated memory to the heap.
@@ -311,3 +312,33 @@ LINDEX *index_lines(FILE *stream)
    return newindex;
 }
 
+int get_lindex_row_count(const LINDEX *lindex)
+{
+   if (lindex && lindex->count)
+      return lindex->count;
+   else
+      return 0;
+}
+
+const char *get_lindex_line(const LINDEX *lindex, int index)
+{
+   if (index<0 || index>=lindex->count)
+   {
+      errno = EINVAL;
+      return NULL;
+   }
+
+   return lindex->larray[index];
+}
+
+int lindex_line_printer(int row_index, int indicated, int length, void *dsource)
+{
+   LINDEX *lindex = (LINDEX*)dsource;
+   const char *text = get_lindex_line(lindex, row_index);
+   if (text)
+      printf("%-*s", length, text);
+   else
+      printf("%*s", length, " ");
+
+   return 0;
+}
