@@ -8,8 +8,12 @@
 #include <stdio.h>     // for fgets
 #include <stdlib.h>   // free()
 #include <string.h>   // strlen()
+#include <unistd.h>   // STDOUT_FILENE
 #include <assert.h>
 #include <errno.h>
+
+#include <curses.h>
+#include <term.h>
 
 /**
  * @brief Uses `free` to return allocated memory to the heap.
@@ -335,10 +339,16 @@ int lindex_line_printer(int row_index, int indicated, int length, void *dsource)
 {
    LINDEX *lindex = (LINDEX*)dsource;
    const char *text = get_lindex_line(lindex, row_index);
+   char *buff = (char*)alloca(length+1);
    if (text)
-      printf("%-*s", length, text);
+      snprintf(buff, length+1, "%-*s", length, text);
    else
-      printf("%*s", length, " ");
+   {
+      memset(buff, ' ', length);
+      buff[length] = '\0';
+   }
 
+   write(STDOUT_FILENO, buff, length);
+   // tputs(buff, 1, putchar);
    return 0;
 }

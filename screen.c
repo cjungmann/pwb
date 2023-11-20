@@ -73,81 +73,88 @@ void get_terminfo_values(void)
 
 }
 
+void screen_write_str(const char *str, int file_handle)
+{
+   int len = strlen(str);
+   write(file_handle, str, len);
+}
+
 
 void reset_screen(void)
 {
    assert(tis_values_set);
-   tputs(tis_clear_screen, 1, putchar);
+   screen_write_str(tis_clear_screen, STDIN_FILENO);
 }
 
 void set_bold_mode(void)
 {
    assert(tis_values_set);
-   tputs(tis_bold_mode, 1, putchar);
+   screen_write_str(tis_bold_mode, STDIN_FILENO);
 }
 
 void set_italic_mode(void)
 {
    assert(tis_values_set);
-   tputs(tis_italic_mode, 1, putchar);
+   screen_write_str(tis_italic_mode, STDIN_FILENO);
 }
 
 void set_reverse_mode(void)
 {
    assert(tis_values_set);
-   tputs(tis_reverse_mode, 1, putchar);
+   screen_write_str(tis_reverse_mode, STDIN_FILENO);
 }
 
 void set_normal_mode(void)
 {
    assert(tis_values_set);
-   tputs(tis_normal_mode, 1, putchar);
+   screen_write_str(tis_normal_mode, STDIN_FILENO);
 }
 
 void start_standout_mode(void)
 {
    assert(tis_values_set);
-   tputs(tis_enter_standout_mode, 1, putchar);
+   screen_write_str(tis_enter_standout_mode, STDIN_FILENO);
 }
 
 void stop_standout_mode(void)
 {
    assert(tis_values_set);
-   tputs(tis_exit_standout_mode, 1, putchar);
+   screen_write_str(tis_exit_standout_mode, STDIN_FILENO);
 }
 
 void hide_cursor(void)
 {
    assert(tis_values_set);
-   tputs(tis_hide_cursor, 1, putchar);
+   screen_write_str(tis_hide_cursor, STDIN_FILENO);
 }
 
 void normal_cursor(void)
 {
    assert(tis_values_set);
-   tputs(tis_normal_cursor, 1, putchar);
+   screen_write_str(tis_normal_cursor, STDIN_FILENO);
 }
 
 void show_cursor(void)
 {
    assert(tis_values_set);
-   tputs(tis_show_cursor, 1, putchar);
+   screen_write_str(tis_show_cursor, STDIN_FILENO);
 }
 
 void set_cursor_position(int row, int col)
 {
    const char *str = tiparm(tis_cursor_address, row, col);
    if (str)
-      tputs(str, 1, putchar);
+      screen_write_str(str, STDIN_FILENO);
 }
 
 void get_cursor_position(int *row, int *col)
 {
-   tputs(tis_cpr, 1, putchar);
-
    // Use raw mode to read response from terminal so
    // `scanf` won't wait for a newline.
    int filehandle = STDIN_FILENO;
+
+   screen_write_str(tis_cpr, STDIN_FILENO);
+
    struct termios original;
    set_tios_raw_mode(&original, filehandle);
    set_tios_read_mode(filehandle, 1, 1);
