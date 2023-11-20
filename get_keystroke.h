@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 
+char *transform_keystroke(char *buff, int bufflen, const char *keystroke, const char *esc_str);
+
 char* get_keystroke(char *buff, int bufflen);
 char* get_transformed_keystroke(char *buff, int bufflen, const char *esc_str);
 

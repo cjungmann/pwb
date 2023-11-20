@@ -8,6 +8,43 @@
 
 #include "terminal.h"
 
+char *transform_keystroke(char *buff, int bufflen, const char *keystroke, const char *esc_str)
+{
+   const char *source = keystroke;
+   char *target = buff;
+   char *tend = target + bufflen - 1;  // leave room for terminating '\0'
+   int esc_str_len = esc_str ? strlen(esc_str) : 0;
+
+   while (*source)
+   {
+      if (*source==27 && esc_str_len)
+      {
+         if (target + esc_str_len < tend)
+         {
+            strcpy(target, esc_str);
+            target += esc_str_len;
+         }
+      }
+      else if (*source < 32)
+      {
+         if (target + 2 < tend)
+         {
+            *target++ = '^';
+            *target++ = *source + 64;
+         }
+      }
+      else
+         *target++ = *source;
+
+      ++source;
+   }
+
+   *target = '\0';
+
+   return buff;
+}
+
+
 char* get_keystroke(char *buff, int bufflen)
 {
    int filehandle = STDIN_FILENO;
@@ -37,41 +74,7 @@ char* get_transformed_keystroke(char *buff, int bufflen, const char *esc_str)
    char *raw_buff = (char*)alloca(bufflen);
    char *raw_string = get_keystroke(raw_buff, bufflen);
    if (raw_string)
-   {
-      char *target = buff;
-      char *target_limit = target + bufflen;
-      char *source = raw_buff;
-      // We don't need a limit for source because
-      // it is guaranteed null-terminated
-
-      while (*source && target < target_limit)
-      {
-         // special case for requested escape transformation
-         if (*source == 27 && esc_str)
-         {
-            const char *eptr = esc_str;
-            while(*eptr && target < target_limit)
-               *target++ = *eptr++;
-         }
-         else if ( *source < 32 && target+1 < target_limit)
-         {
-            *target++ = '^';
-            *target++ = (*source + 64);
-         }
-         else
-            *target++ = *source;
-
-         ++source;
-      }
-
-      if (target < target_limit)
-         *target = '\0';
-      else
-      {
-         errno = ENOMEM;
-         buff = NULL;
-      }
-   }
+      transform_keystroke(buff, bufflen, raw_string, esc_str);
    else
       buff = NULL;
 
