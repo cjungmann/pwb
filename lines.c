@@ -3,8 +3,6 @@
  * @brief Set of functions that enable indexed access to the lines of a file.
  */
 
-#include "lines.h"
-
 #include <stdio.h>     // for fgets
 #include <stdlib.h>   // free()
 #include <string.h>   // strlen()
@@ -14,6 +12,10 @@
 
 #include <curses.h>
 #include <term.h>
+
+#include "lines.h"
+#include "screen.h"
+
 
 /**
  * @brief Uses `free` to return allocated memory to the heap.
@@ -335,7 +337,7 @@ const char *get_lindex_line(const LINDEX *lindex, int index)
    return lindex->larray[index];
 }
 
-int lindex_line_printer(int row_index, int indicated, int length, void *dsource)
+int lindex_line_printer(int row_index, int has_focus, int length, void *dsource)
 {
    LINDEX *lindex = (LINDEX*)dsource;
    const char *text = get_lindex_line(lindex, row_index);
@@ -348,7 +350,10 @@ int lindex_line_printer(int row_index, int indicated, int length, void *dsource)
       buff[length] = '\0';
    }
 
+   if (has_focus)
+      set_reverse_mode();
    write(STDOUT_FILENO, buff, length);
-   // tputs(buff, 1, putchar);
+   if (has_focus)
+      set_normal_mode();
    return 0;
 }

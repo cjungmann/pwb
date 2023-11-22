@@ -46,7 +46,7 @@ LINDEX *index_lines(FILE *stream);
 int get_lindex_row_count(const LINDEX *lindex);
 const char *get_lindex_line(const LINDEX *lindex, int index);
 
-int lindex_line_printer(int row_index, int indicated, int length, void *dsource);
+int lindex_line_printer(int row_index, int has_focus, int length, void *dsource);
 
 
 #endif
