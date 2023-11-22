@@ -27,16 +27,33 @@ const char *tis_normal_cursor = NULL;
 const char *tis_hide_cursor = NULL;
 const char *tis_show_cursor = NULL;
 
+const char* tis_enter_keyboard_transmit_mode = NULL;
+const char* tis_exit_keyboard_transmit_mode = NULL;
+
 const char* tis_clear_screen = NULL;
 const char* tis_cpr = NULL;                // C-ursor P-osition R-eport: get cursor position
 const char* tis_cursor_address = NULL;    // set the cursor position
 
-bool tis_values_set = false;
+// Values used outside of screen.c
+const char* tis_scroll_forward = NULL;
+const char* tis_scroll_reverse = NULL;
+const char* tis_change_scroll_region = NULL;
+
+bool tis_values_set_flag = false;
 
 struct caps_list {
    const char **value;
    const char *code;
 };
+
+bool tis_values_set(void) { return tis_values_set_flag; }
+
+void screen_write_str(const char *str, int file_handle)
+{
+   int len = strlen(str);
+   int bytes_read = write(file_handle, str, len);
+   assert(bytes_read == len);
+}
 
 void get_terminfo_values(void)
 {
@@ -55,10 +72,18 @@ void get_terminfo_values(void)
       {&tis_show_cursor, "vs"},
       {&tis_normal_cursor, "ve"},
 
+      {&tis_enter_keyboard_transmit_mode, "ks"},
+      {&tis_exit_keyboard_transmit_mode, "ke"},
+
       {&tis_cpr, "u7"},
       {&tis_cursor_address, "cm"},
 
       {&tis_clear_screen, "cl"},
+
+      {&tis_scroll_forward, "sf"},
+      {&tis_scroll_reverse, "sr"},
+      {&tis_change_scroll_region, "cs"},
+
       {NULL, NULL}
    };
 
@@ -69,91 +94,103 @@ void get_terminfo_values(void)
       ++ptr;
    }
 
-   tis_values_set = true;
+   tis_values_set_flag = true;
 
 }
-
-void screen_write_str(const char *str, int file_handle)
-{
-   int len = strlen(str);
-   write(file_handle, str, len);
-}
-
 
 void reset_screen(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_clear_screen, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_clear_screen, STDOUT_FILENO);
 }
 
 void set_bold_mode(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_bold_mode, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_bold_mode, STDOUT_FILENO);
 }
 
 void set_italic_mode(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_italic_mode, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_italic_mode, STDOUT_FILENO);
 }
 
 void set_reverse_mode(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_reverse_mode, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_reverse_mode, STDOUT_FILENO);
 }
 
 void set_normal_mode(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_normal_mode, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_normal_mode, STDOUT_FILENO);
 }
 
 void start_standout_mode(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_enter_standout_mode, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_enter_standout_mode, STDOUT_FILENO);
 }
 
 void stop_standout_mode(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_exit_standout_mode, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_exit_standout_mode, STDOUT_FILENO);
 }
 
 void hide_cursor(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_hide_cursor, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_hide_cursor, STDOUT_FILENO);
 }
 
 void normal_cursor(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_normal_cursor, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_normal_cursor, STDOUT_FILENO);
 }
 
 void show_cursor(void)
 {
-   assert(tis_values_set);
-   screen_write_str(tis_show_cursor, STDIN_FILENO);
+   assert(tis_values_set());
+   screen_write_str(tis_show_cursor, STDOUT_FILENO);
+}
+
+void enter_keyboard_transmit_mode(void)
+{
+   assert(tis_values_set());
+   screen_write_str(tis_enter_keyboard_transmit_mode, STDOUT_FILENO);
+}
+
+void exit_keyboard_transmit_mode(void)
+{
+   assert(tis_values_set());
+   screen_write_str(tis_exit_keyboard_transmit_mode, STDOUT_FILENO);
+}
+
+void set_scroll_limits(int top, int bottom)
+{
+   assert(tis_values_set());
+   screen_write_str(tiparm(tis_change_scroll_region, top, bottom), STDOUT_FILENO);
 }
 
 void set_cursor_position(int row, int col)
 {
    const char *str = tiparm(tis_cursor_address, row, col);
    if (str)
-      screen_write_str(str, STDIN_FILENO);
+      screen_write_str(str, STDOUT_FILENO);
 }
+
 
 void get_cursor_position(int *row, int *col)
 {
    // Use raw mode to read response from terminal so
    // `scanf` won't wait for a newline.
-   int filehandle = STDIN_FILENO;
+   int filehandle = STDOUT_FILENO;
 
-   screen_write_str(tis_cpr, STDIN_FILENO);
+   screen_write_str(tis_cpr, STDOUT_FILENO);
 
    struct termios original;
    set_tios_raw_mode(&original, filehandle);
@@ -166,9 +203,10 @@ void get_cursor_position(int *row, int *col)
 
 void get_screen_size(int *rows, int *cols)
 {
-   *rows = *cols = 0;
+   (*rows) = 0;
+   (*cols) = 0;
    struct winsize ws;
-   int result = ioctl(STDIN_FILENO, TIOCGWINSZ, &ws);
+   int result = ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
    if (result == 0)
    {
       *rows = ws.ws_row;
