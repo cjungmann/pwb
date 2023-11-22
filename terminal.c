@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <assert.h>
 
+#include "terminal.h"
+
 
 bool term_is_setup = false;
 
@@ -31,6 +33,21 @@ bool launch_terminal(void)
    }
 
    return term_is_setup;
+}
+
+
+void fill_termcap_array(TCENTRY* array, int entry_len)
+{
+   char *ptr = (char*)array;
+   TCENTRY *tcp;
+   while ((tcp=(TCENTRY*)ptr)->name)
+   {
+      char *val = tigetstr(tcp->name);
+      if (val)
+         tcp->value = val;
+
+      ptr += entry_len;
+   }
 }
 
 

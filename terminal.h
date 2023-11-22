@@ -5,6 +5,17 @@
 #include <unistd.h>
 #include <stdbool.h>
 
+typedef struct termcap_entry TCENTRY;
+
+struct termcap_entry {
+   const char *name;
+   const char *value;
+};
+
+bool launch_terminal(void);
+
+void fill_termcap_array(TCENTRY* array, int entry_len);
+
 bool get_termcap_string(const char **value, const char *termcap);
 
 void print_full_list(void);
