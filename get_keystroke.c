@@ -6,7 +6,11 @@
 #include <alloca.h>
 #include <errno.h>
 
+#include <curses.h>
+#include <term.h>
+
 #include "terminal.h"
+#include "screen.h"
 
 char *transform_keystroke(char *buff, int bufflen, const char *keystroke, const char *esc_str)
 {
@@ -52,15 +56,21 @@ char* get_keystroke(char *buff, int bufflen)
    set_tios_raw_mode(&original, filehandle);
    set_tios_read_mode(filehandle, 1, 1);
 
+   enter_keyboard_transmit_mode();
+
    memset(buff, 0, bufflen);
    int bytes_read = read(filehandle, buff, bufflen);
-   if (bytes_read < bufflen-1)
+   if (bytes_read == 0)
+      buff = NULL;
+   else if (bytes_read < bufflen-1)
       buff[bytes_read] = '\0';
    else
    {
       buff = NULL;
       errno = ENOMEM;
    }
+
+   exit_keyboard_transmit_mode();
 
    restore_tios_mode(&original, filehandle);
 
