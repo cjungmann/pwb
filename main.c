@@ -2,6 +2,7 @@
 #include <string.h>   // for strcmp, etc
 #include <curses.h>
 #include <term.h>
+#include <unistd.h>   // getpid()
 
 #include "get_keystroke.h"
 #include "terminal.h"
@@ -96,18 +97,81 @@ void demo_pager(void)
       LINDEX *lindex = index_lines(strm);
       if (lindex)
       {
+         update_keymap_values(sel_keymap, sizeof(PKMAP));
+
+         reset_screen();
          DPARMS dparms = { 2, 2, 2, 2,
             0, 0,
             get_lindex_row_count(lindex),
             (void*)lindex,
-            lindex_line_printer
+            lindex_line_printer,
+            sel_actionmap,
+            sel_keymap
          };
 
-         print_page(&dparms);
-
+         start_pager(&dparms);
 
          destroy_lindex(lindex);
       }
+   }
+}
+
+struct tce_keymap {
+   TCENTRY tce;
+   char desc[40];
+};
+
+void test_fill_keymap_array(void)
+{
+   struct tce_keymap entries[] = {
+      { { "kcud1" }, "down-arrow key" },            // down key
+      { { "kcuu1" }, "up-arrow key" },              // up key
+      { { "khome" }, "home key" },                  // home key
+      { { "kend" }, "end key" },                    // end key
+      { { "knp" }, "next-page key (pgdn)" },        // next-page key (pgdn)
+      { { "kpp" }, "previous-page key (pgup)" },    // previous-page key (pgup)
+      { {NULL} }
+   };
+
+   fill_termcap_array((TCENTRY*)&entries, sizeof(struct tce_keymap));
+
+   char tbuff[24];
+   struct tce_keymap *ptr = entries;
+   while (ptr->tce.name)
+   {
+      printf("name: '%s'  value: '%s', desc: '%s'\n",
+             ptr->tce.name,
+             transform_keystroke(tbuff, sizeof(tbuff), ptr->tce.value, NULL),
+             ptr->desc
+         );
+
+      ++ptr;
+   }
+}
+
+void test_fill_termcap_array(void)
+{
+   TCENTRY entries[] = {
+      { "kcud1" },     // down key
+      { "kcuu1" },     // up key
+      { "khome" },     // home key
+      { "kend" },      // end key
+      { "knp" },       // next-page key (pgdn)
+      { "kpp" },       // previous-page key (pgup)
+      { NULL }
+   };
+
+   fill_termcap_array((TCENTRY*)&entries, sizeof(TCENTRY));
+
+   char tbuff[24];
+
+   TCENTRY *ptr = entries;
+   while (ptr && ptr->name)
+   {
+      printf("name: '%s'  value: '%s'\n",
+             ptr->name,
+             transform_keystroke(tbuff, sizeof(tbuff), ptr->value, NULL));
+      ++ptr;
    }
 }
 
@@ -124,10 +188,16 @@ int main(int argc, const char **argv)
       {
          if (strcmp(buff, "q")==0)
             break;
+         else if (strcmp(buff, "e")==0)
+            test_fill_termcap_array();
+         else if (strcmp(buff, "k")==0)
+            test_fill_keymap_array();
          else if (strcmp(buff, "t")==0)
             print_full_list();
          else if (strcmp(buff, "c")==0)
             demo_attributes();
+         else if (strcmp(buff, "i")==0)
+            printf("Process ID: %d\n", getpid());
          else if (strcmp(buff, "l")==0)
             test_llist();
          else if (strcmp(buff, "f")==0)
