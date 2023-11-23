@@ -68,6 +68,16 @@ struct display_params {
 extern PKMAP sel_keymap[];
 extern PACTION const sel_actionmap[];
 
+/**
+ * @defgroup DPARMS_info Extract information from DPARMs instance
+ * @{
+ */
+int get_index_bottom_limit(const DPARMS *parms);
+int get_index_bottom_line(const DPARMS *parms);
+bool row_index_is_visible(const DPARMS *parms, int row_index);
+int get_line_index_from_row_index(const DPARMS *parms, int row_index);
+/** @} */
+
 void update_keymap_values(PKMAP *kmap, int el_size);
 void update_display_params(DPARMS *params);
 void print_indexed_row(const DPARMS *parms, int row_index, bool has_focus);
@@ -82,8 +92,6 @@ void start_pager(DPARMS *params);
 
 
 
-bool row_index_is_visible(const DPARMS *parms, int row_index);
-int line_index_from_row_index(const DPARMS *parms, int row_index);
 
 ARV pager_quit(DPARMS *parms);
 ARV pager_activate(DPARMS *parms);
