@@ -37,6 +37,13 @@ void demo_attributes(void)
    printf("\n");
 }
 
+void report_screensize(void)
+{
+   int rows, cols;
+   get_screen_size(&rows, &cols);
+   printf("The screen size is %d rows and %d columns.\n", rows, cols);
+}
+
 void test_llist(void)
 {
    const char* strings[]={
@@ -83,6 +90,32 @@ void test_read_file(void)
             printf("%d: \x1b[32;1m%s\x1b[m\n", ++count, *ptr);
             ++ptr;
          }
+
+         destroy_lindex(lindex);
+      }
+   }
+}
+
+void open_pager(FILE *strm)
+{
+   if (strm)
+   {
+      LINDEX *lindex = index_lines(strm);
+      if (lindex)
+      {
+         update_keymap_values(sel_keymap, sizeof(PKMAP));
+
+         reset_screen();
+         DPARMS dparms = { 2, 2, 2, 2,
+            0, 0,
+            get_lindex_row_count(lindex),
+            (void*)lindex,
+            lindex_line_printer,
+            sel_actionmap,
+            sel_keymap
+         };
+
+         start_pager(&dparms);
 
          destroy_lindex(lindex);
       }
@@ -178,48 +211,71 @@ void test_fill_termcap_array(void)
 int main(int argc, const char **argv)
 {
    get_terminfo_values();
-   char buff[24];
-   int bufflen = sizeof(buff);
+   // char buff[24];
+   // int bufflen = sizeof(buff);
    reset_screen();
+   const char *filename = NULL;
 
-   while (true)
+
+   if (argc > 1)
    {
-      if (get_transformed_keystroke(buff, bufflen, NULL))
+      const char **ptr = argv + 1;
+      const char **pend = ptr + argc - 1;
+
+      while (ptr < pend)
       {
-         if (strcmp(buff, "q")==0)
-            break;
-         else if (strcmp(buff, "e")==0)
-            test_fill_termcap_array();
-         else if (strcmp(buff, "k")==0)
-            test_fill_keymap_array();
-         else if (strcmp(buff, "t")==0)
-            print_full_list();
-         else if (strcmp(buff, "c")==0)
-            demo_attributes();
-         else if (strcmp(buff, "i")==0)
-            printf("Process ID: %d\n", getpid());
-         else if (strcmp(buff, "l")==0)
-            test_llist();
-         else if (strcmp(buff, "f")==0)
-            test_read_file();
-         else if (strcmp(buff, "p")==0)
-            demo_pager();
-         else if (strcmp(buff, "s")==0)
+         if (**ptr == '-')
          {
-            int rows, cols;
-            get_screen_size(&rows, &cols);
-            printf("The screen size is %d rows and %d columns.\n", rows, cols);
+            switch((*ptr)[1])
+            {
+               case 'c':
+                  demo_attributes();
+                  break;
+               case 'e':
+                  test_fill_termcap_array();
+                  break;
+               case 'f':
+                  test_read_file();
+                  break;
+               case 'k':
+                  test_fill_keymap_array();
+                  break;
+               case 'l':
+                  test_llist();
+                  break;
+               case 'p':
+                  demo_pager();
+                  break;
+               case 's':
+                  report_screensize();
+                  break;
+               case 't':
+                  print_full_list();
+                  break;
+               default:
+                  printf("Unknown option '%s'\n", *ptr);
+                  break;
+            }
          }
          else
-         {
-            printf("You pressed ");
-            set_bold_mode();
-            printf("'%s'", buff);
-            set_normal_mode();
-            printf("\n");
-         }
+            filename = *ptr;
+
+         ++ptr;
       }
    }
+
+
+   if (filename)
+   {
+      FILE *strm = fopen(filename, "r");
+      if (strm)
+      {
+         open_pager(strm);
+         fclose(strm);
+      }
+   }
+   else
+      open_pager(stdin);
 
    return 0;
 }
