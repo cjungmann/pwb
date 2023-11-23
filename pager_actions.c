@@ -89,16 +89,64 @@ ARV pager_focus_down_page(DPARMS *parms)
 
 ARV pager_focus_up_page(DPARMS *parms)
 {
+   int index_top_line = parms->index_row_top;
+   if (index_top_line == 0)
+   {
+      if (parms->index_row_focus > index_top_line)
+      {
+         print_indexed_row(parms, parms->index_row_focus, 0);
+         parms->index_row_focus = index_top_line;
+         print_indexed_row(parms, parms->index_row_focus, 1);
+      }
+   }
+   else
+   {
+      index_top_line -= parms->line_count;
+      if (index_top_line < 0)
+         index_top_line = 0;
+
+      parms->index_row_top = parms->index_row_focus = index_top_line;
+      return ARV_REPLOT_DATA;
+   }
    return ARV_CONTINUE;
 }
+
 ARV pager_focus_end(DPARMS *parms)
 {
+   int index_last_row = parms->row_count - 1;
+   if (row_index_is_visible(parms, index_last_row))
+   {
+      print_indexed_row(parms, parms->index_row_focus, 0);
+      parms->index_row_focus = index_last_row;
+      print_indexed_row(parms, parms->index_row_focus, 1);
+   }
+   else
+   {
+      parms->index_row_top = index_last_row - parms->line_count + 1;
+      if (parms->index_row_top < 0)
+         parms->index_row_top = 0;
+      parms->index_row_focus = index_last_row;
+      return ARV_REPLOT_DATA;
+   }
    return ARV_CONTINUE;
 }
+
 ARV pager_focus_home(DPARMS *parms)
 {
+   if (row_index_is_visible(parms, 0))
+   {
+      print_indexed_row(parms, parms->index_row_focus, 0);
+      parms->index_row_focus = 0;
+      print_indexed_row(parms, parms->index_row_focus, 1);
+   }
+   else
+   {
+      parms->index_row_top = parms->index_row_focus = 0;
+      return ARV_REPLOT_DATA;
+   }
    return ARV_CONTINUE;
 }
+
 ARV pager_scroll_down_one(DPARMS *parms)
 {
    return ARV_CONTINUE;
