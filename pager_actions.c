@@ -6,7 +6,6 @@
 
 ARV pager_quit(DPARMS *parms)
 {
-   printf("QUITTING, baby!\n");
    return ARV_EXIT;
 }
 
@@ -51,7 +50,7 @@ ARV pager_focus_down_one(DPARMS *parms)
       print_indexed_row(parms, parms->index_row_focus, 0);
       ++parms->index_row_focus;
 
-      int screen_last_index = parms->index_row_top + parms->line_count - 1;
+      int screen_last_index = get_index_bottom_line(parms);
       if (parms->index_row_focus > screen_last_index)
       {
          scroll_line_up(parms);
@@ -66,14 +65,28 @@ ARV pager_focus_down_one(DPARMS *parms)
 
 ARV pager_focus_down_page(DPARMS *parms)
 {
-   int old_focus = parms->index_row_focus;
+   int index_bottom_line = get_index_bottom_line(parms);
+   int at_line = get_line_index_from_row_index(parms, index_bottom_line);
 
-   int index_bottom_limit = parms->index_row_top + parms->line_count;
-   if (old_focus < index_bottom_limit)
+   // If last row of content is on screen, set focus on it
+   if (at_line < parms->line_count-1)
    {
+      if (parms->index_row_focus < parms->row_count-1)
+      {
+         print_indexed_row(parms, parms->index_row_focus, 0);
+         parms->index_row_focus = index_bottom_line;
+         print_indexed_row(parms, parms->index_row_focus, 1);
+      }
    }
+   else
+   {
+      parms->index_row_top = parms->index_row_focus = index_bottom_line;
+      return ARV_REPLOT_DATA;
+   }
+
    return ARV_CONTINUE;
 }
+
 ARV pager_focus_up_page(DPARMS *parms)
 {
    return ARV_CONTINUE;
