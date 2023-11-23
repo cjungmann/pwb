@@ -61,6 +61,34 @@ void update_keymap_values(PKMAP *kmap, int el_size)
    }
 }
 
+int get_index_bottom_limit(const DPARMS *parms)
+{
+   assert(parms);
+   return parms->index_row_top + parms->line_count;
+}
+
+int get_index_bottom_line(const DPARMS *parms)
+{
+   assert(parms);
+   int index = parms->index_row_top + parms->line_count - 1;
+   if (index > parms->row_count - 1)
+      index = parms->row_count - 1;
+
+   return index;
+}
+
+bool row_index_is_visible(const DPARMS *parms, int row_index)
+{
+   int bottom_row= parms->index_row_top + parms->line_count;
+   return row_index >= parms->index_row_top && row_index < bottom_row;
+}
+
+int get_line_index_from_row_index(const DPARMS *parms, int row_index)
+{
+   return row_index - parms->index_row_top;
+}
+
+
 void update_display_params(DPARMS *params)
 {
    int rows, cols;
@@ -121,6 +149,7 @@ void print_page(DPARMS *params)
 
    int left = params->chars_left;
    int line = params->line_top;
+   int line_limit = line + params->line_count;
    int chars_count = params->chars_count;
 
    int row = params->index_row_top;
@@ -128,11 +157,16 @@ void print_page(DPARMS *params)
    if (end_row >= params->row_count)
       end_row = params->row_count-1;
 
-   for ( ; row < end_row; ++row, ++line)
+   for (; line < line_limit; ++row, ++line)
    {
-      bool has_focus = row == params->index_row_focus;
       set_cursor_position(line, left);
-      (params->printer)(row, has_focus, chars_count, params->data_source);
+      if (row <= end_row)
+      {
+         bool has_focus = row == params->index_row_focus;
+         (params->printer)(row, has_focus, chars_count, params->data_source);
+      }
+      else
+         (params->printer)(row, false, chars_count, params->data_source);
    }
 }
 
@@ -140,13 +174,15 @@ void print_page(DPARMS *params)
 void start_pager(DPARMS *params)
 {
    reset_screen();
-   print_page(params);
 
    char kbuff[20];
-   ARV action_return = ARV_CONTINUE;
+   ARV action_return = ARV_REPLOT_DATA;
 
    while (action_return != ARV_EXIT)
    {
+      if (action_return == ARV_REPLOT_DATA)
+         print_page(params);
+
       char *keys = get_keystroke(kbuff, sizeof(kbuff));
       if (keys)
       {
@@ -157,16 +193,5 @@ void start_pager(DPARMS *params)
             action_return = ARV_CONTINUE;
       }
    }
-}
-
-bool row_index_is_visible(const DPARMS *parms, int row_index)
-{
-   int bottom_row= parms->index_row_top + parms->line_count;
-   return row_index >= parms->index_row_top && row_index < bottom_row;
-}
-
-int line_index_from_row_index(const DPARMS *parms, int row_index)
-{
-   return row_index - parms->index_row_top;
 }
 
