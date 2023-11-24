@@ -147,7 +147,7 @@ bool get_termcap_string(const char **value, const char *capcode)
    {
       const char *capname = lookup_capname(capcode);
       if (capname)
-         capstr = tigetstr(capcode);
+         capstr = tigetstr(capname);
    }
 
    if (capstr)
