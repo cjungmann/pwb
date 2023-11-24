@@ -16,7 +16,7 @@ bool launch_terminal(void);
 
 void fill_termcap_array(TCENTRY* array, int entry_len);
 
-bool get_termcap_string(const char **value, const char *termcap);
+bool get_termcap_string(const char **value, const char *capcode);
 
 void print_full_list(void);
 

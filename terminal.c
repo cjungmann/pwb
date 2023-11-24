@@ -132,22 +132,22 @@ const char *lookup_capname(const char *capcode)
  * system/environment string if found.
  *
  * @param "value"    pointer to string pointer to which the value will be referenced
- * @param "termcap"  termcap code for which to search
+ * @param "capcode"  2-character termcap code for which to search
  * @return true if the termcap value was found, false if not.
  */
-bool get_termcap_string(const char **value, const char *termcap)
+bool get_termcap_string(const char **value, const char *capcode)
 {
    launch_terminal();
 
    char buff[16];
-   snprintf(buff, sizeof(buff), "LESS_TERMCAP_%-s2", termcap);
+   snprintf(buff, sizeof(buff), "LESS_TERMCAP_%-s2", capcode);
 
    const char *capstr = getenv(buff);
    if (capstr == NULL)
    {
-      const char *capname = lookup_capname(termcap);
+      const char *capname = lookup_capname(capcode);
       if (capname)
-         capstr = tigetstr(capname);
+         capstr = tigetstr(capcode);
    }
 
    if (capstr)
