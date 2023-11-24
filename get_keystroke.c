@@ -4,6 +4,7 @@
 #include <string.h>   // for memset
 #include <assert.h>
 #include <alloca.h>
+#include <ctype.h>    // for toupper()v
 #include <errno.h>
 
 #include <curses.h>
@@ -12,6 +13,24 @@
 #include "terminal.h"
 #include "screen.h"
 
+/**
+ * @brief Translates a keystroke-style string to a readable string.
+ * @param "buff"       memory to which the transformation will be written
+ * @param "bufflen"    length of transformation buffer
+ * @param "keystroke"  string to transform
+ * @param "esc_str"    string to use to represent an ESC character.
+ *                     If NULL, it uses '^['.
+ *
+ * @return pointer to @p buff if successful, NULL if not.
+ *
+ * Use this function to replace the unprintable characters in a
+ * string with 2-character representations, with special accommodation
+ * for the ubiquitous ESCAPE key, whose translation can be specified.
+ *
+ * Use this function to show a user the keystroke string emitted by
+ * the last pressed key.  This function could also be used to compare
+ * a keystroke string with a typeable string to match up actions.
+ */
 char *transform_keystroke(char *buff, int bufflen, const char *keystroke, const char *esc_str)
 {
    const char *source = keystroke;
@@ -48,7 +67,92 @@ char *transform_keystroke(char *buff, int bufflen, const char *keystroke, const 
    return buff;
 }
 
+/**
+ * @brief Translate a typeable keystring to a keystroke string.
+ * @param "buff"       memory to which the translation will be written
+ * @param "bufflen"    length of translation buffer
+ * @param "keystring"  string to translate
+ * @param "esc_str"    string to use to represent an ESC character.
+ *                     If NULL, it uses '^['.
+ *
+ * Use this function to translate a keystring that includes control
+ * characters like '^[' for ESCAPE to a keystroke string that can directly
+ * match the keystroke string emitted when a user presses a key.
+ *
+ * Please only use this for keystroke strings.  This function makes no
+ * accommodation for the possibility of an accompanied '^' character
+ * that does not represent an untypeable control character.
+ */
+char *transform_keystring(char *buff, int bufflen, const char *keystring, const char *esc_str)
+{
+   char *target = buff;
+   char *tlimit = target + bufflen - 1; // leave room for terminating '\0'
+   const char *ptr = keystring;
 
+   int esc_str_len = 0;
+   if (esc_str)
+      esc_str_len = strlen(esc_str);
+
+   while (*ptr && target < tlimit)
+   {
+      if (esc_str_len)
+      {
+         if (*ptr == *esc_str)
+         {
+            const char *esc_ptr = esc_str;
+            const char *temp_ptr = ptr;
+            while (*esc_ptr && *temp_ptr)
+            {
+               if (*esc_ptr != *temp_ptr)
+                  break;
+               ++esc_ptr;
+               ++temp_ptr;
+            }
+            // If reached the end of the escape string without a
+            // disqualifying mismatch, translate to an ESCAPE character
+            if (! *esc_ptr)
+            {
+               *target++ = '\x1b';
+               ptr = temp_ptr;
+
+               // Bypass further processing of this position
+               // if we matched the ESCAPE string:
+               continue;
+            }
+         }
+      }
+
+      if (*ptr == '^' && *(ptr+1))
+      {
+         char val = toupper(*(ptr+1));
+         *target++ = val - 64;
+         ptr += 2;
+      }
+      else
+         *target++ = *ptr++;
+   }
+
+   if (target <= tlimit)
+   {
+      *target = '\0';
+      return buff;
+   }
+
+   return NULL;
+}
+
+
+/**
+ * @brief Get a single keystroke from the user.
+ * @param "buff"    memory to which the keystroke string will be copied
+ * @param "bufflen" length of @p buff
+ * @return Pointer to @p buff if successful, NULL otherwise.
+ *
+ * This function returns the raw keystroke string from a user
+ * interaction.  Non-character keys will typically return a
+ * multi-character string beginning with ESCAPE, otherwise
+ * recognized as '\e', '\x1b', or '\033'.
+ */
 char* get_keystroke(char *buff, int bufflen)
 {
    int filehandle = STDIN_FILENO;
@@ -77,6 +181,14 @@ char* get_keystroke(char *buff, int bufflen)
    return buff;
 }
 
+/**
+ * @brief Convenience function to get translated keystroke
+ * @param "buff"    memory to which keystroke string will be copied
+ * @param "bufflen" size of @p buff memory buffer
+ * @param "esc_str" String to represent ESCAPE.  Set to NULL to use
+ *                  the default representation, '^['.
+ * @return Pointer to @p buff if successful, NULL otherwise.
+ */
 char* get_transformed_keystroke(char *buff, int bufflen, const char *esc_str)
 {
    memset(buff, 0, bufflen);
@@ -87,53 +199,6 @@ char* get_transformed_keystroke(char *buff, int bufflen, const char *esc_str)
       transform_keystroke(buff, bufflen, raw_string, esc_str);
    else
       buff = NULL;
-
-   return buff;
-}
-
-char* old_get_keystroke(char *buff, int bufflen)
-{
-   int fh = STDIN_FILENO;
-   struct termios original;
-   set_tios_raw_mode(&original, fh);
-   set_tios_read_mode(fh, 1, 1);
-
-   char *keybuff = (char*)alloca(bufflen);
-   int bytes_read = read(fh, keybuff, bufflen);
-   if (bytes_read && bytes_read < bufflen)
-   {
-      keybuff[bytes_read] = '\0';
-      char *kptr = keybuff;
-      char *kend = keybuff + bufflen;
-      char *tptr = buff;
-      char *tend = tptr + bufflen;
-
-      while (kptr < kend && *kptr)
-      {
-         assert(tptr < tend);
-
-         if ( *kptr < 32 )
-         {
-            *tptr = '^';
-            ++tptr;
-            assert(tptr < tend);
-            *tptr = (*kptr + 64);
-            ++tptr;
-         }
-         else
-         {
-            *tptr = *kptr;
-            ++tptr;
-         }
-
-         ++kptr;
-      }
-
-      if (tptr < tend)
-         *tptr = '\0';
-   }
-
-   restore_tios_mode(&original, fh);
 
    return buff;
 }
