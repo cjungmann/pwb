@@ -9,6 +9,8 @@ void screen_write_str(const char *str, int file_handle);
 
 void get_terminfo_values(void);
 void reset_screen(void);
+void pwb_enter_ca_mode(void);
+void pwb_exit_ca_mode(void);
 
 void set_bold_mode(void);
 void set_italic_mode(void);
@@ -26,6 +28,7 @@ void enter_keyboard_transmit_mode(void);
 void exit_keyboard_transmit_mode(void);
 
 void set_scroll_limits(int top, int bottom);
+void clear_scroll_limits(void);
 
 void set_cursor_position(int row, int col);
 void get_cursor_position(int *row, int *col);

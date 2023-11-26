@@ -104,6 +104,18 @@ void reset_screen(void)
    screen_write_str(tis_clear_screen, STDOUT_FILENO);
 }
 
+void pwb_enter_ca_mode(void)
+{
+   assert(tis_values_set());
+   screen_write_str(tis_enter_ca_mode, STDOUT_FILENO);
+}
+
+void pwb_exit_ca_mode(void)
+{
+   assert(tis_values_set());
+   screen_write_str(tis_exit_ca_mode, STDOUT_FILENO);
+}
+
 void set_bold_mode(void)
 {
    assert(tis_values_set());
@@ -175,6 +187,15 @@ void set_scroll_limits(int top, int bottom)
    assert(tis_values_set());
    screen_write_str(tiparm(tis_change_scroll_region, top, bottom), STDOUT_FILENO);
 }
+
+void clear_scroll_limits(void)
+{
+   assert(tis_values_set());
+   int row, col;
+   get_screen_size(&row, &col);
+   screen_write_str(tiparm(tis_change_scroll_region, 0, row-1), STDOUT_FILENO);
+}
+
 
 void set_cursor_position(int row, int col)
 {
