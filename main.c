@@ -73,6 +73,24 @@ void test_llist(void)
    printf("The concatenated list is:\n'%s'\n", buff);
 }
 
+void demo_transforms(void)
+{
+   char keybuff[24];
+   char strbuff[24];
+   char rtbuff[24];
+   char *transtr, *keystr;
+   while (strcmp(keybuff, "q"))
+   {
+      keystr = get_keystroke(keybuff, sizeof(keybuff));
+      
+      transtr = transform_keystroke(strbuff, sizeof(strbuff), keystr, NULL);
+      printf("You typed '%s' ", transtr);
+      transtr = transform_keystring(rtbuff, sizeof(rtbuff), transtr, NULL);
+      transtr = transform_keystroke(strbuff, sizeof(strbuff), keystr, NULL);
+      printf("...round trip results in '%s'\n", transtr);
+   }
+}
+
 void test_read_file(void)
 {
    FILE *strm = fopen("main.c", "r");
@@ -103,49 +121,24 @@ void open_pager(FILE *strm)
       LINDEX *lindex = index_lines(strm);
       if (lindex)
       {
+         printf("There are %d lines in the file.\n", lindex->count);
+         char buff[80];
+         get_keystroke(buff, sizeof(buff));
+
          update_keymap_values(sel_keymap, sizeof(PKMAP));
 
          reset_screen();
-         DPARMS dparms = { 2, 2, 2, 2,
-            0, 0,
-            get_lindex_row_count(lindex),
-            (void*)lindex,
-            lindex_line_printer,
-            sel_actionmap,
-            sel_keymap
-         };
+
+         DPARMS dparms;
+         initialize_dparms(&dparms, (void*)lindex, lindex->count, lindex_line_printer);
+         set_screen_margins(&dparms, 2, -1, -1, -1);
 
          start_pager(&dparms);
 
          destroy_lindex(lindex);
       }
-   }
-}
-
-void demo_pager(void)
-{
-   FILE *strm = fopen("main.c", "r");
-   if (strm)
-   {
-      LINDEX *lindex = index_lines(strm);
-      if (lindex)
-      {
-         update_keymap_values(sel_keymap, sizeof(PKMAP));
-
-         reset_screen();
-         DPARMS dparms = { 2, 2, 2, 2,
-            0, 0,
-            get_lindex_row_count(lindex),
-            (void*)lindex,
-            lindex_line_printer,
-            sel_actionmap,
-            sel_keymap
-         };
-
-         start_pager(&dparms);
-
-         destroy_lindex(lindex);
-      }
+      else
+         printf("Failed to load the file.\n");
    }
 }
 
@@ -243,14 +236,12 @@ int main(int argc, const char **argv)
                case 'l':
                   test_llist();
                   break;
-               case 'p':
-                  demo_pager();
-                  break;
                case 's':
                   report_screensize();
                   break;
                case 't':
-                  print_full_list();
+                  demo_transforms();
+                  // print_full_list();
                   break;
                default:
                   printf("Unknown option '%s'\n", *ptr);
