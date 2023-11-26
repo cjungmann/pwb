@@ -88,20 +88,6 @@ int get_line_index_from_row_index(const DPARMS *parms, int row_index)
    return row_index - parms->index_row_top;
 }
 
-
-void update_display_params(DPARMS *params)
-{
-   int rows, cols;
-   get_screen_size(&rows, &cols);
-
-   params->line_top = params->reserve_top;
-   params->line_count = rows - params->reserve_top - params->reserve_bottom;
-   params->chars_left = params->reserve_left;
-   params->chars_count = cols - params->reserve_left - params->reserve_right;
-
-   set_scroll_limits(params->line_top, rows - params->reserve_bottom - 1);
-}
-
 void print_indexed_row(const DPARMS *parms, int row_index, bool has_focus)
 {
    // static int prow, pcol;
@@ -145,8 +131,6 @@ void scroll_line_down(const DPARMS *parms)
 
 void print_page(DPARMS *params)
 {
-   update_display_params(params);
-
    int left = params->chars_left;
    int line = params->line_top;
    int line_limit = line + params->line_count;
@@ -170,28 +154,4 @@ void print_page(DPARMS *params)
    }
 }
 
-
-void start_pager(DPARMS *params)
-{
-   reset_screen();
-
-   char kbuff[20];
-   ARV action_return = ARV_REPLOT_DATA;
-
-   while (action_return != ARV_EXIT)
-   {
-      if (action_return == ARV_REPLOT_DATA)
-         print_page(params);
-
-      char *keys = get_keystroke(kbuff, sizeof(kbuff));
-      if (keys)
-      {
-         PACTION action = page_get_action(params, keys);
-         if (action)
-            action_return = (*action)(params);
-         else
-            action_return = ARV_CONTINUE;
-      }
-   }
-}
 
