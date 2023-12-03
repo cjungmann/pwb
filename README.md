@@ -6,8 +6,19 @@ designed for scripted access, with collecting and reporting a user's
 actions or responses.
 
 **PWB**, pager with benefits, is an effort to address this shortcoming
-in the standard pagers.  It is not a standalone pager, but rather a
-library exposing a simple API that can be embedded in other projects.
+in the standard pagers.  While it is (will be) a standalone pager, it
+lacks many features of `less` and the like.  What it adds is the
+ability to call back to the script for printing each line and as a
+response to script-defined keys.  This permits a more customizable
+pager suitable for implementing interactive displays for simple things
+like selecting options to more sophisticated, like a browseable
+list of `git` commits that can drill down to details.
+
+# Work in Progress
+
+This README page will include build and installation instructions
+as well as usage examples when I feel like it's stable enough to
+invite people to use it.
 
 ## Development Resources
 
