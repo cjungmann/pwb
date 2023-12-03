@@ -1,11 +1,35 @@
 #include <string.h>
+#include <curses.h>
+#include <term.h>
+
+#include "export.h"
 
 #include "pager.h"
 #include "screen.h"
 #include "get_keystroke.h"
 
 
-void initialize_dparms(DPARMS *parms, void *data_source, int row_count, pwb_print_line printer)
+EXPORT void update_keymap_values(PKMAP *kmap, int el_size)
+{
+   char *ptr = (char*)kmap;
+   PKMAP *pkm;
+   while ((pkm=(PKMAP*)ptr)->action_index >= 0)
+   {
+      const char *name = pkm->capname;
+      if (strlen(name) > 1 && name[0] == 'k')
+      {
+         char *val = tigetstr(pkm->capname);
+         if (val)
+            pkm->value = val;
+      }
+      else
+         pkm->value = name;
+
+      ptr += el_size;
+   }
+}
+
+EXPORT void initialize_dparms(DPARMS *parms, void *data_source, int row_count, pwb_print_line printer)
 {
    memset(parms, 0, sizeof(DPARMS));
    parms->data_source = data_source;
@@ -36,7 +60,7 @@ void initialize_dparms(DPARMS *parms, void *data_source, int row_count, pwb_prin
  *   and @p right applies to @p right and @p left.
  * - only@p top, @p right, and @p bottom set, @p right applies to @p right and @p left.
  */
-void set_screen_margins(DPARMS *parms, int top, int right, int bottom, int left)
+EXPORT void set_screen_margins(DPARMS *parms, int top, int right, int bottom, int left)
 {
    // Adjust to missing values
    if (top < 0)
@@ -65,13 +89,13 @@ void set_screen_margins(DPARMS *parms, int top, int right, int bottom, int left)
 /**
  * @brief Placeholder for future mechanism for keymap manipulation
  */
-void replace_keymap(DPARMS *parms, PKMAP *new_map)
+EXPORT void replace_keymap(DPARMS *parms, PKMAP *new_map)
 {
    ;
 }
 
 
-void start_pager(DPARMS *params)
+EXPORT void start_pager(DPARMS *params)
 {
    reset_screen();
    pwb_enter_ca_mode();

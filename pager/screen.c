@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <sys/ioctl.h>
 
+#include "export.h"
 #include "screen.h"
 #include "terminal.h"
 #include "get_keystroke.h"
@@ -55,6 +56,8 @@ void screen_write_str(const char *str, int file_handle)
    assert(bytes_read == len);
 }
 
+extern void get_terminfo_values(void) __attribute__((constructor));
+
 void get_terminfo_values(void)
 {
    struct caps_list clist[] = {
@@ -98,7 +101,7 @@ void get_terminfo_values(void)
 
 }
 
-void reset_screen(void)
+EXPORT void reset_screen(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_clear_screen, STDOUT_FILENO);
@@ -116,55 +119,55 @@ void pwb_exit_ca_mode(void)
    screen_write_str(tis_exit_ca_mode, STDOUT_FILENO);
 }
 
-void set_bold_mode(void)
+EXPORT void set_bold_mode(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_bold_mode, STDOUT_FILENO);
 }
 
-void set_italic_mode(void)
+EXPORT void set_italic_mode(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_italic_mode, STDOUT_FILENO);
 }
 
-void set_reverse_mode(void)
+EXPORT void set_reverse_mode(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_reverse_mode, STDOUT_FILENO);
 }
 
-void set_normal_mode(void)
+EXPORT void set_normal_mode(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_normal_mode, STDOUT_FILENO);
 }
 
-void start_standout_mode(void)
+EXPORT void start_standout_mode(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_enter_standout_mode, STDOUT_FILENO);
 }
 
-void stop_standout_mode(void)
+EXPORT void stop_standout_mode(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_exit_standout_mode, STDOUT_FILENO);
 }
 
-void hide_cursor(void)
+EXPORT void hide_cursor(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_hide_cursor, STDOUT_FILENO);
 }
 
-void normal_cursor(void)
+EXPORT void normal_cursor(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_normal_cursor, STDOUT_FILENO);
 }
 
-void show_cursor(void)
+EXPORT void show_cursor(void)
 {
    assert(tis_values_set());
    screen_write_str(tis_show_cursor, STDOUT_FILENO);

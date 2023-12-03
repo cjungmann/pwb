@@ -14,7 +14,7 @@
 #include <term.h>
 
 #include "lines.h"
-#include "screen.h"
+#include "pager/screen.h"
 
 
 /**

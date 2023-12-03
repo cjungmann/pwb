@@ -1,15 +1,14 @@
 #include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
-#include <curses.h>
-#include <term.h>
 #include <assert.h>
 
+#include "export.h"
 #include "pager.h"
 #include "screen.h"
 #include "get_keystroke.h"
 
-PKMAP sel_keymap[] = {
+EXPORT PKMAP sel_keymap[] = {
    { PAGER_EXIT,      "q" },         // 'q' key to quit
    { PAGER_SELECT,    "\x0D" },      // NEWLINE (ENTER key) to select (\x0D CR, \x0A for NL)
    { FOCUS_DOWN_ONE,  "kcud1" },     // down key
@@ -21,7 +20,7 @@ PKMAP sel_keymap[] = {
    { -1 }
 };
 
-PACTION const sel_actionmap[] = {
+EXPORT PACTION const sel_actionmap[] = {
    pager_quit,
    pager_activate,
    pager_focus_down_one,
@@ -40,26 +39,6 @@ PACTION const sel_actionmap[] = {
 };
 
 
-
-void update_keymap_values(PKMAP *kmap, int el_size)
-{
-   char *ptr = (char*)kmap;
-   PKMAP *pkm;
-   while ((pkm=(PKMAP*)ptr)->action_index >= 0)
-   {
-      const char *name = pkm->capname;
-      if (strlen(name) > 1 && name[0] == 'k')
-      {
-         char *val = tigetstr(pkm->capname);
-         if (val)
-            pkm->value = val;
-      }
-      else
-         pkm->value = name;
-
-      ptr += el_size;
-   }
-}
 
 int get_index_bottom_limit(const DPARMS *parms)
 {

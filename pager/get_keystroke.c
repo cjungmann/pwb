@@ -10,6 +10,7 @@
 #include <curses.h>
 #include <term.h>
 
+#include "export.h"
 #include "terminal.h"
 #include "screen.h"
 
@@ -31,7 +32,7 @@
  * the last pressed key.  This function could also be used to compare
  * a keystroke string with a typeable string to match up actions.
  */
-char *transform_keystroke(char *buff, int bufflen, const char *keystroke, const char *esc_str)
+EXPORT char *transform_keystroke(char *buff, int bufflen, const char *keystroke, const char *esc_str)
 {
    const char *source = keystroke;
    char *target = buff;
@@ -83,7 +84,7 @@ char *transform_keystroke(char *buff, int bufflen, const char *keystroke, const 
  * accommodation for the possibility of an accompanied '^' character
  * that does not represent an untypeable control character.
  */
-char *transform_keystring(char *buff, int bufflen, const char *keystring, const char *esc_str)
+EXPORT char *transform_keystring(char *buff, int bufflen, const char *keystring, const char *esc_str)
 {
    char *target = buff;
    char *tlimit = target + bufflen - 1; // leave room for terminating '\0'
@@ -153,7 +154,7 @@ char *transform_keystring(char *buff, int bufflen, const char *keystring, const 
  * multi-character string beginning with ESCAPE, otherwise
  * recognized as '\e', '\x1b', or '\033'.
  */
-char* get_keystroke(char *buff, int bufflen)
+EXPORT char* get_keystroke(char *buff, int bufflen)
 {
    int filehandle = STDIN_FILENO;
    struct termios original;
@@ -189,7 +190,7 @@ char* get_keystroke(char *buff, int bufflen)
  *                  the default representation, '^['.
  * @return Pointer to @p buff if successful, NULL otherwise.
  */
-char* get_transformed_keystroke(char *buff, int bufflen, const char *esc_str)
+EXPORT char* get_transformed_keystroke(char *buff, int bufflen, const char *esc_str)
 {
    memset(buff, 0, bufflen);
 

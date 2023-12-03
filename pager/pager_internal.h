@@ -1,7 +1,6 @@
 #ifndef PAGER_INTERNAL_H
 #define PAGER_INTERNAL_H
 
-
 /**
  * @defgroup DPARMS_info Extract information from DPARMs instance
  * @{
@@ -22,6 +21,10 @@ void scroll_line_down(const DPARMS *parms);
 void print_page(DPARMS *params);
 
 
+/**
+ * @defgroup PAGER_ACTIONS Actions that can be triggered by user input
+ * @{
+ */
 ARV pager_quit(DPARMS *parms);
 ARV pager_activate(DPARMS *parms);
 
@@ -39,7 +42,6 @@ ARV pager_scroll_up_page(DPARMS *parms);
 ARV pager_scroll_end(DPARMS *parms);
 ARV pager_scroll_home(DPARMS *parms);
 
-extern PKMAP sel_keymap[];
-extern PACTION const sel_actionmap[];
+/** @} */
 
 #endif

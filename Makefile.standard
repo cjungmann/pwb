@@ -9,7 +9,7 @@ SRC = .
 
 CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb -fsanitize=address
 LFLAGS =
-LDFLAGS = -ltinfo -fsanitize=address
+LDFLAGS = -ltinfo -fsanitize=address -W -L pager -l:libpager.a
 
 # Build module list (info make -> "Functions" -> "File Name Functions")
 MODULES = $(addsuffix .o,$(basename $(wildcard $(SRC)/*.c)))
