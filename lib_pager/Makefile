@@ -17,8 +17,9 @@ CFLAGS += -fPIC
 LFLAGS += --shared
 
 # Build module list (info make -> "Functions" -> "File Name Functions")
-MODULES = $(addsuffix .o,$(filter-out test_,$(basename $(wildcard $(SRC)/*.c))))
+MODULES = $(addsuffix .o,$(filter-out ./test_%,$(basename $(wildcard $(SRC)/*.c))))
 TEST_MODULES = $(addsuffix .o,$(filter ./test_%,$(basename $(wildcard $(SRC)/*.c))))
+TEST_MODULES += ../lib_freader/libfreader.a ../lib_cons/libcons.a
 
 # Libraries need header files.  Set the following accordingly:
 HEADERS =
@@ -30,10 +31,10 @@ all: ${TARGET_SHARED} ${TARGET_STATIC}
 
 preview:
 	@echo Beginning build of ${TARGET_ROOT} libraries.
-	@echo ${TARGET_SHARED} shared library and
-	@echo ${TARGET_STATIC} static library, using modules
-	@echo modules: ${MODULES}
-	@echo test modules: $(TEST_MODULES)
+	@echo "shared library:" ${TARGET_SHARED}
+	@echo "static library:" ${TARGET_STATIC}
+	@echo "modules:       " ${MODULES}
+	@echo "test modules:  " $(TEST_MODULES)
 
 ${TARGET_SHARED}: ${MODULES}
 	${CC} ${CFLAGS} --shared -o $@ ${MODULES}
@@ -54,8 +55,8 @@ ${TARGET_STATIC}: ${MODULES}
 # 	install -D -mode=775 $(TARGET) $(PREFIX)/lib
 # 	ldconfig $(PREFIX)/lib
 
-test: $(TEST_MODULES)
-	$(CC) $(LDFLAGS) -o $(TARGET_TEST) $^ $(TARGET_STATIC) -ltinfo 
+test: $(TEST_MODULES) $(TARGET_STATIC)
+	$(CC) $(LDFLAGS) -o $(TARGET_TEST) $(TEST_MODULES) $(TARGET_STATIC) -ltinfo 
 
 # Remove the ones you don't need:
 uninstall:
