@@ -83,7 +83,7 @@ EXPORT void set_screen_margins(DPARMS *parms, int top, int right, int bottom, in
    parms->chars_left = left;
    parms->chars_count = cols - left - right;
 
-   PARAM_SET_SCROLL_LIMIT(parms, top, rows - bottom - 1);
+   PARAM_SET_SCROLL_LIMIT(parms, top, top + parms->line_count);
 }
 
 
