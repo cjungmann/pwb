@@ -46,6 +46,7 @@ ARV pager_focus_down_one(DPARMS *parms)
    // If there remains table rows below the focus
    if (parms->index_row_focus < table_last_index)
    {
+      // Change registered focus after unindicating current focus
       print_indexed_row(parms, parms->index_row_focus, 0);
       ++parms->index_row_focus;
 
