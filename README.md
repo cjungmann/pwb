@@ -20,6 +20,18 @@ This README page will include build and installation instructions
 as well as usage examples when I feel like it's stable enough to
 invite people to use it.
 
+## Bucketlist Example Projects using PWB with ATE:
+
+- LS_COLORS editing program.  
+  working references:
+  - `dircolors --print-ls-colors`  
+    shows current colors
+  - bash_patterns/README_cocolors.md  
+    makes connection between two-character codes and
+    the filetypes they reference
+
+- Viewer for git log output
+
 ## Development Resources
 
 I think I may be able to get most of the information from
