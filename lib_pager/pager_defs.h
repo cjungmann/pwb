@@ -33,7 +33,7 @@ typedef struct pwb_screen_funcs {
 } SCR_FUNCS;
 
 #define PARAM_GET_SCREEN_SIZE(p, rows, cols) (*(p)->funcs->size_getter)((rows),(cols))
-#define PARAM_SET_SCROLL_LIMIT(p, rows, cols) (*(p)->funcs->limiter)((top),(bottom))
+#define PARAM_SET_SCROLL_LIMIT(p, rows, cols) (*(p)->funcs->limiter)((rows),(cols))
 #define PARAM_CLEAR_SCROLL_LIMIT(p) (*(p)->funcs->unlimiter)()
 #define PARAM_MOVE(p,row,col) (*(p)->funcs->mover)((row),(col))
 #define PARAM_SCROLL_FORWARD(p) (*(p)->funcs->forward_one)()
