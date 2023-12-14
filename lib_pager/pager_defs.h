@@ -44,7 +44,7 @@ struct display_params {
    int index_row_top;       ///< index number of top row of source
    int index_row_focus;     ///< index of row that currently has focus'
 
-   // First three members are required parameters:
+   // Next four members are required parameters:
    void *data_source;       ///< passed to print function for printing lines
    int row_count;           ///< number of rows in the source
    pwb_print_line printer;  ///< function pointer to be called for each output line
