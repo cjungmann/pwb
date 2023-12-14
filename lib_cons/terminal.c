@@ -100,71 +100,29 @@ EXPORT bool get_termcap_string(const char **value, const char *capcode)
    return false;
 }
 
+/**
+ * @brief Prepare terminal to respond to an individual keystroke
+ *
+ * This function combines the function of possibly-missing function
+ * `cfmakeraw` for raw input along with setting read parameters to
+ * respond to a single keystroke.
+ *
+ * @param 'tos'   initialized termios variable to be modified
+ */
 void set_rawread_mode(struct termios* tos)
 {
-   // Perform cfxmakeraw() transformations:
+   // Perform cfxmakeraw() transformations (refer to
+   // cfmakeraw(3), search for 'Raw mode'):
    tos->c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP
                            |INLCR|IGNCR|ICRNL|IXON);
-
    tos->c_oflag &= ~OPOST;
-
    tos->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-
    tos->c_cflag &= ~(CSIZE|PARENB);
-
    tos->c_cflag |= CS8;
 
-   // set for immediate return, no timeout
+   // "read with interbyte timeout"
    tos->c_cc[VMIN] = 1;
    tos->c_cc[VTIME] = 1;
-}
-
-/**
- * @brief Change settings to raw terminal io mode
- *
- * Use `tcgetattr` for current settings, the `cf_make_row` to modify,
- * then `tcsetattr` to use the raw settings.
-
- * Code borrowd from not-guaranteed C library function.
- * cfmakeraw().
- *
- * @param "tos"  pointer to struct with valid termios values
- *
- * @code(c)
- * struct termios original, raw;
- * tcgetattr(STDOUT_FILENO, &original);
- * // Preserve original settings with copy to modify: 
- * raw = original;
- * my_cfmakeraw(&raw);
- * tcsetattr(STDOUT_FILENO, &raw);
- * work_with_row();
- * tcsetattr(&original);
- * @endcode
- */
-EXPORT void my_cfmakeraw(struct termios* tos)
-{
-   tos->c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP
-                           |INLCR|IGNCR|ICRNL|IXON);
-
-   tos->c_oflag &= ~OPOST;
-
-   tos->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-
-   tos->c_cflag &= ~(CSIZE|PARENB);
-
-   tos->c_cflag |= CS8;
-}
-
-/**
- * @brief Set read mode to existing, assuming original already saved
- */
-EXPORT void set_tios_read_mode(int fh, int min_chars, int timeout)
-{
-   struct termios orig;
-   tcgetattr(fh, &orig);
-   orig.c_cc[VMIN] = min_chars;
-   orig.c_cc[VTIME] = timeout;
-   tcsetattr(fh, TCSAFLUSH, &orig);
 }
 
 
