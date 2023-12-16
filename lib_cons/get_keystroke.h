@@ -2,6 +2,7 @@
 #define GET_KEYSTROKE_H
 
 #include <stdbool.h>
+#include <termios.h>
 
 void set_rawread_mode(struct termios* tos);
 
