@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "pager.h"
+#include "termstuff.h"
 
 ARV pager_quit(DPARMS *parms)
 {
@@ -12,7 +13,6 @@ ARV pager_activate(DPARMS *parms)
 {
    return ARV_REPLOT_DATA;
 }
-
 
 ARV pager_focus_up_one(DPARMS *parms)
 {
@@ -26,7 +26,7 @@ ARV pager_focus_up_one(DPARMS *parms)
       --parms->index_row_focus;
       if (parms->index_row_focus < parms->index_row_top)
       {
-         scroll_line_down(parms);
+         ti_scroll_reverse();
          --parms->index_row_top;
       }
 
@@ -51,9 +51,12 @@ ARV pager_focus_down_one(DPARMS *parms)
       ++parms->index_row_focus;
 
       int screen_last_index = get_index_bottom_line(parms);
-      if (parms->index_row_focus > screen_last_index)
+      if (parms->index_row_focus > screen_last_index + 1)
       {
-         scroll_line_up(parms);
+         int row = parms->line_top + parms->line_count;
+         int col = parms->chars_left + parms->chars_count;
+         ti_set_cursor_position(row, col);
+         ti_scroll_forward();
          ++parms->index_row_top;
       }
 
