@@ -277,8 +277,6 @@ int main(int argc, const char **argv)
    assert(argc>1);
    rval = run_pager(argv[1]);
 
-   get_keystroke(NULL,0);
-
    ti_cleanup_term();
 
    return rval;
