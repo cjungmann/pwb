@@ -60,7 +60,8 @@ void print_caps_key(void)
 
    const char *capval;
    char valbuff[128];
-   const char escstr[] = "\x1b[31;1m^[\x1b[m";
+   __attribute__((unused)) const char esc_color[] = "\x1b[31;1m^[\x1b[m";
+   const char *escstr = "^[";
 
    char fmt[64];
    snprintf(fmt, sizeof(fmt), "%%-%ds %%-%ds %%-%ds: %%s\n", maxname, maxcode, maxfname);
