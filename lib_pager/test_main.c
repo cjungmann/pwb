@@ -123,6 +123,15 @@
  */
 
 
+/**
+ * @brief Implementation of line printer function to be used in a DPARMs struct
+ *
+ * @param "row_index"   index of row in source data of the indicated line
+ * @param "indicated"   flag, highlight if *true*, normal if *false*
+ * @param "length"      number of characters to print (include spaces to fill line)
+ * @param "data_source" to be recase as appropriate data source from which to get data
+ * @return Number of characters printed, kind of meaningless.
+ */
 int lindex_print(int row_index, int indicated, int length, void *data_source)
 {
    LINDEX *lindex = (LINDEX*)data_source;
@@ -136,25 +145,6 @@ int lindex_print(int row_index, int indicated, int length, void *data_source)
       ti_write_str("\x1b[27m");
 
    return length;
-}
-
-
-int index_printer(int row_index, int indicated, int length, void *datasource)
-{
-   LINDEX *index = (LINDEX*)datasource;
-
-   if (row_index >= 0 && row_index < index->count)
-   {
-      if (indicated)
-         ti_start_standout();
-
-      ti_printf(get_lindex_line(index, row_index));
-
-      if (indicated)
-         ti_end_standout();
-   }
-
-   return 0;
 }
 
 typedef struct termcap_entry_action {
