@@ -3,15 +3,13 @@
 #include <unistd.h>
 #include <assert.h>
 
+#include <curses.h>  // for tigetstr, tiparm
+#include <term.h>
+
 #include "export.h"
+#include "termstuff.h"
 #include "pager.h"
 
-
-int get_index_bottom_limit(const DPARMS *parms)
-{
-   assert(parms);
-   return parms->index_row_top + parms->line_count;
-}
 
 int get_index_bottom_line(const DPARMS *parms)
 {
@@ -34,36 +32,21 @@ bool row_index_is_visible(const DPARMS *parms, int row_index)
 
 int get_line_index_from_row_index(const DPARMS *parms, int row_index)
 {
-   return row_index - parms->index_row_top;
+   return row_index - parms->index_row_top + parms->line_top;
 }
 
 void print_indexed_row(const DPARMS *parms, int row_index, bool has_focus)
 {
-   // static int prow, pcol;
-   // get_screen_size(&prow, &pcol);
-   int line = row_index - parms->index_row_top + 1;
-   PARAM_MOVE(parms, line, parms->chars_left);
-   (parms->printer)(row_index, has_focus, parms->chars_count, parms->data_source);
-}
-
-void scroll_line_up(const DPARMS *parms)
-{
-   int col = parms->chars_left + parms->chars_count;
-   PARAM_MOVE(parms, parms->line_count+1, col);
-   PARAM_SCROLL_FORWARD(parms);
-}
-
-void scroll_line_down(const DPARMS *parms)
-{
-   PARAM_MOVE(parms, 1, 1);
-   PARAM_SCROLL_REVERSE(parms);
+   int line = get_line_index_from_row_index(parms, row_index);
+   ti_set_cursor_position(line, parms->chars_left);
+   (*parms->printer)(row_index, has_focus, parms->chars_count, parms->data_source);
 }
 
 EXPORT void print_page(DPARMS *params)
 {
    int left = params->chars_left;
-   int line = 1;
-   int line_limit = line + params->line_count;
+   int line = params->line_top;
+   int line_limit = line + params->line_count + 1;
    int chars_count = params->chars_count;
 
    int row = params->index_row_top;
@@ -73,7 +56,8 @@ EXPORT void print_page(DPARMS *params)
 
    for (; line < line_limit; ++row, ++line)
    {
-      PARAM_MOVE(params, line, left);
+      // PARAM_MOVE(params, line, left);
+      ti_set_cursor_position(line, left);
       if (row <= end_row)
       {
          bool has_focus = row == params->index_row_focus;

@@ -9,6 +9,14 @@ typedef int (*pwb_print_line)(int row_index, int indicated, int length, void *da
 #include "pager_internal.h"
 
 /**
+ * @defgroup TI_TERMSTUFF Public functions in termstuff.c
+ * @{
+ */
+void ti_start_term(void);
+void ti_cleanup_term(void);
+/** @} */
+
+/**
  * @defgroup LIB_PUBLIC Public library functions
  * @brief Functions found in `pager_public.c`
  * @{
@@ -16,9 +24,7 @@ typedef int (*pwb_print_line)(int row_index, int indicated, int length, void *da
 void initialize_dparms(DPARMS *parms,
                        void *data_source,
                        int row_count,
-                       pwb_print_line printer,
-                       SCR_FUNCS *funcs
-   );
+                       pwb_print_line printer);
 
 void set_screen_margins(DPARMS *parms, int top, int right, int bottom, int left);
 void print_page(DPARMS *params);
