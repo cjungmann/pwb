@@ -10,6 +10,7 @@
 #include <sys/ioctl.h>    // for ioctl() in get_screen_size()
 
 #include "pager.h"
+#include "termstuff.h"
 #include "../lib_freader/freader.h"
 #include "../lib_cons/cons.h"
 
@@ -20,101 +21,101 @@
  * @{
  */
 
-void write_to_screen(const char *str)
-{
-   int len = strlen(str);
-   int bytes_written = write(STDOUT_FILENO, str, len);
-   assert(bytes_written = len);
-}
+// void write_to_screen(const char *str)
+// {
+//    int len = strlen(str);
+//    int bytes_written = write(STDOUT_FILENO, str, len);
+//    assert(bytes_written = len);
+// }
 
-int write_printf(const char *fmt, ...)
-{
-   static char s_buff[64];
-   char *buff = NULL;
-   int blen = sizeof(s_buff);
+// int write_printf(const char *fmt, ...)
+// {
+//    static char s_buff[64];
+//    char *buff = NULL;
+//    int blen = sizeof(s_buff);
 
-   va_list args;
-   va_start(args, fmt);
+//    va_list args;
+//    va_start(args, fmt);
 
-   int len = vsnprintf(NULL, 0, fmt, args);
+//    int len = vsnprintf(NULL, 0, fmt, args);
 
-   if (len <= 64)
-      buff = s_buff;
-   else
-   {
-      blen = len + 1;
-      buff = (char*)alloca(blen);
-   }
+//    if (len <= 64)
+//       buff = s_buff;
+//    else
+//    {
+//       blen = len + 1;
+//       buff = (char*)alloca(blen);
+//    }
 
-   va_start(args, fmt);
-   vsnprintf(buff, blen, fmt, args);
+//    va_start(args, fmt);
+//    vsnprintf(buff, blen, fmt, args);
 
-   write(STDOUT_FILENO, buff, len);
+//    write(STDOUT_FILENO, buff, len);
 
-   va_end(args);
+//    va_end(args);
 
-   return len;
-}
+//    return len;
+// }
 
-void pager_reset_screen(void)
-{
-   write_to_screen("\x1b[2J\x1b[1;1H");
-}
+// void pager_reset_screen(void)
+// {
+//    write_to_screen("\x1b[2J\x1b[1;1H");
+// }
 
-void pager_move_cursor(int row, int col)
-{
-   char buff[24];
-   int mlen = snprintf(buff, sizeof(buff), "\x1b[%d;%dH", row, col);
-   write(STDOUT_FILENO, buff, mlen);
-}
+// void pager_move_cursor(int row, int col)
+// {
+//    char buff[24];
+//    int mlen = snprintf(buff, sizeof(buff), "\x1b[%d;%dH", row, col);
+//    write(STDOUT_FILENO, buff, mlen);
+// }
 
-void pager_get_screen_size(int *row, int *col)
-{
-   (*row) = 0;
-   (*col) = 0;
-   struct winsize ws;
-   int result = ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
-   if (result == 0)
-   {
-      *row = ws.ws_row;
-      *col = ws.ws_col;
-   }
-}
+// void pager_get_screen_size(int *row, int *col)
+// {
+//    (*row) = 0;
+//    (*col) = 0;
+//    struct winsize ws;
+//    int result = ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
+//    if (result == 0)
+//    {
+//       *row = ws.ws_row;
+//       *col = ws.ws_col;
+//    }
+// }
 
-void pager_set_scroll_limits(int top, int bottom)
-{
-   char buff[24];
-   int mlen = snprintf(buff, sizeof(buff), "\x1b[%d;%dr", top, bottom);
-   write(STDOUT_FILENO, buff, mlen);
-   write_to_screen("\x1b[?6h");  // set coordinates to scroll-region area
-}
+// void pager_set_scroll_limits(int top, int bottom)
+// {
+//    char buff[24];
+//    int mlen = snprintf(buff, sizeof(buff), "\x1b[%d;%dr", top, bottom);
+//    write(STDOUT_FILENO, buff, mlen);
+//    write_to_screen("\x1b[?6h");  // set coordinates to scroll-region area
+// }
 
-void pager_clear_scroll_limits(void)
-{
-   pager_set_scroll_limits(1, 1000);
-   write_to_screen("\x1b[?6l");  // set cursor address to window region
-}
+// void pager_clear_scroll_limits(void)
+// {
+//    pager_set_scroll_limits(1, 1000);
+//    write_to_screen("\x1b[?6l");  // set cursor address to window region
+// }
 
-void pager_hide_cursor(void)
-{
-   write_to_screen("\x1b[?25l");
-}
+// void pager_hide_cursor(void)
+// {
+//    write_to_screen("\x1b[?25l");
+// }
 
-void pager_restore_cursor(void)
-{
-   write_to_screen("\x1b[?25h");
-}
+// void pager_restore_cursor(void)
+// {
+//    write_to_screen("\x1b[?25h");
+// }
 
-void select_forward_line(void)
-{
-   write_to_screen("\x0A");
-   // write_to_screen("\x1b[D");  // Linefeed, text moves up
-}
+// void select_forward_line(void)
+// {
+//    write_to_screen("\x0A");
+//    // write_to_screen("\x1b[D");  // Linefeed, text moves up
+// }
 
-void select_reverse_line(void)
-{
-   write_to_screen("\x1bM");  // Reverse-linefeed, text moves down
-}
+// void select_reverse_line(void)
+// {
+//    write_to_screen("\x1bM");  // Reverse-linefeed, text moves down
+// }
 
 /**
  * end of TEMP_TERM_FUNCS group
@@ -122,11 +123,21 @@ void select_reverse_line(void)
  */
 
 
+int lindex_print(int row_index, int indicated, int length, void *data_source)
+{
+   LINDEX *lindex = (LINDEX*)data_source;
+   const char *str = get_lindex_line(lindex, row_index);
+   if (indicated)
+      ti_write_str("\x1b[7m");
 
-SCR_FUNCS scrf = {
-   pager_move_cursor, pager_get_screen_size, pager_set_scroll_limits,
-   pager_clear_scroll_limits, pager_hide_cursor, pager_restore_cursor,
-   select_forward_line, select_reverse_line };
+   ti_printf("%-*s", length, str);
+
+   if (indicated)
+      ti_write_str("\x1b[27m");
+
+   return length;
+}
+
 
 int index_printer(int row_index, int indicated, int length, void *datasource)
 {
@@ -135,12 +146,12 @@ int index_printer(int row_index, int indicated, int length, void *datasource)
    if (row_index >= 0 && row_index < index->count)
    {
       if (indicated)
-         write_to_screen("\x1b[7m");
+         ti_start_standout();
 
-      write_printf(get_lindex_line(index, row_index));
+      ti_printf(get_lindex_line(index, row_index));
 
       if (indicated)
-         write_to_screen("\x1b[27m");
+         ti_end_standout();
    }
 
    return 0;
@@ -176,81 +187,22 @@ int handle_keystroke(const char *kstk, TCE_ACTION *ta_keys, DPARMS *parms)
 
 void test_pager_move_cursor(void)
 {
+   printf("In test_pager_move_cursor\n");
    for (int row=10, col=20; row<20; ++row, col+=8)
    {
-      pager_move_cursor(row, col);
-      write_printf("row: %d, col: %d", row, col);
+      ti_set_cursor_position(row, col);
+      ti_printf("row: %d, col: %d", row, col);
    }
 }
-
-/**
- * @brief Test behavior of scroll region
- *
- * For reference:
- * - pager_reset_screen
- * - pager_get_screen_size
- * - pager_set_scroll_limits
- * - pager_move_cursor
- * - select_forward_line
- * - select_reverse_line
- *
- * - write_to_screen
- * - write_printf
- */
-void test_scroll_window_addressing(void)
-{
-   int rows_size, cols_size;
-   pager_get_screen_size(&rows_size, &cols_size);
-
-   int marg_top = 0, marg_bottom = 0;
-   int window_size = 3;
-   int total_vertical_margins = rows_size - window_size;
-   if (total_vertical_margins % 2)
-   {
-      marg_top = (total_vertical_margins + 1) / 2;
-      marg_bottom = marg_top - 1;
-   }
-   else
-      marg_top = marg_bottom = total_vertical_margins / 2;
-
-   pager_set_scroll_limits(marg_top, marg_top + window_size);
-
-   pager_reset_screen();
-
-   int row;
-   for (row=0; row < 4; ++row)
-   {
-      pager_move_cursor(row,1);
-      write_printf("Coordinates %d:%d", row, 1);
-   }
-
-   get_keystroke(NULL,0);
-
-   pager_move_cursor(row, 1);
-   select_forward_line();
-   pager_move_cursor(row-1, 1);
-   write_printf("Coordinates %d:%d", row, 1);
-
-   get_keystroke(NULL,0);
-
-   pager_move_cursor(1,1);
-   select_reverse_line();
-   write_printf("Coordinates %d:%d", 3, 1);
-
-   get_keystroke(NULL,0);
-
-   pager_set_scroll_limits(1, rows_size);
-}
-
 
 int run_page(LINDEX *index)
 {
-   pager_reset_screen();
+   ti_reset_screen();
 
    fill_termcap_array((TCENTRY*)keys, sizeof(TCE_ACTION));
 
    DPARMS parms = { 0 };
-   initialize_dparms(&parms, index, index->count, index_printer, &scrf);
+   initialize_dparms(&parms, index, index->count, lindex_print);
 
    set_screen_margins(&parms, 4, 4, 4, 4);
    print_page(&parms);
@@ -265,7 +217,7 @@ int run_page(LINDEX *index)
          handle_keystroke(ks, keys, &parms);
    }
 
-   pager_set_scroll_limits(1, 999);
+   ti_set_scroll_limit(1, 999);
    return 0;
 }
 
@@ -313,6 +265,7 @@ int run_pager(const char *file)
       LINDEX *lindex = index_lines(fstream);
       if (lindex)
       {
+         run_page(lindex);
          destroy_lindex(lindex);
       }
    }
@@ -320,17 +273,23 @@ int run_pager(const char *file)
    return 0;
 }
 
+bool get_term_values(void);
 int main(int argc, const char **argv)
 {
    int rval = 0;
 
+   ti_start_term();
+
    // test_pager_move_cursor();
-   // test_scroll_window_addressing();
    // rval = test_print_page(argc, argv);
 
    // Group the next two together, commented or not:
    assert(argc>1);
    rval = run_pager(argv[1]);
+
+   get_keystroke(NULL,0);
+
+   ti_cleanup_term();
 
    return rval;
 }
