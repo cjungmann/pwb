@@ -5,17 +5,12 @@
  * @defgroup DPARMS_info Extract information from DPARMs instance
  * @{
  */
-int get_index_bottom_limit(const DPARMS *parms);
 int get_index_bottom_line(const DPARMS *parms);
 bool row_index_is_visible(const DPARMS *parms, int row_index);
 int get_line_index_from_row_index(const DPARMS *parms, int row_index);
 /** @} */
 
 void print_indexed_row(const DPARMS *parms, int row_index, bool has_focus);
-
-void scroll_line_up(const DPARMS *parms);
-void scroll_line_down(const DPARMS *parms);
-
 void print_page(DPARMS *params);
 
 
