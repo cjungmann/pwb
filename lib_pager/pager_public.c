@@ -3,6 +3,7 @@
 #include <term.h>
 
 #include "export.h"
+#include "termstuff.h"
 #include "pager.h"
 
 
@@ -29,15 +30,13 @@
 EXPORT void initialize_dparms(DPARMS *parms,
                               void *data_source,
                               int row_count,
-                              pwb_print_line printer,
-                              SCR_FUNCS *funcs
+                              pwb_print_line printer
    )
 {
    memset(parms, 0, sizeof(DPARMS));
    parms->data_source = data_source;
    parms->row_count = row_count;
    parms->printer = printer;
-   parms->funcs = funcs;
 
    parms->index_row_top = 0;
    parms->index_row_focus = 0;
@@ -76,14 +75,16 @@ EXPORT void set_screen_margins(DPARMS *parms, int top, int right, int bottom, in
       left = right;
 
    int rows, cols;
-   PARAM_GET_SCREEN_SIZE(parms, &rows, &cols);
+   ti_get_screen_size(&rows, &cols);
 
    parms->line_top = top;
    parms->line_count = rows - top - bottom;
    parms->chars_left = left;
    parms->chars_count = cols - left - right;
 
-   PARAM_SET_SCROLL_LIMIT(parms, top, top + parms->line_count);
+   ti_set_scroll_limit(top, parms->line_count);
+
+   // PARAM_SET_SCROLL_LIMIT(parms, top, top + parms->line_count);
 }
 
 
