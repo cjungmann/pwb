@@ -17,6 +17,18 @@ typedef enum action_return_values {
  */
 typedef ARV (*PACTION)(DPARMS*);
 
+
+typedef struct keymap KEYMAP;
+
+typedef char *(*KEYSTROKE_GETTER)(char *buff, int buff_len);
+typedef ARV (*KEYCALL)(KEYMAP *km, DPARMS *parms, const char *keystroke);
+
+struct keymap {
+   KEYCALL kc_func;
+};
+
+
+
 struct display_params {
    // Default top and focus rows is 0 (first record of data source):
    int index_row_top;       ///< index number of top row of source
@@ -38,26 +50,6 @@ struct display_params {
    int line_count;          ///< number of screen lines in region
    int chars_left;          ///< left margin
    int chars_count;         ///< number of characters to print per line
-};
-
-
-enum drive_values {
-   PAGER_EXIT = 0,
-   PAGER_SELECT,
-   // Movement actions:
-   FOCUS_DOWN_ONE,
-   FOCUS_UP_ONE,
-   FOCUS_DOWN_PAGE,
-   FOCUS_UP_PAGE,
-   FOCUS_END,
-   FOCUS_HOME,
-   // Future actions
-   SCROLL_DOWN_ONE,
-   SCROLL_UP_ONE,
-   SCROLL_DOWN_PAGE,
-   SCROLL_UP_PAGE,
-   SCROLL_END,
-   SCROLL_HOME
 };
 
 
