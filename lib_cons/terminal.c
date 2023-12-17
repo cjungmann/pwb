@@ -146,9 +146,14 @@ EXPORT void fill_termcap_array(TCENTRY* array, int entry_len)
    TCENTRY *tcp;
    while ((tcp=(TCENTRY*)ptr)->name)
    {
-      char *val = tigetstr(tcp->name);
-      if (val)
-         tcp->value = val;
+      // Skip entries with empty names, they contain hard-coded
+      // keystroke strings:
+      if (*tcp->name)
+      {
+         char *val = tigetstr(tcp->name);
+         if (val)
+            tcp->value = val;
+      }
 
       ptr += entry_len;
    }
