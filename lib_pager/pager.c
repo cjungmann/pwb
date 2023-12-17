@@ -11,37 +11,6 @@
 #include "pager.h"
 
 
-int get_index_bottom_line(const DPARMS *parms)
-{
-   assert(parms);
-   // int index = parms->index_row_top + parms->line_count - 1;
-   int index = parms->line_count - 1;
-
-   if (index > parms->row_count - 1)
-      index = parms->row_count - 1;
-
-   return index;
-}
-
-bool row_index_is_visible(const DPARMS *parms, int row_index)
-{
-   int bottom_row = parms->index_row_top + parms->line_count;
-   // return row_index >= parms->index_row_top && row_index < bottom_row;
-   return row_index >= parms->index_row_top && row_index < bottom_row;
-}
-
-int get_line_index_from_row_index(const DPARMS *parms, int row_index)
-{
-   return row_index - parms->index_row_top + parms->line_top;
-}
-
-void print_indexed_row(const DPARMS *parms, int row_index, bool has_focus)
-{
-   int line = get_line_index_from_row_index(parms, row_index);
-   ti_set_cursor_position(line, parms->chars_left);
-   (*parms->printer)(row_index, has_focus, parms->chars_count, parms->data_source);
-}
-
 EXPORT void print_page(DPARMS *params)
 {
    int left = params->chars_left;
@@ -69,3 +38,21 @@ EXPORT void print_page(DPARMS *params)
 }
 
 
+EXPORT int pager_begin(DPARMS *parms, KEYMAP *keymap, KEYSTROKE_GETTER ksg)
+{
+   ti_reset_screen();
+   print_page(parms);
+
+   char keybuff[24];
+   ARV arv = ARV_CONTINUE;
+
+   while(arv != ARV_EXIT)
+   {
+      const char *ks = (*ksg)(keybuff, sizeof(keybuff));
+      arv = (*keymap->kc_func)(keymap, parms, ks);
+      if (arv == ARV_REPLOT_DATA)
+         print_page(parms);
+   }
+
+   return 0;
+}
