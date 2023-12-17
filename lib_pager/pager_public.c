@@ -7,26 +7,13 @@
 #include "pager.h"
 
 
-// EXPORT void update_keymap_values(PKMAP *kmap, int el_size)
-// {
-//    char *ptr = (char*)kmap;
-//    PKMAP *pkm;
-//    while ((pkm=(PKMAP*)ptr)->action_index >= 0)
-//    {
-//       const char *name = pkm->capname;
-//       if (strlen(name) > 1 && name[0] == 'k')
-//       {
-//          char *val = tigetstr(pkm->capname);
-//          if (val)
-//             pkm->value = val;
-//       }
-//       else
-//          pkm->value = name;
-
-//       ptr += el_size;
-//    }
-// }
-
+/**
+ * @brief Sets up a DPARMS variable with minimum necessary values.
+ * @param "parms"       struct to be initialized
+ * @param "data_source" pointer to datasource to be used for content
+ * @param "row_count"   number of records/rows in data source
+ * @param "printer"     function to be used for printing lines
+ */
 EXPORT void initialize_dparms(DPARMS *parms,
                               void *data_source,
                               int row_count,
@@ -86,33 +73,4 @@ EXPORT void set_screen_margins(DPARMS *parms, int top, int right, int bottom, in
 
    // PARAM_SET_SCROLL_LIMIT(parms, top, top + parms->line_count);
 }
-
-
-// EXPORT void start_pager(DPARMS *params)
-// {
-//    reset_screen();
-//    pwb_enter_ca_mode();
-
-//    char kbuff[20];
-//    ARV action_return = ARV_REPLOT_DATA;
-
-//    while (action_return != ARV_EXIT)
-//    {
-//       if (action_return == ARV_REPLOT_DATA)
-//          print_page(params);
-
-//       action_return = ARV_CONTINUE;
-
-//       char *keys = get_keystroke(kbuff, sizeof(kbuff));
-//       if (keys)
-//       {
-//          PACTION action = page_get_action(params, keys);
-//          if (action)
-//             action_return = (*action)(params);
-//       }
-//    }
-
-//    clear_scroll_limits();
-//    pwb_exit_ca_mode();
-// }
 
