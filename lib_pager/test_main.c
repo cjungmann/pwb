@@ -89,8 +89,8 @@ int handle_keystroke(const char *kstk, TCE_ACTION *ta_keys, DPARMS *parms)
 void prepare_DPARMS(DPARMS *parms, LINDEX *index)
 {
    memset(parms, 0, sizeof(DPARMS));
-   initialize_dparms(parms, index, index->count, lindex_print);
-   set_screen_margins(parms, 4, 4, 4, 4);
+   pager_init_dparms(parms, index, index->count, lindex_print);
+   pager_set_margins(parms, 4, 4, 4, 4);
 }
 
 void prepare_KM_TEST(KM_TEST *km)
