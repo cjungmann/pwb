@@ -123,7 +123,7 @@ bool get_code_values(void)
  * @brief Unbuffered write string to STDOUT to run the terminal
  * @param "str"   String to write
  */
-void ti_write_str(const char *str)
+EXPORT void ti_write_str(const char *str)
 {
    int len = strlen(str);
    write(STDOUT_FILENO, str, len);
@@ -141,7 +141,7 @@ void ti_write_str(const char *str)
  * `vsnprintf` is called a second time to render the output.  When
  * the string is ready, it is output to the screen with `write`.
  */
-int ti_printf(const char *fmt, ...)
+EXPORT int ti_printf(const char *fmt, ...)
 {
    static char s_buff[64];
    char *buff = NULL;
