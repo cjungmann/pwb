@@ -14,11 +14,10 @@
  * @param "row_count"   number of records/rows in data source
  * @param "printer"     function to be used for printing lines
  */
-EXPORT void initialize_dparms(DPARMS *parms,
+EXPORT void pager_init_dparms(DPARMS *parms,
                               void *data_source,
                               int row_count,
-                              pwb_print_line printer
-   )
+                              pwb_print_line printer)
 {
    memset(parms, 0, sizeof(DPARMS));
    parms->data_source = data_source;
@@ -28,7 +27,7 @@ EXPORT void initialize_dparms(DPARMS *parms,
    parms->index_row_top = 0;
    parms->index_row_focus = 0;
 
-   set_screen_margins(parms, 0, 0, 0, 0);
+   pager_set_margins(parms, 0, 0, 0, 0);
 }
 
 /**
@@ -46,7 +45,7 @@ EXPORT void initialize_dparms(DPARMS *parms,
  *   and @p right applies to @p right and @p left.
  * - only@p top, @p right, and @p bottom set, @p right applies to @p right and @p left.
  */
-EXPORT void set_screen_margins(DPARMS *parms, int top, int right, int bottom, int left)
+EXPORT void pager_set_margins(DPARMS *parms, int top, int right, int bottom, int left)
 {
    // Adjust to missing values
    if (top < 0)
@@ -70,7 +69,5 @@ EXPORT void set_screen_margins(DPARMS *parms, int top, int right, int bottom, in
    parms->chars_count = cols - left - right;
 
    ti_set_scroll_limit(top, parms->line_count);
-
-   // PARAM_SET_SCROLL_LIMIT(parms, top, top + parms->line_count);
 }
 
