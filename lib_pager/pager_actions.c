@@ -20,6 +20,12 @@ int get_index_bottom_line(const DPARMS *parms)
    return index;
 }
 
+/**
+ * @brief Test for row visibility to help decide if replot is necessary
+ * @param "parms"     Active pager control data
+ * @param "row_index" location in data source for which the test is run.
+ * @return `true` if the row is visible, `false` if not.
+ */
 bool row_index_is_visible(const DPARMS *parms, int row_index)
 {
    int bottom_row = parms->index_row_top + parms->line_count;
@@ -27,11 +33,20 @@ bool row_index_is_visible(const DPARMS *parms, int row_index)
    return row_index >= parms->index_row_top && row_index < bottom_row;
 }
 
+/**
+ * @brief Alias for calculation for clarity of intention
+ */
 int get_line_index_from_row_index(const DPARMS *parms, int row_index)
 {
    return row_index - parms->index_row_top + parms->line_top;
 }
 
+/**
+ * @brief Internal function to print a row using print function pointer in `parms'.
+ * @param "parms"     Active pager control data
+ * @param "row_index" index in data source for row to be printed
+ * @param "has_focus" flag to trigger printing line in standout mode
+ */
 void print_indexed_row(const DPARMS *parms, int row_index, bool has_focus)
 {
    int line = get_line_index_from_row_index(parms, row_index);
