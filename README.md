@@ -36,6 +36,12 @@ invite people to use it.
 
 I think I may be able to get most of the information from
 
+- I'd like to eventually support displaying **man** pages.
+  Use the following statment to access raw text with overstrike
+  characters for bold and underline/italic:
+
+  `MAN_KEEP_FORMATTING=1 man 2 pipe > pipe.txt`
+
 - **curs_terminfo(3x)**  
   Functions that can read and write to a console, especially
   for retrieving machine-specific console codes.
