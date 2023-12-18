@@ -5,6 +5,9 @@
 void ti_write_str(const char *str);
 int ti_printf(const char *fmt, ...);
 
+void ti_start_term(void);
+void ti_cleanup_term(void);
+
 void ti_reset_screen(void);
 void ti_set_cursor_position(int row, int col);
 void ti_get_cursor_position(int *row, int *col);
