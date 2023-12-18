@@ -28,12 +28,12 @@ void initialize_dparms(DPARMS *parms,
 void set_screen_margins(DPARMS *parms, int top, int right, int bottom, int left);
 void print_page(DPARMS *params);
 
-int pager_begin(DPARMS *parms, KEYMAP *keymap, KEYSTROKE_GETTER get_keystroke);
 
 // void start_pager(DPARMS *parms);
 
 /** @} */
 
+int pager_begin(DPARMS *parms, KEYMAP *keymap, KEYSTROKE_GETTER get_keystroke);
 
 ARV pager_quit(DPARMS *parms);
 ARV pager_activate(DPARMS *parms);
