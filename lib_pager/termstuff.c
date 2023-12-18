@@ -22,27 +22,10 @@
  *
  * The values can be set by hand in a testing environment
  */
-struct termcap_value {
+typedef struct termcap_value {
    const char *name;
    const char *value;
-};
-
-typedef struct termcap_value TCVAL;
-struct termcap_value term_vals[] = {
-   { "clear" },              // reset screen
-   { "cup"   },              // cursor address (move cursor to row;col)
-   { "u7"    },              // cursor position report (get cursor position)
-   { "csr"   },              // change scroll region
-   { "ind"   },              // scroll forward (up)
-   { "ri"    },              // scroll reverse (down)
-   { "civis" },              // make cursor invisible
-   { "cnorm" },              // make cursor normal (visible but not bold)
-   { "smso"  },              // enter standout mode
-   { "rmso"  },              // exit standout mode
-   { "smcup" },              // enter CA mode
-   { "rmcup" },              // exit CA mode
-   { NULL }
-};
+} TCVAL;
 
 TCVAL code_vals[] = {
    { "cl" },              // 'clear' reset screen
@@ -90,31 +73,11 @@ enum term_indexes {
 #define EXIT_CA_MODE_STR          code_vals[TI_EXIT_CA_MODE].value
 
 
-bool get_term_values(void)
-{
-   TCVAL *ptr = term_vals;
-   while (ptr->name)
-   {
-      const char *val = tigetstr(ptr->name);
-      if ((*(int*)val) == -1)
-      {
-         printf("%s is not a capability string (misspelled?).\n", ptr->name);
-         return false;
-      }
-      else if ((*(int*)val) == 0)
-      {
-         printf("%s is not supported.\n", ptr->name);
-         return false;
-      }
-      else
-         ptr->value = val;
-
-      ++ptr;
-   }
-
-   return true;
-}
-
+/**
+ * @brief Get terminfo value from environment if possible
+ * @param "code"   2-character Termcap code identifying the value
+ * @return terminfo value if found, NULL if not found.
+ */
 const char *get_less_termcap_val(const char *code)
 {
    static char ename[] = "LESS_TERMCAP_xx";
@@ -128,6 +91,10 @@ const char *get_less_termcap_val(const char *code)
    return getenv(ename);
 }
 
+/**
+ * @brief Populate the value members of the global array of TCVAL elements.
+ * @return *true* if successful, *false* for any errors.
+ */
 bool get_code_values(void)
 {
    TCVAL *ptr = code_vals;
@@ -152,7 +119,10 @@ bool get_code_values(void)
 }
 
 
-
+/**
+ * @brief Unbuffered write string to STDOUT to run the terminal
+ * @param "str"   String to write
+ */
 void ti_write_str(const char *str)
 {
    int len = strlen(str);
@@ -160,6 +130,17 @@ void ti_write_str(const char *str)
    // tputs(str, 1, putchar);
 }
 
+/**
+ * @brief Unbuffered two-pass printf to STDOUT
+ * @param "fmt"    format string aux `printf`
+ * @param "..."    values matching tokens in @p fmt
+ * @return number of characters written to the stream
+ *
+ * This function calls `vsnprintf` twice, once to learn the rendered
+ * size of the output, then, after allocating sufficient memory,
+ * `vsnprintf` is called a second time to render the output.  When
+ * the string is ready, it is output to the screen with `write`.
+ */
 int ti_printf(const char *fmt, ...)
 {
    static char s_buff[64];
@@ -190,7 +171,12 @@ int ti_printf(const char *fmt, ...)
    return len;
 }
 
-
+/**
+ * @brief Collect terminal strings and set up screen to run the pager
+ * This should be run once at the beginning of a program to prepare
+ * everything, and its companion function, @ref ti_cleanup_term,
+ * should be called at the end to undo what this function does.
+ */
 EXPORT void ti_start_term(void)
 {
    // Let setupterm notify and exit on error:
@@ -201,33 +187,44 @@ EXPORT void ti_start_term(void)
    ti_reset_screen();
 }
 
+/**
+ * @brief Companion to @ref ti_start_term to restore the terminal
+ * Return the terminal to assumed previous state including maximum
+ * scroll limits.
+ */
 EXPORT void ti_cleanup_term(void)
 {
+   // Unset scroll limits with a fresh accounting of the screen size:
+   int row, col;
+   ti_get_screen_size(&row, &col);
+   ti_set_scroll_limit(0,row);
+
    ti_write_str(EXIT_CA_MODE_STR);
 }
 
+/** @brief Clear screen and home cursor */
 EXPORT void ti_reset_screen(void)
 {
    ti_write_str(CLEAR_STR);
 }
 
-EXPORT void ti_start_standout(void)
-{
-   ti_write_str(ENTER_STANDOUT_MODE_STR);
-}
-
-EXPORT void ti_end_standout(void)
-{
-   ti_write_str(EXIT_STANDOUT_MODE_STR);
-}
-
-void ti_set_cursor_position(int row, int col)
+/**
+ * @brief Move cursor to requested position.
+ * @param "row"   vertical, or `Y` text line position for cursor
+ * @param "col"   horizontal, or `X` character position for cursor
+ */
+EXPORT void ti_set_cursor_position(int row, int col)
 {
    const char *str = tiparm(MOVE_CURSOR_STR, row, col);
    ti_write_str(str);
 }
 
-void ti_get_cursor_position(int *row, int *col)
+/**
+ * @brief Read cursor position, especially for getting screen size
+ * @param "row"   int variable pointer where the row position will be returned
+ * @param "col"   int variable pointer where the column position will be returned
+*/
+EXPORT void ti_get_cursor_position(int *row, int *col)
 {
    int fh = STDOUT_FILENO;
    ti_write_str(REPORT_CURSOR_STR);
@@ -243,7 +240,12 @@ void ti_get_cursor_position(int *row, int *col)
    tcsetattr(fh, TCSANOW, &original);
 }
 
-void ti_get_screen_size(int *rows, int *cols)
+/**
+ * @brief Return screen size in rows and columns
+ * @param "rows"   int variable pointer to return screen size in rows
+ * @param "cols"   int variable pointer to return screen size in columns
+ */
+EXPORT void ti_get_screen_size(int *rows, int *cols)
 {
    (*rows) = 0;
    (*cols) = 0;
@@ -264,10 +266,41 @@ void ti_get_screen_size(int *rows, int *cols)
    }
 }
 
-void ti_set_scroll_limit(int top, int count)
+/**
+ * @brief Create a vertical scroll window to enable proper scrolling
+ * @param "top"   index of the top row to print
+ * @param "count" number of rows in the scroll window
+ *
+ * Using a relative value, @p count, to set the bottom value.
+ */
+EXPORT void ti_set_scroll_limit(int top, int count)
 {
    const char *str = tiparm(SCROLL_REGION_STR, top, top + count);
    ti_write_str(str);
+}
+
+
+/**
+ * @brief Set terminal parameters for indicating row with focus
+ *
+ * Note that this uses terminfo value `so` to set the terminal.
+ * an end-user could change the value by setting an environment
+ * variable, `LESS_TERMCAP_so`, to personal favorite terminal string
+ */
+EXPORT void ti_start_standout(void)
+{
+   ti_write_str(ENTER_STANDOUT_MODE_STR);
+}
+
+/**
+ * @brief Called to reverse what was set in @ref ti_start_standout.
+ * This value can be overridden by setting `LESS_TERMCAP_se`, which
+ * is especially appropriate if `LESS_TERMCAP_so` was set to
+ * modify how a line is indicated.
+ */
+EXPORT void ti_end_standout(void)
+{
+   ti_write_str(EXIT_STANDOUT_MODE_STR);
 }
 
 /**
