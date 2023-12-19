@@ -42,6 +42,12 @@ I think I may be able to get most of the information from
 
   `MAN_KEEP_FORMATTING=1 man 2 pipe > pipe.txt`
 
+  Use the MANWIDTH environment variable to limit line length.
+  This example makes 80 character line lengths after accounting
+  for the bold and underline overstrikes:
+
+  `MANWIDTH=80 MAN_KEEP_FORMATTING=1 man pipe > pipe.txt`
+
 - **curs_terminfo(3x)**  
   Functions that can read and write to a console, especially
   for retrieving machine-specific console codes.
