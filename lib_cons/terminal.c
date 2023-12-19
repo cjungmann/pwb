@@ -120,7 +120,7 @@ void set_rawread_mode(struct termios* tos)
    tos->c_cflag &= ~(CSIZE|PARENB);
    tos->c_cflag |= CS8;
 
-   // "read with interbyte timeout"
+   // termios(3), search "read with interbyte timeout"
    tos->c_cc[VMIN] = 1;
    tos->c_cc[VTIME] = 1;
 }
