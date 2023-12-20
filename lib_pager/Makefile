@@ -19,7 +19,8 @@ LFLAGS += --shared
 # Build module list (info make -> "Functions" -> "File Name Functions")
 MODULES = $(addsuffix .o,$(filter-out ./test_%,$(basename $(wildcard $(SRC)/*.c))))
 TEST_MODULES = $(addsuffix .o,$(filter ./test_%,$(basename $(wildcard $(SRC)/*.c))))
-TEST_MODULES += ../lib_freader/libfreader.a ../lib_cons/libcons.a
+TEST_LIBS    = ../lib_freader/libfreader.a ../lib_cons/libcons.a
+# TEST_MODULES += ../lib_freader/libfreader.a ../lib_cons/libcons.a
 
 # Libraries need header files.  Set the following accordingly:
 HEADERS =
@@ -56,7 +57,7 @@ ${TARGET_STATIC}: ${MODULES}
 # 	ldconfig $(PREFIX)/lib
 
 test: $(TEST_MODULES) $(TARGET_STATIC)
-	$(CC) $(LDFLAGS) -o $(TARGET_TEST) $(TEST_MODULES) $(TARGET_STATIC) -ltinfo 
+	$(CC) $(LDFLAGS) -o $(TARGET_TEST) $(TEST_MODULES) $(TEST_LIBS) $(TARGET_STATIC) -ltinfo 
 
 # Remove the ones you don't need:
 uninstall:
@@ -65,8 +66,11 @@ uninstall:
 	rm -f $(PREFIX)/include/$(HEADERS)
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET_SHARED)
+	rm -f $(TARGET_STATIC)
 	rm -f $(MODULES)
+	rm -f $(TARGET_TEST)
+	rm -f $(TEST_MODULES)
 
 help:
 	@echo "Makefile options:"
