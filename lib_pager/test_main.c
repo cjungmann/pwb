@@ -31,7 +31,10 @@ int lindex_print(int row_index, int indicated, int length, void *data_source)
    if (indicated)
       ti_write_str("\x1b[7m");
 
-   ti_printf("%-*s", length, str);
+   char *buff = (char*)alloca(length+1);
+   snprintf(buff, length+1, "%-*s", length, str);
+   ti_write_str(buff);
+   // ti_printf("%-*s", length, str);
 
    if (indicated)
       ti_write_str("\x1b[27m");
@@ -102,38 +105,62 @@ void prepare_KM_TEST(KM_TEST *km)
 
 int run_with_keymap(const char *file)
 {
-   FILE *fstream = fopen(file, "r");
-   if (fstream)
+   LINDEX *lindex = NULL;
+
+   if (file)
    {
-      LINDEX *lindex = index_lines(fstream);
-      if (lindex)
+      FILE *fstream = fopen(file, "r");
+      if (fstream)
       {
-         DPARMS parms;
-         prepare_DPARMS(&parms, lindex);
-         KM_TEST km_test;
-         prepare_KM_TEST(&km_test);
-
-         pager_begin(&parms, (KEYMAP*)&km_test, get_keystroke);
-
-         destroy_lindex(lindex);
+         printf("Opening file %s.\n", file);
+         lindex = index_lines(fstream);
+         fclose(fstream);
       }
+      else
+      {
+         printf("Failed to open file '%s'.\n", file);
+         return 1;
+      }
+   }
+   else
+   {
+      printf("Using stdin for content.\n");
+      lindex = index_lines(stdin);
+
+      // After exhausing stdin, restart it for user input:
+      __attribute__((unused))
+      FILE* kbtty = freopen("/dev/tty", "r", stdin);
+   }
+
+   if (lindex)
+   {
+      DPARMS parms;
+      prepare_DPARMS(&parms, lindex);
+      KM_TEST km_test;
+      prepare_KM_TEST(&km_test);
+
+      // // Fill screen with 'E's to debug pager coverate
+      // ti_write_str("\x1b#8");
+
+      pager_begin(&parms, (KEYMAP*)&km_test, get_keystroke);
+
+      destroy_lindex(lindex);
    }
 
    return 0;
 }
 
-bool get_term_values(void);
 int main(int argc, const char **argv)
 {
    int rval = 0;
 
+   // printf("Pausing to permit deubgger attachment.");
+   // get_keystroke(NULL,0);
+
    ti_start_term();
-
-   if (argc > 1)
-   {
-      rval = run_with_keymap(argv[1]);
-   }
-
+   ti_hide_cursor();
+   rval = run_with_keymap(argv[1]);
+   ti_show_cursor();
    ti_cleanup_term();
 
    return rval;
