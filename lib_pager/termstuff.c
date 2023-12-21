@@ -28,12 +28,12 @@ typedef struct termcap_value {
 } TCVAL;
 
 TCVAL code_vals[] = {
-   { "cl" },              // 'clear' reset screen
-   { "cm" },              // 'cm'   cursor address (move to row;col)
-   { "u7" },              // 'u7' conventional cursor position report
-   { "cs" },              // 'csr' change scroll region
-   { "sf" },              // 'ind' scroll forward
-   { "sr" },              //  'ri' scroll reverse
+   { "cl" },              // 'clear'  reset screen
+   { "cm" },              // 'cm'     cursor address (move to row;col)
+   { "u7" },              // 'u7'     conventional cursor position report
+   { "cs" },              // 'csr'    change scroll region
+   { "sf" },              // 'ind'    scroll forward
+   { "sr" },              //  'ri'    scroll reverse
    { "vi" },              // 'civis'  cursor invisible
    { "ve" },              // 'cnorm'  normal cursor
    { "so" },              // 'smso'   enter standout mode
@@ -184,7 +184,7 @@ EXPORT void ti_start_term(void)
    // get_term_values();
    get_code_values();
    ti_write_str(ENTER_CA_MODE_STR);
-   ti_reset_screen();
+   ti_reset_screen(NULL);
 }
 
 /**
@@ -203,8 +203,11 @@ EXPORT void ti_cleanup_term(void)
 }
 
 /** @brief Clear screen and home cursor */
-EXPORT void ti_reset_screen(void)
+EXPORT void ti_reset_screen(const char *cmd)
 {
+   if (cmd)
+      ti_write_str(cmd);
+
    ti_write_str(CLEAR_STR);
 }
 
@@ -279,9 +282,25 @@ EXPORT void ti_set_scroll_limit(int top, int count)
    ti_write_str(str);
 }
 
+/**
+ * @brief Make cursor invisible
+ */
+EXPORT void ti_hide_cursor(void)
+{
+   ti_write_str(HIDE_CURSOR_STR);
+}
 
 /**
- * @brief Set terminal parameters for indicating row with focus
+ * @brief Make cursor visible
+ */
+EXPORT void ti_show_cursor(void)
+{
+   ti_write_str(SHOW_CURSOR_STR);
+}
+
+
+/**
+ * @brief Set terminal output mode to use standout mode.
  *
  * Note that this uses terminfo value `so` to set the terminal.
  * an end-user could change the value by setting an environment
@@ -294,6 +313,7 @@ EXPORT void ti_start_standout(void)
 
 /**
  * @brief Called to reverse what was set in @ref ti_start_standout.
+ * 
  * This value can be overridden by setting `LESS_TERMCAP_se`, which
  * is especially appropriate if `LESS_TERMCAP_so` was set to
  * modify how a line is indicated.
