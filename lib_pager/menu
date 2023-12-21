@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+# This little script invokes the "dialog" menu with enough items
+# that I can use it as a model for scrolling behavior.  I can't
+# think of any other console-based models for scrolling, especially
+# with how to respond to page-up and page-down.
+#
+# As of 2023-12-20, the pager library mimics the dialog menu behavior.
+
+declare -a moptions=(
+    "one"            1
+    "two"            2
+    "three"          3
+    "four"           4
+    "five"           5
+    "six"            6
+    "seven"          7
+    "eight"          8
+    "nine"           9
+    "ten"           10
+    "eleven"        11
+    "twelve"        12
+    "thirteen"      13
+    "fourteen"      14
+    "fifteen"       15
+    "sixteen"       16
+    "seventeen"     17
+    "eighteen"      18
+    "nineteen"      19
+    "twenty"        20
+    "twenty-one"    21
+    "twenty-two"    22
+    "twenty-three"  23
+    "twenty-four"   24
+    "twenty-five"   25
+    "twenty-six"    26
+    "twenty-seven"  27
+    "twenty-eight"  28
+    "twenty-nine"   29
+    "thirty"        30
+    "thirty-one"    31
+    "thirty-two"    32
+    "thirty-three"  33
+    "thirty-four"   34
+    "thirty-five"   35
+    "thirty-six"    36
+    "thirty-seven"  37
+    "thirty-eight"  38
+    "thirty-nine"   39
+    )
+
+dialog --clear --title "Hey, Baby!" --menu "This is my menu" 17 30 10 "${moptions[@]}"
