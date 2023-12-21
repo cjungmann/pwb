@@ -11,13 +11,7 @@
 int get_index_bottom_line(const DPARMS *parms)
 {
    assert(parms);
-   // int index = parms->index_row_top + parms->line_count - 1;
-   int index = parms->line_count - 1;
-
-   if (index > parms->row_count - 1)
-      index = parms->row_count - 1;
-
-   return index;
+   return parms->index_row_top + parms->line_count - 1;
 }
 
 /**
@@ -28,9 +22,8 @@ int get_index_bottom_line(const DPARMS *parms)
  */
 bool row_index_is_visible(const DPARMS *parms, int row_index)
 {
-   int bottom_row = parms->index_row_top + parms->line_count;
-   // return row_index >= parms->index_row_top && row_index < bottom_row;
-   return row_index >= parms->index_row_top && row_index < bottom_row;
+   int bottom_row = get_index_bottom_line(parms);
+   return row_index >= parms->index_row_top && row_index <= bottom_row;
 }
 
 /**
@@ -38,7 +31,7 @@ bool row_index_is_visible(const DPARMS *parms, int row_index)
  */
 int get_line_index_from_row_index(const DPARMS *parms, int row_index)
 {
-   return row_index - parms->index_row_top + parms->line_top;
+   return parms->line_top + row_index - parms->index_row_top;
 }
 
 /**
@@ -106,9 +99,9 @@ ARV pager_focus_down_one(DPARMS *parms)
       ++parms->index_row_focus;
 
       int screen_last_index = get_index_bottom_line(parms);
-      if (parms->index_row_focus > screen_last_index + 1)
+      if (parms->index_row_focus > screen_last_index)
       {
-         int row = parms->line_top + parms->line_count;
+         int row = parms->line_top + parms->line_count - 1;
          int col = parms->chars_left + parms->chars_count;
          ti_set_cursor_position(row, col);
          ti_scroll_forward();
@@ -123,23 +116,32 @@ ARV pager_focus_down_one(DPARMS *parms)
 
 ARV pager_focus_down_page(DPARMS *parms)
 {
-   int index_bottom_line = get_index_bottom_line(parms);
-   int at_line = get_line_index_from_row_index(parms, index_bottom_line);
+   // int index_bottom_line = get_index_bottom_line(parms);
+   // int at_line = get_line_index_from_row_index(parms, index_bottom_line);
 
-   // If last row of content is on screen, set focus on it
-   if (at_line < parms->line_count-1)
+   int new_focus_index = parms->index_row_focus + 10;
+   if (new_focus_index >= parms->row_count)
+      new_focus_index = parms->row_count - 1;
+
+   // Proceed only if the new_row_index differs from the current focus index
+   if (new_focus_index != parms->index_row_focus)
    {
-      if (parms->index_row_focus < parms->row_count-1)
-      {
-         print_indexed_row(parms, parms->index_row_focus, 0);
-         parms->index_row_focus = index_bottom_line;
+      // unfocus currently focused line
+      print_indexed_row(parms, parms->index_row_focus, 0);
+
+      // change focused line for whatever follows
+      parms->index_row_focus = new_focus_index;
+
+      if (row_index_is_visible(parms, new_focus_index))
          print_indexed_row(parms, parms->index_row_focus, 1);
+      else
+      {
+         int new_top_row = new_focus_index - parms->line_count + 1;
+         if (new_top_row < 0)
+            new_top_row = 0;
+         parms->index_row_top = new_top_row;
+         return ARV_REPLOT_DATA;
       }
-   }
-   else
-   {
-      parms->index_row_top = parms->index_row_focus = index_bottom_line;
-      return ARV_REPLOT_DATA;
    }
 
    return ARV_CONTINUE;
@@ -147,25 +149,29 @@ ARV pager_focus_down_page(DPARMS *parms)
 
 ARV pager_focus_up_page(DPARMS *parms)
 {
-   int index_top_line = parms->index_row_top;
-   if (index_top_line == 0)
+   // If focus already on top line, we'll pan or abort
+   if (parms->index_row_focus == parms->index_row_top)
    {
-      if (parms->index_row_focus > index_top_line)
+      // There's nothing to do if top_line is row 0 and has focus;
+      if (parms->index_row_top != 0)
       {
-         print_indexed_row(parms, parms->index_row_focus, 0);
-         parms->index_row_focus = index_top_line;
-         print_indexed_row(parms, parms->index_row_focus, 1);
+         // Move back a pageful
+         int new_top_row = parms->index_row_top - parms->line_count;
+         if (new_top_row < 0)
+            new_top_row = 0;
+
+         parms->index_row_focus = parms->index_row_top = new_top_row;
+         return ARV_REPLOT_DATA;
       }
    }
-   else
+   else // We're staying with the current set of lines
    {
-      index_top_line -= parms->line_count;
-      if (index_top_line < 0)
-         index_top_line = 0;
-
-      parms->index_row_top = parms->index_row_focus = index_top_line;
-      return ARV_REPLOT_DATA;
+      // Unfocus line (since we'll still be seeing it)
+      print_indexed_row(parms, parms->index_row_focus, 0);
+      parms->index_row_focus = parms->index_row_top;
+      print_indexed_row(parms, parms->index_row_focus, 1);
    }
+
    return ARV_CONTINUE;
 }
 
