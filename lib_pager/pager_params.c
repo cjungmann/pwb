@@ -65,9 +65,10 @@ EXPORT void pager_set_margins(DPARMS *parms, int top, int right, int bottom, int
 
    parms->line_top = top;
    parms->line_count = rows - top - bottom;
+   parms->line_bottom = top + parms->line_count - 1;
    parms->chars_left = left;
    parms->chars_count = cols - left - right;
 
-   ti_set_scroll_limit(top, parms->line_count);
+   ti_set_scroll_limit(top, parms->line_count - 1);
 }
 
