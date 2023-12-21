@@ -63,6 +63,7 @@ struct display_params {
    int margin_left;         ///< chars to left left alone
 
    int line_top;            ///< screen line to begin printing
+   int line_bottom;         ///< screen line of bottom row of scroll window
    int line_count;          ///< number of screen lines in region
    int chars_left;          ///< left margin
    int chars_count;         ///< number of characters to print per line
