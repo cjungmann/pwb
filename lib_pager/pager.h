@@ -17,7 +17,7 @@ typedef struct keymap KEYMAP;
 
 typedef int (*pwb_print_line)(int row_index, int indicated, int length, void *data_source);
 typedef char* (*KEYSTROKE_GETTER)(char *buff, int buff_len);
-typedef ARV (*KEYCALL)(KEYMAP *km, DPARMS *parms, const char *keystroke);
+typedef ARV (*KEYCALL)(DPARMS *parms, KEYMAP *km, const char *keystroke);
 typedef ARV (*PACTION)(DPARMS*);
 
 

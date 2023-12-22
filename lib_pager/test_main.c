@@ -61,7 +61,7 @@ typedef struct keymap_test {
    TCE_ACTION *keys;
 } KM_TEST;
 
-ARV keycall_func(KEYMAP *km, DPARMS *parms, const char *keystroke)
+ARV keycall_func(DPARMS *parms, KEYMAP *km, const char *keystroke)
 {
    KM_TEST* kmt = (KM_TEST*)km;
    TCE_ACTION *ptr = kmt->keys;

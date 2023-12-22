@@ -54,7 +54,7 @@ EXPORT int pager_begin(DPARMS *parms, KEYMAP *keymap, KEYSTROKE_GETTER ksg)
       const char *ks = (*ksg)(keybuff, sizeof(keybuff));
       if (ks)
       {
-         arv = (*keymap->kc_func)(keymap, parms, ks);
+         arv = (*keymap->kc_func)(parms, keymap, ks);
          if (arv == ARV_REPLOT_DATA)
             print_page(parms);
       }
