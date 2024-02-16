@@ -116,7 +116,7 @@ PWB_RESULT pwb_action_report(PWBH *handle, ACLONE *args)
    return result;
 }
 
-pwb_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
+PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
 {
    pwb_terminal_init();
    pager_init();
