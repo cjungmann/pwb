@@ -1,0 +1,72 @@
+.TH pwb 1 2024-02-12
+.mso gproto.tmac
+.nr include_flag 1
+.so fork.tmac
+.so pwb.1.d/prototypes.
+.SH NAME
+.B
+\- pager with benefits: scrolling line-content manager
+.so pwb.1.d/synopsis.1
+.SH KEYMAP
+.PP
+There is a default keymap that recognizes and responds appropriately
+to up- and down-arrow, page-up and -down, and home and end keys
+presses.
+This keymap can be replaced or supplemented with custom keymaps.
+The navigation responses are indicated by index values as follows:
+.TS
+tab(|);
+l l.
+0|exit
+1|down-arrow
+2|up-arrow
+3|page down
+4|page up
+5|end
+6|home
+7|execute
+.TE
+.PP
+A keymap will be defined by an array of values consisting of keystroke
+strings followed by an integer from the above list.
+This is the default keymap:
+.TS
+tab(|);
+l l l.
+\(dq\q\(dq|0|# exit interaction
+\(Do\(aq\(rseOB\(aq|1|# down-arrow
+\(Do\(aq\(rseOA\(aq|2|# up-arrow
+\(Do\(aq\(rse[6~\(aq|3|# page down
+\(Do\(aq\(rse[5~\(aq|4|# page up
+\(Do\(aq\(rseOF\(aq|5|# end
+\(Do\(aq\(rseOH\(aq|6|# home
+\(Do\(aq\(rscm\(aq|7|# execute
+.TE
+.SH PRINTER CALLBACK FUNCTION
+.PP
+The command will repeatedly a script-provided printer function to
+print each line.
+The print function will receive the following arguments:
+.TS
+tab(|);
+l l l.
+\(Do1|data row number|integer
+\(Do2|data source name|string
+\(Do3|in focus|integer (0 not focus)
+\(Do4|char limit|integer
+\(Do5|pwb handle name|string
+\(Do6|extra data name|string
+.TE
+.SH EXECUTOR CALLBACK FUNCTION
+.TS
+tab(|);
+l l l.
+\(Do1|keystroke|string
+\(Do2|data row number|integer
+\(Do3|data source name|string
+\(Do4|pwb handle name|string
+\(Do5|extra data name|string
+.TE
+
+
+
