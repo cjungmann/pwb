@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck disable=SC2317
+
+pwb_checkbox()
+{
+   checkbox_print_line()
+   {
+      local -i row_index="$1"
+      local ds_name="$2"
+      local -i focus_flag="$3"
+      local -i chars_to_print="$4"
+
+      ate get_row "$ds_name" "$row_index" -a cpl_row
+      ate_exit_on_error
+      if [ "$?" -eq 0 ]; then
+          local box="[ ]"
+          if [ "${cpl_row[1]}" -ne 0 ]; then
+              box="[x]"
+          fi
+          (( chars_to_print -= 4 ))
+          if [ "$focus_flag" -ne 0 ]; then
+              printf $'\e[7m'
+          fi
+
+          printf "%s %-*s" "$box" "$chars_to_print" "${cpl_row[0]}"
+
+          if [ "$focus_flag" -ne 0 ]; then
+              printf $'\e[27m'
+          fi
+      fi
+   }
+
+   checkbox_toggle_line()
+   {
+       local -i row_index="$1"
+       local ds_name="$2"
+       local pwb_name="$3"
+
+       ate get_row "$ds_name" "$row_index" -a ctl_row
+       ate_exit_on_error
+
+       local -i on="${ctl_row[1]}"
+       ctl_row[1]=$(( on==0 ? 1 : 0 ))
+       ate put_row "$ds_name" "$row_index" "ctl_row"
+       pwb print_row "$pwb_name" "$row_index"
+   }
+
+   checkbox_collect_selections()
+   {
+       ccs_gather()
+       {
+           local -n ccsc_row="$1"
+           if [ "${ccsc_row[1]}" -ne 0 ]; then
+               echo "${ccsc_row[0]}"
+           fi
+       }
+
+       local ds_name="$2"
+       ate walk_rows "$ds_name" ccs_gather
+   }
+
+   checkbox_set_and_leave()
+   {
+       if [ cwb_checkbox_return ]; then
+           echo "There is a checkbox return variable"
+       fi
+
+       echo "In checkbox_set_and_leave with '$*'"
+       local ds_name="$2"
+       local pwb_name="$3"
+
+       checkbox_collect_selections "$@"
+
+       # We need two versions, one returning selected
+       # ROW INDICES, and another return selected VALUES
+
+       # Call exit action:
+       pwb trigger "$pwb_name" 0
+   }
+
+   checkbox_exec()
+   {
+       local keys="$1"
+       shift 1
+
+       case "$keys" in
+           $' ')   checkbox_toggle_line "$@" ;;
+           $'\cm') checkbox_set_and_leave "$@" ;;
+       esac
+
+   }
+
+   local ate_source="$1"
+   if [ "$#" -gt 1 ]; then
+       local -n cwb_checkbox_return
+   fi
+
+   local -a keymap=(
+       ' ' 7
+       $'\cm' 7
+   )
+   pwb declare_keymap checkbox_keymap keymap
+   pwb_exit_on_error
+
+   ate get_row_count "$ate_source" -v row_count
+
+   pwb declare pwbh "$ate_source" "$row_count" checkbox_print_line -e checkbox_exec
+   pwb start pwbh -a checkbox_keymap
+   pwb_exit_on_error
+}
