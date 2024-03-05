@@ -84,8 +84,6 @@ bool argeater_array_name_setter(const char **target, const char *value)
    return false;
 }
 
-
-
 bool argeater_array_setter(const char **target, const char *value)
 {
    SHELL_VAR *sv = find_variable(value);
@@ -101,6 +99,25 @@ bool argeater_array_setter(const char **target, const char *value)
    }
    else
       (*error_sink)("Failed to find handle variable '%s'.", value);
+
+   return false;
+}
+
+bool pwb_argeater_function_setter(const char **target, const char *value)
+{
+   SHELL_VAR *sv = find_variable(value);
+   if (sv)
+   {
+      if (function_p(sv))
+      {
+         *(ARRAY**)target = array_cell(sv);
+         return true;
+      }
+      else
+         (*error_sink)("Shell variable '%s' is not a function.\n", value);
+   }
+   else
+      (*error_sink)("Failed to find script function '%s'.\n", value);
 
    return false;
 }
@@ -130,3 +147,4 @@ bool argeater_kclass_setter(const char **target, const char *value)
 
    return false;
 }
+
