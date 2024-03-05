@@ -1,7 +1,8 @@
 TARGET_ROOT = pwb
 TARGET = $(TARGET_ROOT).so
-BUILTIN = $(basename $(TARGET))
-ENABLER = $(addprefix enable_,$(BUILTIN))
+BUILTIN = $(TARGET_ROOT)
+ENABLER = $(addprefix enable_,$(TARGET_ROOT))
+SOURCER = $(addprefix $(TARGET_ROOT),_sources)
 
 PREFIX ?= /usr/local
 
@@ -22,6 +23,8 @@ CFLAGS += -I/usr/include/bash -I/usr/include/bash/include
 MODULES = $(addsuffix .o,$(basename $(wildcard $(SRC)/*.c)))
 
 HEADERS = $(wildcard $(SRC)/*.h)
+
+UTILITIES = $(filter $(basename $(wildcard *)),$(wildcard pwb_*))
 
 # Declare non-filename targets
 .PHONY: all install uninstall clean help
@@ -50,19 +53,34 @@ install: $(ENABLER)
 	mkdir --mode=755 -p $(PREFIX)/share/man/man7
 	soelim $(TARGET_ROOT).1 | gzip -c - > $(PREFIX)/share/man/man1/$(TARGET_ROOT).1.gz
 	soelim $(TARGET_ROOT).7 | gzip -c - > $(PREFIX)/share/man/man7/$(TARGET_ROOT).7.gz
+# install SOURCER and sources
+	install -D $(BUILTIN)_sources.d/* -t$(PREFIX)/lib/$(BUILTIN)_sources
+	sed -e s^#PREFIX#^$(PREFIX)^ -e s^#BUILTIN#^$(BUILTIN)^ $(SOURCER) > $(PREFIX)/bin/$(SOURCER)
+	chmod a+x $(PREFIX)/bin/$(SOURCER)
+
+install_utilities:
+	@echo "UTILITIES are " $(UTILITIES)
+	install -D --mode=775 $(UTILITIES) $(PREFIX)/bin
+
+uninstall_utilities:
+	rm -f $(PREFIX)/bin/$(UTILITIES)
 
 uninstall:
 	rm -f $(PREFIX)/bin/$(ENABLER)
 	rm -f $(PREFIX)/lib/$(TARGET)
+	rm -f $(PREFIX)/bin/$(UTILITIES)
 	rm -f $(PREFIX)/share/man/man1/$(TARGET_ROOT).1.gz
 	rm -f $(PREFIX)/share/man/man7/$(TARGET_ROOT).7.gz
+# uninstall SOURCER stuff:
+	rm -rf $(PREFIX)/lib/$(BUILTIN)_sources
+	rm -f $(PREFIX)/bin/$(SOURCER)
+# Utilities won't work if builtin is uninstalled:
+	rm -f $(PREFIX)/bin/$(UTILITIES)
 
 clean:
 	rm -f $(TARGET)
 	rm -f $(ENABLER)
 	rm -f $(MODULES)
-	rm -f examples/uscounties.csv
-	rm -f examples/simplemaps*
 
 help:
 	@echo "Makefile options:"
