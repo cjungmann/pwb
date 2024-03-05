@@ -1,4 +1,23 @@
 .so fork.tmac
 .SH SYNOPSIS
+.B enable -f ./pwb.so pwb
+.sp 0
+or
+.sp 0
+.B enable \(Do( enable_pwb )
+.PP
+.pt_help
+.SS SCREEN SETUP
+.pt_init
+.pt_restore
+.SS RESOURCE CREATION
 .pt_declare
+.pt_declare_keymap
+.SS RUNNING THE PAGER
 .pt_start
+.pt_set_margins
+.pt_print_row
+.pt_print_all
+.SS CALLBACK FUNCTIONS
+.pt_print_callback
+.pt_exec_callback

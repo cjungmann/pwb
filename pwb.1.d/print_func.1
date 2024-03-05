@@ -1,0 +1,23 @@
+.so fork.tmac
+.SH PRINT FUNCTION
+.PP
+.B pwb
+will call a script-provided
+.I print function
+for each line it wants to have printed.
+The print function only needs to worry about the line content because
+.B pwb
+will have positioned the cursor to the appropriate screen position.
+.SS WARNINGS
+.TP
+.B avoid newlines
+Since
+.B pwb
+doesn't control what you're doing in the print function, it may not
+be able to recover from extra newlines in the print function's output.
+This is particularly a problem at the bottom of the screen, where an
+extra newline will cause the screen to scroll up unexpectedly (as far
+as
+.B pwb
+is concerned).
+

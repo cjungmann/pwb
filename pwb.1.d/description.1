@@ -1,0 +1,11 @@
+.so fork.tmac
+.SH DESCRIPTION
+.PP
+The
+.B pwb
+command exposes a simple API that enables creating script-based
+and script-controlled user interactions.
+The command manages keystroke response and the screen contents
+by calling back to functions in the script hosting the command.
+As a builting command, it benefits from operating in the same process
+as the script, avoiding expensive child process calls.

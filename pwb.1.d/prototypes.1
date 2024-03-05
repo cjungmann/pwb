@@ -1,10 +1,52 @@
 .\" -*- mode: nroff -*-
+.de pt_help
+.  B pwb help
+.  sp 0
+..
+.de pt_init
+.  B pwb init
+.  sp 0
+..
+.de pt_restore
+.  B pwb restore
+.  sp 0
+..
 .de pt_declare
 .  B pwb declare
-.  cli_prototype @handle_name @data_source_name @data_count @printer_func_name \
-           ?!-x:exec_func_name ?!-d:extra_data_name
+.  cli_prototype @new_handle_name @data_source_name @data_count @printer_func_name \
+           ?!-e:exec_func_name ?!-d:extra_data_name
+.  sp 0
+..
+.de pt_declare_keymap
+.  B pwb declare_keymap
+.  cli_prototype @new_keymap_name @array_name
+.  sp 0
 ..
 .de pt_start
 .  B pwb start
-.  cli_prototype @handle_name
+.  cli_prototype @handle ?!-t:top_row ?!-f:focus_row ?!-b:base_keymap ?!-a:auxiliary_keymap
+.sp 0
+..
+.de pt_set_margins
+.  B pwb set_margins
+.  cli_prototype @handle @top ?@right ?@bottom ?@left
+.sp 0
+..
+.de pt_print_row
+.  B pwb print_row
+.  cli_prototype @handle @line_number
+.sp 0
+..
+.de pt_print_all
+.  B pwb print_all
+.  cli_prototype @handle
+.sp 0
+..
+.de pt_print_callback
+.  B print_function
+.  cli_prototype @data_row_number @data_source_name @focus_flag @chars_to_print @pwb_handle_name ?@extra_data_name
+..
+.de pt_exec_callback
+.  B exec_function
+.  cli_prototype @keystroke @data_row_number @data_source_name @pwb_handle_name ?@extra_data_name
 ..
