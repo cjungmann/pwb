@@ -90,7 +90,17 @@ int pwb_terminal_init(void)
    return result;
 }
 
+int pwb_execute_command(WORD_LIST *wl)
+{
+   int cmd_flags = CMD_INHIBIT_EXPANSION | CMD_STDPATH;
 
+   COMMAND *command = make_bare_simple_command();
+   command->value.Simple->words = wl;
+   command->value.Simple->redirects = (REDIRECT*)NULL;
+   command->flags = command->value.Simple->flags = cmd_flags;
+
+   return execute_command(command);
+}
 
 /**
  * @brief Function for DPARMS printer that calls the shell function:
@@ -107,14 +117,33 @@ int pwb_line_printer(int row_index,
    pwbh_print_set_row_index(ph, row_index);
    pwbh_print_set_focus(ph, focus);
 
-   int cmd_flags = CMD_INHIBIT_EXPANSION | CMD_STDPATH;
+   if (focus)
+      start_standout_mode();
 
-   COMMAND *command = make_bare_simple_command();
-   command->value.Simple->words = ph->printer_wl;
-   command->value.Simple->redirects = (REDIRECT*)NULL;
-   command->flags = command->value.Simple->flags = cmd_flags;
+   int result = pwb_execute_command(ph->printer_wl);
 
-   return execute_command(command);
+   if (focus)
+      stop_standout_mode();
+
+   return result;
+}
+
+/**
+ * @brief Function for DPARMS printer that calls the shell function:
+ */
+int pwb_raw_line_printer(int row_index,
+                         int focus,
+                         int length,
+                         void *data_source,
+                         void *data_extra)
+{
+   PWBH *ph = (PWBH*)data_extra;
+
+   // update WORD_LIST values:
+   pwbh_print_set_row_index(ph, row_index);
+   pwbh_print_set_focus(ph, focus);
+
+   return pwb_execute_command(ph->printer_wl);
 }
 
 /**
@@ -254,6 +283,14 @@ void pwbh_print_set_length(PWBH *pwbh, int value)
 void pwbh_exec_set_row_number(PWBH *pwbh, int value)
 {
    pwb_set_word_list_int_val(pwbh->exec_wl, 2, value);
+}
+
+/**
+ * @brief Set the row_number WORD_LIST param to the focus row
+ */
+void pwbh_exec_update_row_number(PWBH *pwbh)
+{
+   pwb_set_word_list_int_val(pwbh->exec_wl, 2, pwbh->dparms.index_row_focus);
 }
 
 void pwbh_exec_set_keystroke(PWBH *pwbh, const char *keystroke)

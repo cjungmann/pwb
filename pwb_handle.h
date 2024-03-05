@@ -21,6 +21,7 @@ typedef struct pwb_handle PWBH;
 bool pwbh_p(SHELL_VAR *var);
 PWB_RESULT get_pwb_handle(PWBH **handle, const char *name);
 void pwb_dispose_variable_value(SHELL_VAR *var);
+int pwb_execute_command(WORD_LIST *wl);
 /** @} */
 
 int pwb_terminal_init(void);
@@ -68,6 +69,12 @@ PWBH * pwb_initialize_handle(char *buffer,
                              const char *data_extra_name);
 
 // The following functions are found in pwbh_support.c
+int pwb_raw_line_printer(int row_index,
+                     int focus,
+                     int length,
+                     void *data_source,
+                     void *data_extra);
+
 int pwb_line_printer(int row_index,
                      int focus,
                      int length,
@@ -95,6 +102,7 @@ void pwbh_print_set_focus(PWBH *pwbh, int value);
 void pwbh_print_set_length(PWBH *pwbh, int value);
 
 void pwbh_exec_set_row_number(PWBH *pwbh, int value);
+void pwbh_exec_update_row_number(PWBH *pwbh);
 void pwbh_exec_set_keystroke(PWBH *pwbh, const char *keystroke);
 void pwbh_calc_borders(PWBH *pwbh);
 

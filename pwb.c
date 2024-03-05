@@ -3,6 +3,7 @@
 #include <argeater.h>
 #include <pager.h>
 #include "pwb_handle.h"
+#include "pwb_errors.h"
 
 #include <stdio.h>
 
@@ -46,6 +47,7 @@ void show_usage(AE_MAP *map)
 static int pwb_builtin(WORD_LIST *list)
 {
    int exit_code = EXECUTION_FAILURE;
+   pwb_error_clear();
 
    PWB_RESULT result = perform_verb(list);
    if (result == PWB_SUCCESS)

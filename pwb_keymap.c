@@ -41,6 +41,7 @@ ARV run_home(PWBH *handle, WORD_LIST *word_list)
 
 ARV run_execute(PWBH *handle, WORD_LIST *word_list)
 {
+   pwb_execute_command(word_list);
    return ARV_CONTINUE;
 }
 
@@ -58,10 +59,19 @@ PWB_KEYACT action_table[] = {
 
 int action_table_count = sizeof(action_table) / sizeof(PWB_RUN);
 
-
-int pwb_get_kdata_requirements(const char **els, int el_count, const char *label)
+PWB_KEYACT get_keyact(unsigned int index)
 {
-   int total_bytes = sizeof(int);
+   if (index < action_table_count)
+      return action_table[index];
+   else
+      return NULL;
+}
+
+int pwb_get_kdata_size(const char **els, int el_count, const char *label)
+{
+   int label_len = label ? strlen(label) : 0;
+   int total_bytes = sizeof(int) + 1 + label_len;
+
    const char **ptr = els;
    const char **end = ptr + el_count;
 
@@ -121,6 +131,52 @@ const char *default_keymap[] = {
 };
 
 int default_keymap_len = sizeof(default_keymap) / sizeof(const char *);
+
+/**
+ * @defgroup Manage singleton allocation of default keymap
+ * @{
+ */
+KDATA *get_new_default_kdata(void);
+PWB_GET_DEF_KDATA get_default_kdata = get_new_default_kdata;
+
+KDATA *default_kdata = NULL;
+
+KDATA *get_allocated_default_kdata(void)
+{
+   return default_kdata;
+}
+
+KDATA *get_new_default_kdata(void)
+{
+   KDATA *kdata = NULL;
+
+   int len = pwb_get_kdata_size(default_keymap, default_keymap_len, KEYMAP_LABEL);
+   if (len)
+   {
+      kdata = get_kdata_from_array(default_keymap,
+                                   default_keymap_len,
+                                   KEYMAP_LABEL,
+                                   malloc,
+                                   free);
+
+      if (kdata)
+      {
+         // Install global default keymap KDATA
+         default_kdata = kdata;
+
+         // Update function pointer
+         get_default_kdata = get_allocated_default_kdata;
+         // Call the newly-installed kdata-getter in case it
+         // becomes less than trivial:
+         kdata = (*get_default_kdata)();
+      }
+   }
+
+   return kdata;
+}
+
+
+/** @} */
 
 // void dump_keymap(void)
 // {
@@ -236,11 +292,11 @@ PWB_RESULT pwb_set_keymap_buffer(char *buffer,
    return result;
 }
 
-KDATA * get_kdata_from_array(const char **els,
-                             int els_count,
-                             const char *label,
-                             void*(*mem_getter)(size_t),
-                             void(*mem_freer)(void*))
+KDATA *get_kdata_from_array(const char **els,
+                            int els_count,
+                            const char *label,
+                            void*(*mem_getter)(size_t),
+                            void(*mem_freer)(void*))
 {
    errno = 0;
    KDATA *retval = (KDATA*)NULL;
@@ -248,7 +304,7 @@ KDATA * get_kdata_from_array(const char **els,
    if (els_count>0 && els_count%2 == 0)
    {
       int entry_count = els_count / 2;
-      int buff_len = pwb_get_kdata_requirements(els, els_count, label);
+      int buff_len = pwb_get_kdata_size(els, els_count, label);
       char *buffer = (char*)(*mem_getter)(buff_len);
 
       if (buffer)
@@ -353,26 +409,77 @@ PWB_RESULT pwb_make_kdata_shell_var(const char *name,
 }
 
 
-ARV pwb_run_keystroke(PWBH *pwbh, const char *keystroke, struct keymap_class* keymap)
+/**
+ * @brief Find and execute a keymap function matching a keystroke.
+ */
+ARV pwb_run_keystroke(PWBH *pwbh,
+                      const char *keystroke,
+                      struct keymap_class* keymap_base,
+                      struct keymap_class* keymap_aux)
 {
-   struct keymap_entry *ptr = keymap->entries;
-   struct keymap_entry *end = ptr + *keymap->entry_count;
+   struct keymap_entry *bptr = keymap_base->entries;
+   struct keymap_entry *bend = bptr + *keymap_base->entry_count;
 
+   struct keymap_entry *xptr = NULL, *xend = NULL;
+
+   if (keymap_aux && keymap_aux->entry_count != NULL)
+   {
+      xptr = keymap_aux->entries;
+      xend = xptr + *keymap_aux->entry_count;
+   }
+
+   // Prepare to ignore exec action (7) if there is no exec function
    int allowed_index = action_table_count;
+
+   // Prepare exec function arguments word_list:
    WORD_LIST *wl = pwbh->exec_wl;
-   if (wl == NULL)
+   if (wl)
+   {
+      pwbh_exec_set_keystroke(pwbh, keystroke);
+      pwbh_exec_update_row_number(pwbh);
+   }
+   else
       --allowed_index;
 
-   while (ptr < end)
+   // Find the keyaction
+   PWB_KEYACT cur_action = NULL;
+
+   // Search base keymap:
+   while (bptr < bend)
    {
-      if (strcmp(ptr->keystroke, keystroke)==0)
+      if (strcmp(bptr->keystroke, keystroke)==0)
       {
-         int index = ptr->action_index;
+         int index = bptr->action_index;
          if (index >=0 && index < allowed_index)
-            return (*action_table[index])(pwbh, wl);
+         {
+            cur_action = action_table[index];
+            break;
+         }
       }
-      ++ptr;
+      ++bptr;
    }
+
+   // If no action yet, search auxiliary keymap, if provided:
+   if (!cur_action)
+   {
+      // fails entry if xptr == xend == NULL (no auxiliary keymap):
+      while (xptr < xend)
+      {
+         if (strcmp(xptr->keystroke, keystroke)==0)
+         {
+            int index = xptr->action_index;
+            if (index >=0 && index < allowed_index)
+            {
+               cur_action = action_table[index];
+               break;
+            }
+         }
+         ++xptr;
+      }
+   }
+
+   if (cur_action)
+      return (*cur_action)(pwbh, wl);
 
    return ARV_CONTINUE;
 }
