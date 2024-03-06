@@ -105,7 +105,7 @@ bool argeater_array_setter(const char **target, const char *value)
 
 bool pwb_argeater_function_setter(const char **target, const char *value)
 {
-   SHELL_VAR *sv = find_variable(value);
+   SHELL_VAR *sv = find_function(value);
    if (sv)
    {
       if (function_p(sv))
