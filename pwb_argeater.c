@@ -110,7 +110,7 @@ bool pwb_argeater_function_setter(const char **target, const char *value)
    {
       if (function_p(sv))
       {
-         *(ARRAY**)target = array_cell(sv);
+         *target = value;
          return true;
       }
       else
