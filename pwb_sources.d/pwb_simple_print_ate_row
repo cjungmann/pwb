@@ -1,0 +1,12 @@
+# -*- mode:sh -*-
+pwb_simple_print_ate_row()
+{
+   local -i index="$1"
+   local ds_name="$2"
+   local -i in_focus="$3"
+   local -i char_limit="$4"
+
+   ate get_row "$ds_name" "$index" -a pspar_row
+   printf -v trow "%s" "${pspar_row[0]}"
+   printf "%-*s" "$char_limit" "$trow"
+}

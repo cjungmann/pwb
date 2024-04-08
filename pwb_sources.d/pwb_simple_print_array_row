@@ -1,0 +1,13 @@
+# -*- mode:sh -*-
+pwb_simple_print_array_row()
+{
+   local -i index="$1"
+   local ds_name="$2"
+   local -i in_focus="$3"
+   local -i char_limit="$4"
+
+   local -n pspar_array="$ds_name"
+
+   printf -v trow "%s" "${pspar_array[$index]}"
+   printf "%-*s" "$char_limit" "$trow"
+}
