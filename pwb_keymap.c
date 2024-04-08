@@ -41,8 +41,10 @@ ARV run_home(PWBH *handle, WORD_LIST *word_list)
 
 ARV run_execute(PWBH *handle, WORD_LIST *word_list)
 {
-   pwb_execute_command(word_list);
-   return ARV_CONTINUE;
+   if (pwb_execute_command(word_list)==0)
+      return ARV_CONTINUE;
+   else
+      return ARV_EXIT;
 }
 
 
@@ -379,7 +381,12 @@ PWB_RESULT pwb_make_kdata_shell_var(const char *name,
                KDATA *data = get_kdata_from_array(els, els_count, label, xmalloc, xfree);
                if (data)
                {
-                  SHELL_VAR *sv_keymap = bind_variable(name, "", 0);
+                  SHELL_VAR *sv_keymap = NULL;
+                  if (variable_context == 0)
+                     sv_keymap = bind_variable(name, "", 0);
+                  else
+                     sv_keymap = make_local_variable(name, 0);
+
                   if (sv_keymap)
                   {
                      pwb_dispose_variable_value(sv_keymap);
