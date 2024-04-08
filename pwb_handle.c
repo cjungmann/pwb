@@ -236,8 +236,9 @@ PWBH * pwb_initialize_handle(char *buffer,
    // Process the exec word_list only if an exec function is provided:
    if (exec_name && (slen = strlen(exec_name))>0)
    {
-      pwbh->exec_wl = pwb_initialize_word_list(free, 6);
-      free += pwb_calc_word_list_size(5,1);
+      int word_list_count = 6;
+      pwbh->exec_wl = pwb_initialize_word_list(free, word_list_count);
+      free += pwb_calc_word_list_size(word_list_count, 1);
       assert(MEMTEST);
 
       // $0, Copy and assign exec_name
