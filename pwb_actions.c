@@ -102,7 +102,12 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
          if (use_non_hilite_print)
             pwbh->dparms.printer = pwb_raw_line_printer;
 
-         SHELL_VAR *sv = bind_variable(handle_name, "", 0);
+         SHELL_VAR *sv = NULL;
+         if (variable_context == 0)
+            sv = bind_variable(handle_name, "", 0);
+         else
+            sv = make_local_variable(handle_name, 0);
+
          if (sv)
          {
             pwb_dispose_variable_value(sv);
