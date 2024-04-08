@@ -1,0 +1,43 @@
+.so fork.tmac
+.SH EXEC FUNCTION
+.PP
+.B pwb
+can call a script-provided
+.I exec function
+in response to specifically-mapped keys.
+.PP
+The
+.B pwb declare
+statement must include a
+.B -e
+option with the name of the
+.I exec
+function, and the operating keymap must
+have at least one key mapped to navigation response
+.BR 7 " for " execute .
+.SS EXEC FUNCTION RETURN VALUE
+.PP
+The value returned by the
+.I exec function
+determines how
+.B pwb
+proceeds.
+A
+.B 0
+value causes
+.B pwb
+to continue, while any non-zero value will cause
+.B pwb
+to exit.
+.PP
+Be aware that a Bash function's return value is the
+exit or error code of the last statement that returns an
+exit code.
+This will usually by
+.BR 0 ,
+but it will be safer to explicitely set the return value,
+either with a
+.B return
+statement or with a test statement as the last line of the
+function.
+
