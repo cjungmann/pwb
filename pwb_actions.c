@@ -228,7 +228,7 @@ PWB_RESULT pwb_action_set_margins(PWBH *handle, ACLONE *args)
         "value of left margin", NULL, pwb_argeater_int_setter },
 
       { (const char **)&left, "left_margin", '\0', AET_ARGUMENT,
-        "value of left margin", NULL, pwb_argeater_int_setter },
+        "value of left margin", NULL, pwb_argeater_int_setter }
    };
 
    static AE_MAP map = INIT_MAP(items);

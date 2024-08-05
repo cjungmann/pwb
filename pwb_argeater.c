@@ -122,6 +122,45 @@ bool pwb_argeater_function_setter(const char **target, const char *value)
    return false;
 }
 
+/**
+ * @brief Ensures named associative array variable exists
+ *
+ * If the variable exists and is an associative array, it is
+ * left alone.  Otherwise, The variable is created if it doesn't
+ * already exist.  If the named variable doesn't exist, an
+ * associative array of the given name is created.
+ */
+bool pwb_argeater_assoc_ensurer(const char **target, const char *value)
+{
+   SHELL_VAR *sv = find_variable(value);
+   if (sv)
+   {
+      // Clear array if proper type, otherwise dispose of it
+      if (assoc_p(sv))
+      {
+         pwb_dispose_variable_value(sv);
+         return true;
+      }
+      else
+      {
+         dispose_variable(sv);
+         sv = NULL;
+      }
+   }
+
+   if (variable_context == 0)
+      sv = make_new_assoc_variable((char*)value);
+   else
+      sv = make_local_assoc_variable((char*)value, variable_context);
+
+   if (sv)
+      return true;
+
+   (*error_sink)("Failed to secure associative array %s", value);
+   return false;
+}
+
+
 bool argeater_kclass_setter(const char **target, const char *value)
 {
    SHELL_VAR *sv = find_variable(value);
