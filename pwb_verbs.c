@@ -49,8 +49,13 @@ PWB_VERB verbs [] = {
 
    { "set_margins",
      "Set margins of active area",
-     "pwb margins top [right] [bottom] [left]",
+     "pwb set_margins handle_name top [right] [bottom] [left]",
      pwb_action_set_margins },
+
+   { "get_dimensions",
+     "get screen, margin, and window dimensions",
+     "pwb git_dimensions handle_name [associative_array_name]",
+     pwb_action_get_dims },
 
    { "report",
      "Report handle values",

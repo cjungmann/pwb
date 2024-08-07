@@ -20,7 +20,10 @@ PWB_RESULT pwb_action_plot_screen(PWBH *handle, ACLONE *args);
 
 PWB_RESULT pwb_action_declare_keymap(PWBH *handle, ACLONE *args);
 
-// int pwb_action_start.c:
+// in pwb_action_get_dims.c
+PWB_RESULT pwb_action_get_dims(PWBH *handle, ACLONE *args);
+
+// in pwb_action_start.c:
 PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args);
 
 #endif
