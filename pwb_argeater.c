@@ -137,10 +137,7 @@ bool pwb_argeater_assoc_ensurer(const char **target, const char *value)
    {
       // Clear array if proper type, otherwise dispose of it
       if (assoc_p(sv))
-      {
-         pwb_dispose_variable_value(sv);
-         return true;
-      }
+         assoc_flush(assoc_cell(sv));
       else
       {
          dispose_variable(sv);
@@ -148,13 +145,19 @@ bool pwb_argeater_assoc_ensurer(const char **target, const char *value)
       }
    }
 
-   if (variable_context == 0)
-      sv = make_new_assoc_variable((char*)value);
-   else
-      sv = make_local_assoc_variable((char*)value, variable_context);
+   if (!sv)
+   {
+      if (variable_context == 0)
+         sv = make_new_assoc_variable((char*)value);
+      else
+         sv = make_local_assoc_variable((char*)value, variable_context);
+   }
 
    if (sv)
+   {
+      *target = *(char**)&sv;
       return true;
+   }
 
    (*error_sink)("Failed to secure associative array %s", value);
    return false;
