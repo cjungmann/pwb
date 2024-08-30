@@ -238,6 +238,14 @@ PWB_RESULT pwb_action_set_margins(PWBH *handle, ACLONE *args)
    return result;
 }
 
+PWB_RESULT pwb_action_plot_header(PWBH *handle, ACLONE *pargs)
+{
+   PWB_RESULT result = PWB_FAILURE;
+   if (!pwb_margin_printer(handle, true))
+      result = 0;
+   return result;
+}
+
 PWB_RESULT pwb_action_plot_line(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_FAILURE;
@@ -253,6 +261,7 @@ PWB_RESULT pwb_action_plot_line(PWBH *handle, ACLONE *args)
    {
       if (row >= 0)
       {
+         // pager_plot_row() calls function 
          pager_plot_row(&handle->dparms, row);
          result = ARV_CONTINUE;
       }
@@ -266,3 +275,4 @@ PWB_RESULT pwb_action_plot_screen(PWBH *handle, ACLONE *args)
    pager_plot(&handle->dparms);
    return result;
 }
+

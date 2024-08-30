@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <contools.h>
+#include <pager.h>
 
 /**
  * @brief Dispose of item referenced by SHELL_VAR::value.
@@ -144,6 +145,46 @@ int pwb_raw_line_printer(int row_index,
    pwbh_print_set_focus(ph, focus);
 
    return pwb_execute_command(ph->printer_wl);
+}
+
+/**
+ * @brief General function to print either header or footer
+ */
+int pwb_margin_printer(PWBH *handle, bool header)
+{
+   int result = PWB_SUCCESS;
+
+   // Set function-wide DPARMS values
+   DPARMS *dparms = &handle->dparms;
+   pwbh_print_set_row_index(handle, dparms->index_row_focus);
+
+   int col_to_start = dparms->chars_left;
+   int line_to_start, lines_to_print;
+
+   if (header)
+   {
+      line_to_start = 0;
+      lines_to_print = dparms->margin_top;
+   }
+   else
+   {
+      line_to_start = dparms->line_bottom;
+      lines_to_print = dparms->line_count;
+   }
+
+   int margin_line = line_to_start;
+
+
+   for (int i=0; result==PWB_SUCCESS && i < lines_to_print; ++i)
+   {
+      ti_set_cursor_position(margin_line, col_to_start);
+      pwbh_print_set_focus(handle, i);
+      result = pwb_execute_command(handle->printer_wl);
+
+      ++margin_line;
+   }
+
+   return result;
 }
 
 /**

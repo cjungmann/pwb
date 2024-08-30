@@ -1,6 +1,7 @@
 #include "pwb_builtin.h"
 
 #include "pwb_handle.h"
+#include "pwb_utilities.h"
 #include <string.h>
 #include <assert.h>
 
@@ -77,30 +78,49 @@ int pwb_calc_handle_size(const char *data_source_name,
 {
    int total_bytes = sizeof(PWBH);
    int int_count = 0;
-   int slen;
 
    total_bytes += 1 + strlen(data_source_name);
 
    // Reserve memory for strings
-   if (data_source_name && (slen=strlen(data_source_name))>0)
-      total_bytes += 1 + slen;
-   if (data_extra_name && (slen=strlen(data_extra_name))>0)
-      total_bytes += 1 + slen;
-   if (handle_name && (slen=strlen(handle_name))>0)
-      total_bytes += 1 + slen;
+   total_bytes += get_string_saved_len(data_source_name);
+   total_bytes += get_string_saved_len(data_extra_name);
+   total_bytes += get_string_saved_len(handle_name);
+   total_bytes += get_string_saved_len(printer_func_name);
+   total_bytes += get_string_saved_len(exec_func_name);
 
-   if (printer_func_name && (slen=strlen(printer_func_name))>0)
+   // Reserve memory for WORD_LISTs for callback functions
+   if (printer_func_name && *printer_func_name)
    {
-      total_bytes += 1 + slen;
       int_count += 3;
       total_bytes += pwb_calc_word_list_size(7,3);
    }
-   if (exec_func_name && (slen=strlen(exec_func_name))>0)
+   if (exec_func_name && *exec_func_name)
    {
-      total_bytes += 1 + slen;
-      int_count += 1;
       total_bytes += pwb_calc_word_list_size(6,1);
+      int_count += 1;
    }
+
+   // Reserve memory for strings
+   // int slen;
+   // if (data_source_name && (slen=strlen(data_source_name))>0)
+   //    total_bytes += 1 + slen;
+   // if (data_extra_name && (slen=strlen(data_extra_name))>0)
+   //    total_bytes += 1 + slen;
+   // if (handle_name && (slen=strlen(handle_name))>0)
+   //    total_bytes += 1 + slen;
+
+   // if (printer_func_name && (slen=strlen(printer_func_name))>0)
+   // {
+   //    total_bytes += 1 + slen;
+   //    int_count += 3;
+   //    total_bytes += pwb_calc_word_list_size(7,3);
+   // }
+   // if (exec_func_name && (slen=strlen(exec_func_name))>0)
+   // {
+   //    total_bytes += 1 + slen;
+   //    int_count += 1;
+   //    total_bytes += pwb_calc_word_list_size(6,1);
+   // }
 
    return total_bytes + (int_count * WORD_LIST_INT_SIZE);
 }
@@ -130,7 +150,10 @@ PWBH * pwb_initialize_handle(char *buffer,
                              const char *printer_name,
                              const char *handle_name,
                              const char *exec_name,
-                             const char *data_extra_name)
+                             const char *data_extra_name
+                             // ,const char *head_printer_name
+                             // ,const char *foot_printer_name
+   )
 {
 #define MEMTEST free < buffer + buffer_len + 1
    memset(buffer, 0, buffer_len);
@@ -146,126 +169,84 @@ PWBH * pwb_initialize_handle(char *buffer,
    // Allocate memory starting from just after the PWBH
    char *free = buffer + sizeof(PWBH);
    assert(MEMTEST);
+   char *buff_end = buffer + buffer_len;
 
-   const static char *empty_string = "";
-   const char *copy_data_source_name = empty_string;
-   const char *copy_data_extra_name = empty_string;
-   const char *copy_handle_name = empty_string;
+   // For PWB handle members
+   // pwb_save_string_to_handle(&pwbh->head_printer_name,
+   //                           &free, buff_end, head_printer_name);
+   // pwb_save_string_to_handle(&pwbh->foot_printer_name,
+   //                           &free, buff_end, foot_printer_name);
 
-   // Copy strings and assign copies to DPARMS members:
-   // Copy and assign data_source_name
-   int slen = strlen(data_source_name);
-   memcpy(free, data_source_name, slen);
-   free[slen] = '\0';
-   copy_data_source_name = (char*)free;
-   pwbh->dparms.data_source = (void*)free;
-   free += slen + 1;
+   // For DPARMS in header
+   const char *copy_data_source_name = NULL;
+   pack_string_in_block(&copy_data_source_name, &free, buff_end, data_source_name);
+   pwbh->dparms.data_source = (char*)copy_data_source_name;
 
-   if (handle_name != NULL && (slen = strlen(handle_name))>0)
-   {
-      memcpy(free, handle_name, slen);
-      free[slen] = '\0';
-      copy_handle_name = free;
-      free += slen + 1;
-   }
+   // For WORD_LIST parameters
+   const char *copy_printer_name = NULL;
+   const char *copy_handle_name = NULL;
+   const char *copy_exec_name = NULL;
+   const char *copy_data_extra_name = NULL;
 
-   // If provided, copy and assign data_extra_name:
-   if (data_extra_name != NULL && (slen = strlen(data_extra_name))>0)
-   {
-      copy_data_extra_name = (char*)free;
-      /*
-       * DON'T set/change dparms.data_extra, the name of the extra data.
-       * If it's included, will be in the parameter WORD_LISTs used for
-       * calling the line-print function and the exec function.
-       *
-       * dparms.data_extra is cast to a DWBH pointer in the C code
-       * line-print and exec functions, then the data from the DWBH is
-       * used to call the Bash shell functions
-       */
-      // pwbh->dparms.data_extra = (void*)free;
-      memcpy(free, data_extra_name, slen);
-      free[slen] = '\0';
-      free += slen + 1;
-   }
+   pack_string_in_block(&copy_printer_name, &free, buff_end, printer_name);
+   pack_string_in_block(&copy_handle_name, &free, buff_end, handle_name);
+   pack_string_in_block(&copy_exec_name, &free, buff_end, exec_name);
+   pack_string_in_block(&copy_data_extra_name, &free, buff_end, data_extra_name);
 
-   if (printer_name && (slen = strlen(printer_name))>0)
+   // Prepare WORD_LIST for printer function callback
+   if (copy_printer_name)
    {
       pwbh->printer_wl = pwb_initialize_word_list(free, 7);
       free += pwb_calc_word_list_size(7,3);
-      assert(MEMTEST);
 
-      // Copy and assign printer_name
-      if (printer_name && (slen = strlen(printer_name))>0)
-      {
-         pwb_set_word_list_string_arg(pwbh->printer_wl, 0, free);
-         memcpy(free, printer_name, slen);
-         free[slen] = '\0';
-         free += slen + 1;
-      }
-      else
-         pwb_set_word_list_string_arg(pwbh->printer_wl, 0, empty_string);
-
-      // $1 (int), print function row_index
+      // Set integer WORD_LIST elements first
+      // row_index
       pwb_initialize_word_list_int_arg(pwbh->printer_wl, 1, free);
       free += WORD_LIST_INT_SIZE;
-      assert(MEMTEST);
-
-      // $2 (string), data source name
-      pwb_set_word_list_string_arg(pwbh->printer_wl, 2, copy_data_source_name);
-
-      // $3 (int), focus flag
+      // focus_flag
       pwb_initialize_word_list_int_arg(pwbh->printer_wl, 3, free);
       free += WORD_LIST_INT_SIZE;
-      assert(MEMTEST);
-
-      // $4 (int), char limit
+      // char_limit
       pwb_initialize_word_list_int_arg(pwbh->printer_wl, 4, free);
       free += WORD_LIST_INT_SIZE;
+
+      // Confirm we're on track, memory-wise
       assert(MEMTEST);
 
-      // $5 (string) handle name
+      // Set string WORD_LIST elements
+      pwb_set_word_list_string_arg(pwbh->printer_wl, 0, copy_printer_name);
+      pwb_set_word_list_string_arg(pwbh->printer_wl, 2, copy_data_source_name);
       pwb_set_word_list_string_arg(pwbh->printer_wl, 5, copy_handle_name);
 
-      // $6, Set or disconnect final WORD_LIST element based on data_extra provision
-      if (copy_data_extra_name == empty_string)
-         pwb_truncate_word_list_at_index(pwbh->printer_wl, 5);
-      else
+      // Set last WORD_LIST item according to supplied arguments
+      if (copy_data_extra_name)
          pwb_set_word_list_string_arg(pwbh->printer_wl, 6, copy_data_extra_name);
+      else
+         pwb_truncate_word_list_at_index(pwbh->printer_wl, 5);
    }
 
-   // Process the exec word_list only if an exec function is provided:
-   if (exec_name && (slen = strlen(exec_name))>0)
+   if (copy_exec_name)
    {
-      int word_list_count = 6;
-      pwbh->exec_wl = pwb_initialize_word_list(free, word_list_count);
-      free += pwb_calc_word_list_size(word_list_count, 1);
-      assert(MEMTEST);
+      pwbh->exec_wl = pwb_initialize_word_list(free, 6);
+      free += pwb_calc_word_list_size(6, 1);
 
-      // $0, Copy and assign exec_name
-      pwb_set_word_list_string_arg(pwbh->exec_wl, 0, free);
-      memcpy(free, exec_name, slen);
-      free[slen] = '\0';
-      free += slen + 1;
-
-      // $1 (string) keystroke, unset because it will be set at each call
-
-      // $2 (int) data row number
+      // Set integer WORD_LIST elements first
+      // data row number
       pwb_initialize_word_list_int_arg(pwbh->exec_wl, 2, free);
       free += WORD_LIST_INT_SIZE;
-      assert(MEMTEST);
 
-      // $3 (string) data source name
+      pwb_set_word_list_string_arg(pwbh->exec_wl, 0, exec_name);
+      // Skip WORD_LIST index 1 because it will be allocated for each function call
       pwb_set_word_list_string_arg(pwbh->exec_wl, 3, copy_data_source_name);
-
-      // $4 (string) handle name
       pwb_set_word_list_string_arg(pwbh->exec_wl, 4, copy_handle_name);
 
-      // $5 (string) Set or disconnect final WORD_LIST element based on data_extra provision
-      if (copy_data_extra_name == empty_string)
-         pwb_truncate_word_list_at_index(pwbh->exec_wl, 4);
-      else
+      // Set last WORD_LIST item according to supplied arguments
+      if (copy_data_extra_name)
          pwb_set_word_list_string_arg(pwbh->exec_wl, 5, copy_data_extra_name);
+      else
+         pwb_truncate_word_list_at_index(pwbh->exec_wl, 4);
    }
+
 
    return pwbh;
 }

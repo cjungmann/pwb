@@ -81,6 +81,8 @@ int pwb_line_printer(int row_index,
                      void *data_source,
                      void *data_extra);
 
+int pwb_margin_printer(PWBH *handle, bool header);
+
 int word_list_count(const WORD_LIST *wl);
 int pwb_calc_word_list_size(int elements, int int_els);
 

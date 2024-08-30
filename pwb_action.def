@@ -1,0 +1,26 @@
+// -*- mode: c -*-
+
+PWB_RESULT pwb_action_template(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_FAILURE;
+
+   // collect arguments
+   static const char *random_string = NULL;
+   static const char *random_flag = NULL;
+   static unsigned int top_row = -1;
+   static unsigned int focus_row = -1;
+   static PWBH *handle = NULL;
+   static KCLASS *primary_kclass = NULL;
+   static KCLASS *auxiliary_kclass = NULL;
+
+   static AE_ITEM items[] = {
+      { &random_string, "string", '\0', AET_ARGUMENT,
+        "Random demonstration string", "STRING", argeater_string_getter },
+
+      { (const char **)&top_row, "top_row", 't', AET_VALUE_OPTION,
+        
+   };
+   
+
+   return result;
+}
