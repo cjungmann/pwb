@@ -1,0 +1,88 @@
+.so fork.tmac
+.SS DECLARE ACTION
+.PP
+The
+.B declare
+action creates a PWB handle.
+The handle holds information necessary to present and manage an
+activate scrolling display.
+.PP
+.pt_declare
+.RS
+.TP
+.I handle_name
+Name to use for the new handle
+.TP
+.I data_source_name
+Name of a data source.
+This could be an array or an
+.B ate
+table.
+The
+.B data_source_name
+will be passed to the callback functions to use however deemed
+necessary by the developer.
+For arrays, use:
+.IP
+.EX
+local -n locDS=\(dq$data_source_name\(dq
+.EE
+.TP
+.I data_count
+should be the number of elements in the
+.BR data_source .
+This might be redundant for an array
+.BR data_source ,
+but other data sources may not provide this information, or the
+information might be expensive to acquire.
+.TP
+.I printer_func_name
+is a required argument, and refers to a script function that should
+be called to print each line.  See the
+.B PRINT FUNCTION
+section elsewhere in this document.
+.TP
+.BI "-b " bottom_margin_print_function
+Optional bottom margin print function name.  If the
+.B set_margins
+action established a bottom margin, this script function
+will be called by
+.B pwb
+to print the contents of the bottom margin.
+It will be called for a full screen plot and with each selection
+change so the contents of the margin can reflect the current
+selection.
+.TP
+.BI "-d " extra_data_name
+is a name that will be passed to the callback functions to be used
+as an extra resource for rendering lines or executing a command.
+Like the
+.B data_source
+argument, this is only a name.
+The name can be a handle name or an array name, or something else
+entirely.
+The developer must determine the best way to access the data.
+.TP
+.BI "-e " exec_func_name
+Is an optional function to be called whenever a mapped key is
+clicked (see the
+.B KEYMAP
+section elsewhere in this document).
+.TP
+.B -h
+This parameter-less argument disables automatic line highlighting.
+Normally,
+.B pwb
+will enable simple highlighting, as appropriate, before calling the
+printer function.
+Disable line highlighting with the
+.B -h
+option if the developer wants more control over highlighting.
+.TP
+.BI "-t " top_margin_print_function
+like the
+.I bottom_margin_print_function
+described above, this callback function will be responsible for
+populating the top margin (if established) according to the
+currently selected data item.
+.RE
