@@ -72,9 +72,11 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
       { &extra_data, "extra_data", 'd', AET_VALUE_OPTION,
         "name of extra data variable" },
       { &head_print_func, "top_printer", 't', AET_VALUE_OPTION,
-        "name of function to print top margin" },
+        "name of function to print top margin",
+        NULL, pwb_argeater_function_setter },
       { &foot_print_func, "bottom_printer", 'b', AET_VALUE_OPTION,
-        "name of function to print bottom margin" },
+        "name of function to print bottom margin",
+        NULL, pwb_argeater_function_setter },
       { &use_non_hilite_print, "no_hilites", 'h', AET_FLAG_OPTION,
         "do not auto-hilite focus lines" }
    };
