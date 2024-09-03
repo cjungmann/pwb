@@ -56,6 +56,8 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
    static const char *exec_func = NULL;
    static const char *extra_data = NULL;
    static const char *use_non_hilite_print = NULL;
+   static const char *head_print_func = NULL;
+   static const char *foot_print_func = NULL;
    static AE_ITEM items[] = {
       { &handle_name, "handle_name", '\0', AET_ARGUMENT,
       "name of new handle" },
@@ -69,6 +71,10 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
         "name of line execute function", NULL, pwb_argeater_function_setter},
       { &extra_data, "extra_data", 'd', AET_VALUE_OPTION,
         "name of extra data variable" },
+      { &head_print_func, "top_printer", 't', AET_VALUE_OPTION,
+        "name of function to print top margin" },
+      { &foot_print_func, "bottom_printer", 'b', AET_VALUE_OPTION,
+        "name of function to print bottom margin" },
       { &use_non_hilite_print, "no_hilites", 'h', AET_FLAG_OPTION,
         "do not auto-hilite focus lines" }
    };
@@ -80,7 +86,9 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
                                              print_func,
                                              handle_name,
                                              exec_func,
-                                             extra_data);
+                                             extra_data,
+                                             head_print_func,
+                                             foot_print_func);
       char *buff = (char*)xmalloc(handle_size);
       if (buff)
       {
@@ -91,7 +99,9 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
                                                print_func,
                                                handle_name,
                                                exec_func,
-                                               extra_data);
+                                               extra_data,
+                                               head_print_func,
+                                               foot_print_func);
 
          WORD_LIST *wl_ptr = pwbh->printer_wl;
          __attribute__((unused))
