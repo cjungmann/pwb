@@ -167,11 +167,13 @@ int pwb_line_printer(int row_index,
          if (ph->print_func_head && pwbh_position_to_head(ph))
          {
             pwbh_print_set_shell_function(ph, ph->print_func_head);
+            result = pwb_execute_command(ph->printer_wl);
          }
 
          if (ph->print_func_foot && pwbh_position_to_foot(ph))
          {
             pwbh_print_set_shell_function(ph, ph->print_func_foot);
+            result = pwb_execute_command(ph->printer_wl);
          }
 
          pwbh_print_set_shell_function(ph, NULL);
