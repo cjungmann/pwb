@@ -31,6 +31,12 @@ struct pwb_handle {
 
    DPARMS dparms;
 
+   // script callback function names to be shared
+   // with the printer function
+   const char *print_func_line;
+   const char *print_func_head;
+   const char *print_func_foot;
+
    /**
     * @brief The printer function word list has 6 elements:
     *        0. function name    - fixed value
@@ -57,7 +63,9 @@ int pwb_calc_handle_size(const char *data_source_name,
                          const char *printer_name,
                          const char *handle_name,
                          const char *exec_func_name,
-                         const char *data_extra_name);
+                         const char *data_extra_name,
+                         const char *head_printer_name,
+                         const char *foot_printer_name);
 
 PWBH * pwb_initialize_handle(char *buffer,
                              int buffer_len,
@@ -66,7 +74,9 @@ PWBH * pwb_initialize_handle(char *buffer,
                              const char *printer_name,
                              const char *handle_name,
                              const char *exec_name,
-                             const char *data_extra_name);
+                             const char *data_extra_name,
+                             const char *head_printer_name,
+                             const char *foot_printer_name);
 
 // The following functions are found in pwbh_support.c
 int pwb_raw_line_printer(int row_index,
