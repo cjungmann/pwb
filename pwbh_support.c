@@ -73,6 +73,38 @@ PWB_RESULT get_pwb_handle(PWBH **handle, const char *name)
 }
 
 /**
+ * @defgroup MARGIN_RELATIVE_POSITIONING
+ * @{
+ */
+
+bool pwbh_position_to_head(PWBH *pwbh)
+{
+   int top_lines = pwbh->dparms.margin_top;
+   if (top_lines > 0)
+   {
+      ti_set_cursor_position(0, pwbh->dparms.margin_left);
+      return true;
+   }
+
+   return false;
+}
+
+bool pwbh_position_to_foot(PWBH *pwbh)
+{
+   int bottom_lines = pwbh->dparms.margin_bottom;
+   if (bottom_lines > 0)
+   {
+      int pos_foot = pwbh->dparms.line_count - bottom_lines - 1;
+      ti_set_cursor_position(pos_foot, pwbh->dparms.margin_left);
+      return true;
+   }
+
+   return false;
+}
+
+/** @} */
+
+/**
  * Terminal setup stuff
  */
 int pwb_terminal_init(void)
@@ -103,8 +135,12 @@ int pwb_execute_command(WORD_LIST *wl)
    return execute_command(command);
 }
 
+// Prototype to make function available in pwb_line_printer
+// without moving it from near related functions.
+void pwbh_print_set_shell_function(PWBH *pwbh, const char *func_name);
+
 /**
- * @brief Function for DPARMS printer that calls the shell function:
+ * @brief Default auto-hilighting printer function for DPARMS
  */
 int pwb_line_printer(int row_index,
                      int focus,
@@ -124,13 +160,29 @@ int pwb_line_printer(int row_index,
    int result = pwb_execute_command(ph->printer_wl);
 
    if (focus)
+   {
       stop_standout_mode();
+      if (ph->print_func_head || ph->print_func_foot)
+      {
+         if (ph->print_func_head && pwbh_position_to_head(ph))
+         {
+            pwbh_print_set_shell_function(ph, ph->print_func_head);
+         }
+
+         if (ph->print_func_foot && pwbh_position_to_foot(ph))
+         {
+            pwbh_print_set_shell_function(ph, ph->print_func_foot);
+         }
+
+         pwbh_print_set_shell_function(ph, NULL);
+      }
+   }
 
    return result;
 }
 
 /**
- * @brief Function for DPARMS printer that calls the shell function:
+ * @brief Alternate non-hilighting printer function for DPARMS
  */
 int pwb_raw_line_printer(int row_index,
                          int focus,
@@ -303,6 +355,15 @@ const char *pwbh_get_name_exec(const PWBH * pwbh)
       return pwbh->exec_wl->word->word;
    else
       return NULL;
+}
+
+void pwbh_print_set_shell_function(PWBH *pwbh, const char *func_name)
+{
+   // Make it easy to return to default (mandatory) print func
+   if (func_name == NULL)
+      func_name = pwbh->print_func_line;
+
+   pwb_set_word_list_string_arg(pwbh->printer_wl, 0, func_name);
 }
 
 
