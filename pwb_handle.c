@@ -74,7 +74,9 @@ int pwb_calc_handle_size(const char *data_source_name,
                          const char *printer_func_name,
                          const char *handle_name,
                          const char *exec_func_name,
-                         const char *data_extra_name)
+                         const char *data_extra_name,
+                         const char *head_printer_func_name,
+                         const char *foot_printer_func_name)
 {
    int total_bytes = sizeof(PWBH);
    int int_count = 0;
@@ -87,6 +89,8 @@ int pwb_calc_handle_size(const char *data_source_name,
    total_bytes += get_string_saved_len(handle_name);
    total_bytes += get_string_saved_len(printer_func_name);
    total_bytes += get_string_saved_len(exec_func_name);
+   total_bytes += get_string_saved_len(head_printer_func_name);
+   total_bytes += get_string_saved_len(foot_printer_func_name);
 
    // Reserve memory for WORD_LISTs for callback functions
    if (printer_func_name && *printer_func_name)
@@ -150,9 +154,9 @@ PWBH * pwb_initialize_handle(char *buffer,
                              const char *printer_name,
                              const char *handle_name,
                              const char *exec_name,
-                             const char *data_extra_name
-                             // ,const char *head_printer_name
-                             // ,const char *foot_printer_name
+                             const char *data_extra_name,
+                             const char *head_printer_name,
+                             const char *foot_printer_name
    )
 {
 #define MEMTEST free < buffer + buffer_len + 1
@@ -183,18 +187,20 @@ PWBH * pwb_initialize_handle(char *buffer,
    pwbh->dparms.data_source = (char*)copy_data_source_name;
 
    // For WORD_LIST parameters
-   const char *copy_printer_name = NULL;
    const char *copy_handle_name = NULL;
    const char *copy_exec_name = NULL;
    const char *copy_data_extra_name = NULL;
 
-   pack_string_in_block(&copy_printer_name, &free, buff_end, printer_name);
    pack_string_in_block(&copy_handle_name, &free, buff_end, handle_name);
    pack_string_in_block(&copy_exec_name, &free, buff_end, exec_name);
    pack_string_in_block(&copy_data_extra_name, &free, buff_end, data_extra_name);
 
+   pack_string_in_block(&pwbh->print_func_line, &free, buff_end, printer_name);
+   pack_string_in_block(&pwbh->print_func_head, &free, buff_end, head_printer_name);
+   pack_string_in_block(&pwbh->print_func_foot, &free, buff_end, foot_printer_name);
+
    // Prepare WORD_LIST for printer function callback
-   if (copy_printer_name)
+   if (pwbh->print_func_line || pwbh->print_func_head || pwbh->print_func_foot)
    {
       pwbh->printer_wl = pwb_initialize_word_list(free, 7);
       free += pwb_calc_word_list_size(7,3);
@@ -214,7 +220,7 @@ PWBH * pwb_initialize_handle(char *buffer,
       assert(MEMTEST);
 
       // Set string WORD_LIST elements
-      pwb_set_word_list_string_arg(pwbh->printer_wl, 0, copy_printer_name);
+      pwb_set_word_list_string_arg(pwbh->printer_wl, 0, pwbh->print_func_line);
       pwb_set_word_list_string_arg(pwbh->printer_wl, 2, copy_data_source_name);
       pwb_set_word_list_string_arg(pwbh->printer_wl, 5, copy_handle_name);
 
@@ -267,6 +273,7 @@ PWBH *pwb_get_handle_from_name(const char *handle_name)
 #include "pwb_builtin.h"
 #include <alloca.h>
 #include "pwbh_support.c"
+#include "pwb_utilities.c"
 
 void dump_word_list(WORD_LIST *wl)
 {
@@ -280,17 +287,24 @@ void dump_word_list(WORD_LIST *wl)
 
 int main(int argc, const char **argv)
 {
+   const char *handle_name = "bogus_handle";
    const char *ds_name = "dsource";
    int ds_count = 10;
    const char *pf_name = "printer_func";
    const char *ef_name = "exec_func";
    const char *de_name = "data_extra";
 
-   int hsize = pwb_calc_handle_size(ds_name, pf_name, ef_name, de_name);
+   const char *top_print = "header_printer";
+   const char *bottom_print = "footer_printer";
+
+   int hsize = pwb_calc_handle_size(ds_name, pf_name, ef_name, handle_name,
+                                    de_name, top_print, bottom_print);
    char *buff = alloca(hsize);
    PWBH *pwbh = pwb_initialize_handle(buff, hsize, ds_name,
                                       ds_count, pf_name,
-                                      ef_name, de_name);
+                                      handle_name,
+                                      ef_name, de_name,
+                                      top_print, bottom_print);
 
    printf("The handle shows string '%s'\n", (char*)pwbh);
 
