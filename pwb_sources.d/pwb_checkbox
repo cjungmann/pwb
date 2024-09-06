@@ -8,8 +8,8 @@ pwb_checkbox()
    {
       local -i row_index="$1"
       local ds_name="$2"
-      local -i focus_flag="$3"
-      local -i chars_to_print="$4"
+      local -i chars_to_print="$3"
+      local -i focus_flag="$4"
 
       ate get_row "$ds_name" "$row_index" -a cpl_row
       ate_exit_on_error
