@@ -374,12 +374,12 @@ void pwbh_print_set_row_index(PWBH *pwbh, int value)
    pwb_set_word_list_int_val(pwbh->printer_wl, 1, value);
 }
 
-void pwbh_print_set_focus(PWBH *pwbh, int value)
+void pwbh_print_set_length(PWBH *pwbh, int value)
 {
    pwb_set_word_list_int_val(pwbh->printer_wl, 3, value);
 }
 
-void pwbh_print_set_length(PWBH *pwbh, int value)
+void pwbh_print_set_focus(PWBH *pwbh, int value)
 {
    pwb_set_word_list_int_val(pwbh->printer_wl, 4, value);
 }

@@ -41,8 +41,8 @@ struct pwb_handle {
     * @brief The printer function word list has 6 elements:
     *        0. function name    - fixed value
     *        1. row index
-    *        2. focus flag
-    *        3. character limit
+    *        2. character limit
+    *        3. focus flag
     *        4. data_source name - fixed value
     *        5. data_extra name  - fixed value
     */

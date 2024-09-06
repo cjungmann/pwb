@@ -209,10 +209,10 @@ PWBH * pwb_initialize_handle(char *buffer,
       // row_index
       pwb_initialize_word_list_int_arg(pwbh->printer_wl, 1, free);
       free += WORD_LIST_INT_SIZE;
-      // focus_flag
+      // char_limit
       pwb_initialize_word_list_int_arg(pwbh->printer_wl, 3, free);
       free += WORD_LIST_INT_SIZE;
-      // char_limit
+      // focus_flag
       pwb_initialize_word_list_int_arg(pwbh->printer_wl, 4, free);
       free += WORD_LIST_INT_SIZE;
 
