@@ -11,7 +11,7 @@ void insert_dim(HASH_TABLE *target, const char *name, int value)
 {
    char intbuffer[20];
    snprintf(intbuffer, sizeof(intbuffer), "%d", value);
-   assoc_insert(target, (char*)name, intbuffer);
+   assoc_insert(target, savestring(name), intbuffer);
 }
 
 
@@ -43,6 +43,11 @@ PWB_RESULT pwb_action_get_dims(PWBH *handle, ACLONE *args)
       insert_dim(report_array, "margin_top",    handle->dparms.margin_top);
       insert_dim(report_array, "margin_left",   handle->dparms.margin_left);
       insert_dim(report_array, "margin_right",  handle->dparms.margin_right);
+
+      // If a supplied variable was uninitialized, it must be made
+      // visible for the calling function to use it:
+      if (invisible_p(report_var))
+         VUNSETATTR(report_var, att_invisible);
 
       result = PWB_SUCCESS;
    }
