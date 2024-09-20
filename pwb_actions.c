@@ -34,6 +34,7 @@ PWB_RESULT pwb_action_init(PWBH *handle, ACLONE *args)
 
    pwb_terminal_init();
    pager_init();
+   ti_hide_cursor();
 
    return result;
 }
@@ -42,6 +43,7 @@ PWB_RESULT pwb_action_restore(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_SUCCESS;
    pager_cleanup();
+   ti_show_cursor();
    return result;
 }
 
@@ -285,6 +287,68 @@ PWB_RESULT pwb_action_plot_screen(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_SUCCESS;
    pager_plot(&handle->dparms);
+   return result;
+}
+
+PWB_RESULT pwb_action_erase_head(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_FAILURE;
+   DPARMS *dparms = &handle->dparms;
+   if (dparms->margin_top > 0)
+   {
+      int pos_left = dparms->margin_left + 1;
+      // put cursor at top/left of top margin
+      ti_printf("\x1b[1;%dH", pos_left);
+
+      // print empty lines for each row
+      for (int i=0; i<dparms->margin_top; ++i)
+      {
+         // Erase chars-count characters on this line
+         ti_printf("\x1b[%dX", dparms->chars_count);
+         // Down one to next line
+         ti_printf("\x1b[1B");
+         ti_printf("\x1b[%G", pos_left);
+      }
+
+      // Leave with cursor at top/left
+      ti_printf("\x1b[1;%dH", pos_left);
+
+      result = PWB_SUCCESS;
+   }
+
+   return result;
+}
+
+PWB_RESULT pwb_action_erase_foot(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_FAILURE;
+   DPARMS *dparms = &handle->dparms;
+   if (dparms->margin_bottom > 0)
+   {
+      // Make sure cursor is below scroll region to prevent
+      // downward cursor movement from scrolling the content:
+      int pos_top = dparms->line_bottom + 2;
+
+      int pos_left = dparms->margin_left + 1;
+      // put cursor at top/left of top margin
+      ti_printf("\x1b[%d;%dH", pos_top, pos_left);
+
+      // print empty lines for each row
+      for (int i=0; i<dparms->margin_bottom; ++i)
+      {
+         // Erase chars-count characters on this line
+         ti_printf("\x1b[%dX", dparms->chars_count);
+         // Down one to next line
+         ti_printf("\x1b[1B");
+         ti_printf("\x1b[%G", pos_left);
+      }
+
+      // Leave with cursor at top/left
+      ti_printf("\x1b[%d;%dH", pos_top, pos_left);
+
+      result = PWB_SUCCESS;
+   }
+
    return result;
 }
 

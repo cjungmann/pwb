@@ -80,6 +80,16 @@ PWB_VERB verbs [] = {
      "pwb print_all handle_name",
      pwb_action_plot_screen },
 
+   { "erase_head",
+     "Erase head area, line in top margin area",
+     "pwb erase_head handle_name",
+     pwb_action_erase_head },
+
+   { "erase_foot",
+     "Erase foot area, line in bottom margin area",
+     "pwb erase_foot handle_name",
+     pwb_action_erase_foot },
+
    // Move the focus row by relative amount (+/- N) or to
    // to an absolute data-row index
    { "move",

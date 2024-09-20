@@ -18,6 +18,9 @@ PWB_RESULT pwb_action_trigger(PWBH * handle, ACLONE *args);
 PWB_RESULT pwb_action_plot_line(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_plot_screen(PWBH *handle, ACLONE *args);
 
+PWB_RESULT pwb_action_erase_head(PWBH *handle, ACLONE *args);
+PWB_RESULT pwb_action_erase_foot(PWBH *handle, ACLONE *args);
+
 PWB_RESULT pwb_action_declare_keymap(PWBH *handle, ACLONE *args);
 
 // in pwb_action_get_dims.c
