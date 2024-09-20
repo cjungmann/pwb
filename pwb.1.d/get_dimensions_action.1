@@ -1,0 +1,32 @@
+.so fork.tmac
+.SS GET_DIMENSIONS ACTION
+.PP
+The
+.B get_dimensions
+action retrieves important screen parameters including screen
+dimensions and
+.B pwb
+output specifications.
+.PP
+.pt_get_dimensions
+.RS
+.TP
+.I associative_array_name
+gName of the associative array in which the dimensions will be
+returned.
+The array will be created if it doesn't already exist.
+.RS
+.PP
+The index names of this associative array are:
+.TS
+tab(|);
+lb l.
+screen_rows|full count of screen rows
+screen_cols|full count of screen columns
+margin_top|number of rows in head (top of screen)
+margin_bottom|number of rows in foot (bottom of screen)
+margin_left|empty columns left of the content
+margin_right|empty columns right of the content
+.TE
+.RE
+.RE

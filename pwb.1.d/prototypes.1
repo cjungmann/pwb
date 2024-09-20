@@ -18,6 +18,11 @@
            ?!-h ?!-t:top_margin_print_function ?!-b:bottom_margin_print_function
 .  sp 0
 ..
+.de pt_get_dimensions
+.  B pwb get_dimensions
+.  cli_prototype @associative_array_name
+.  sp 0
+..
 .de pt_declare_keymap
 .  B pwb declare_keymap
 .  cli_prototype @new_keymap_name @array_name
