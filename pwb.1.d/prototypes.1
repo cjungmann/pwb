@@ -20,7 +20,17 @@
 ..
 .de pt_get_dimensions
 .  B pwb get_dimensions
-.  cli_prototype @associative_array_name
+.  cli_prototype @handle @associative_array_name
+.  sp 0
+..
+.de pt_erase_foot
+.  B pwb erase_foot
+.  cli_prototype @handle
+.  sp 0
+..
+.de pt_erase_head
+.  B pwb erase_head
+.  cli_prototype @handle
 .  sp 0
 ..
 .de pt_declare_keymap
