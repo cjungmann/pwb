@@ -33,11 +33,13 @@ PWB_RESULT pwb_action_get_dims(PWBH *handle, ACLONE *args)
    {
       HASH_TABLE *report_array = assoc_cell(report_var);
 
-      int rows, cols;
-      get_screen_size(&rows, &cols);
+      int lines, cols;
+      get_screen_size(&lines, &cols);
 
-      insert_dim(report_array, "screen_rows",   rows);
+      insert_dim(report_array, "screen_lines",  lines);
       insert_dim(report_array, "screen_cols",   cols);
+      insert_dim(report_array, "pager_lines",   handle->dparms.line_count);
+      insert_dim(report_array, "pager_cols",    handle->dparms.chars_count);
       insert_dim(report_array, "margin_top",    handle->dparms.margin_top);
       insert_dim(report_array, "margin_bottom", handle->dparms.margin_bottom);
       insert_dim(report_array, "margin_top",    handle->dparms.margin_top);
