@@ -1,4 +1,4 @@
-# -*- mode:sh -*-
+# -*- mode:shell-script; sh-shell:bash -*-
 pwb_exit_on_error()
 {
     local -i exval="$?"

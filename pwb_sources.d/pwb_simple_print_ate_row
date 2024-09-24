@@ -1,4 +1,4 @@
-# -*- mode:sh -*-
+# -*- mode:shell-script; sh-shell:bash -*-
 pwb_simple_print_ate_row()
 {
    local -i index="$1"
