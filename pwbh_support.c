@@ -91,11 +91,12 @@ bool pwbh_position_to_head(PWBH *pwbh)
 
 bool pwbh_position_to_foot(PWBH *pwbh)
 {
-   int bottom_lines = pwbh->dparms.margin_bottom;
+   DPARMS *dparms = &pwbh->dparms;
+   int bottom_lines = dparms->margin_bottom;
    if (bottom_lines > 0)
    {
-      int pos_foot = pwbh->dparms.line_count - bottom_lines - 1;
-      ti_set_cursor_position(pos_foot, pwbh->dparms.margin_left);
+      int pos_foot = dparms->margin_top + dparms->line_count;
+      ti_set_cursor_position(pos_foot, dparms->margin_left);
       return true;
    }
 
