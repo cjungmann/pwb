@@ -36,6 +36,7 @@ PWB_RESULT pwb_action_get_dims(PWBH *handle, ACLONE *args)
       int lines, cols;
       get_screen_size(&lines, &cols);
 
+      insert_dim(report_array, "data_rows",     handle->dparms.row_count);
       insert_dim(report_array, "screen_lines",  lines);
       insert_dim(report_array, "screen_cols",   cols);
       insert_dim(report_array, "pager_lines",   handle->dparms.line_count);
@@ -45,6 +46,8 @@ PWB_RESULT pwb_action_get_dims(PWBH *handle, ACLONE *args)
       insert_dim(report_array, "margin_top",    handle->dparms.margin_top);
       insert_dim(report_array, "margin_left",   handle->dparms.margin_left);
       insert_dim(report_array, "margin_right",  handle->dparms.margin_right);
+      insert_dim(report_array, "row_top",       handle->dparms.index_row_top);
+      insert_dim(report_array, "row_focus",     handle->dparms.index_row_focus);
 
       // If a supplied variable was uninitialized, it must be made
       // visible for the calling function to use it:
