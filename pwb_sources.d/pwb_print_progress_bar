@@ -1,0 +1,30 @@
+# -*- mode:shell-script; sh-shell:bash -*-
+
+pwb_print_progress_bar()
+{
+    local -i index="$1"
+    local -i char_count="$3"
+    local pwb_handle="$5"
+
+    local -A dims
+    pwb get_dimensions "$pwb_handle" dims
+
+    local -i bar_width="${dims[pager_cols]}"
+    local -i handle_width=$(( bar_width * dims[pager_lines] / dims[data_rows] ))
+
+    local handle
+    printf -v handle "%*s" "$handle_width" " "
+    handle="${handle// /#}"
+
+    local -i progress_range=$(( bar_width - handle_width ))
+    local -i chars_to_left=$(( dims[row_top] * progress_range / \
+                               (dims[data_rows] - dims[pager_lines]) ))
+    local -i chars_to_right=$(( progress_range - chars_to_left ))
+
+    local preprog
+    printf -v preprog "%*s%s%*s" "$chars_to_left" "" "$handle" "$chars_to_right" ""
+    printf "%s" "${preprog// /-}"
+
+    # Go down one line to current left margin:
+    printf $'\e[1B\e[%dG' "${dims[margin_left]}"
+}
