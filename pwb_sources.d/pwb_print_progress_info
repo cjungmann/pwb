@@ -1,6 +1,6 @@
 # -*- mode:shell-script; sh-shell:bash -*-
 
-pwb_print_progress_bar()
+pwb_print_progress_info()
 {
     local -i index="$1"
     local -i char_count="$3"
@@ -8,23 +8,36 @@ pwb_print_progress_bar()
 
     local -A dims
     pwb get_dimensions "$pwb_handle" dims
+    local -i data_rows=$(( dims[data_rows] ))
+    local -i pager_lines=$(( dims[pager_lines] ))
 
-    local -i bar_width="${dims[pager_cols]}"
-    local -i handle_width=$(( bar_width * dims[pager_lines] / dims[data_rows] ))
+    if (( dims[margin_bottom] > 1 )); then
+        # Only print bar if needed
+        if (( data_rows > pager_lines )); then
+            local -i bar_width="${dims[pager_cols]}"
+            local -i handle_width=$(( bar_width * pager_lines / data_rows ))
 
-    local handle
-    printf -v handle "%*s" "$handle_width" " "
-    handle="${handle// /#}"
+            local handle
+            printf -v handle "%*s" "$handle_width" " "
+            handle="${handle// /#}"
 
-    local -i progress_range=$(( bar_width - handle_width ))
-    local -i chars_to_left=$(( dims[row_top] * progress_range / \
-                               (dims[data_rows] - dims[pager_lines]) ))
-    local -i chars_to_right=$(( progress_range - chars_to_left ))
+            local -i progress_range=$(( bar_width - handle_width ))
+            local -i chars_to_left=$(( dims[row_top] * progress_range / \
+                                           (data_rows - pager_lines) ))
+            local -i chars_to_right=$(( progress_range - chars_to_left ))
 
-    local preprog
-    printf -v preprog "%*s%s%*s" "$chars_to_left" "" "$handle" "$chars_to_right" ""
-    printf "%s" "${preprog// /-}"
+            local preprog
+            printf -v preprog "%*s%s%*s" "$chars_to_left" "" "$handle" "$chars_to_right" ""
+            printf "%s" "${preprog// /-}"
 
-    # Go down one line to current left margin:
-    printf $'\e[1B\e[%dG' "${dims[margin_left]}"
+            # Go down one line to current left margin:
+            printf $'\e[1B\e[%dG' "${dims[margin_left]}"
+        fi
+        # Always print progress:
+        local -i rw_count="${#data_rows}"
+        local format
+        printf -v format "%%%dd of %%%dd" "$rw_count" "$rw_count"
+        printf $'\e[%dG' $(( dims[pager_cols] / 2 + (rw_count)+2 ))
+        printf "$format" $(( index+1 )) "$data_rows"
+    fi
 }
