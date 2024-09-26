@@ -241,7 +241,7 @@ PWBH * pwb_initialize_handle(char *buffer,
       pwb_initialize_word_list_int_arg(pwbh->exec_wl, 2, free);
       free += WORD_LIST_INT_SIZE;
 
-      pwb_set_word_list_string_arg(pwbh->exec_wl, 0, exec_name);
+      pwb_set_word_list_string_arg(pwbh->exec_wl, 0, copy_exec_name);
       // Skip WORD_LIST index 1 because it will be allocated for each function call
       pwb_set_word_list_string_arg(pwbh->exec_wl, 3, copy_data_source_name);
       pwb_set_word_list_string_arg(pwbh->exec_wl, 4, copy_handle_name);
