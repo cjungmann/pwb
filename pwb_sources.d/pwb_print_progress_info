@@ -1,5 +1,8 @@
 # -*- mode:shell-script; sh-shell:bash -*-
 
+declare PPPI_block="█"
+declare PPPI_range="░"
+
 pwb_print_progress_info()
 {
     local -i index="$1"
@@ -19,7 +22,7 @@ pwb_print_progress_info()
 
             local handle
             printf -v handle "%*s" "$handle_width" " "
-            handle="${handle// /#}"
+            handle="${handle// /${PPPI_block}}"
 
             local -i progress_range=$(( bar_width - handle_width ))
             local -i chars_to_left=$(( dims[row_top] * progress_range / \
@@ -28,7 +31,7 @@ pwb_print_progress_info()
 
             local preprog
             printf -v preprog "%*s%s%*s" "$chars_to_left" "" "$handle" "$chars_to_right" ""
-            printf "%s" "${preprog// /-}"
+            printf "%s" "${preprog// /${PPPI_range}}"
 
             # Go down one line to current left margin:
             printf $'\e[1B\e[%dG' "${dims[margin_left]}"
