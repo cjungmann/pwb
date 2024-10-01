@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+declare GITHUB_BASE="https://github.com/cjungmann/lib"
+declare -a LIBS_NEEDED=( argeater pager contools )
+
+declare -a LIB_DIRS=()
+declare -a LIB_FLAGS=()
+declare -a LIB_MODULES=()
+
+install_and_build_library()
+{
+    local libname="$1"
+    if ! [ -d "libs" ]; then
+        mkdir libs
+    fi
+
+    cd libs
+    git clone "${GITHUB_BASE}${libname}.git"
+    cd "lib$libname"
+    make
+    if [ "$?" -eq 0 ]; then
+        LIB_MODULES+=( $(pwd)"/lib$libname.a" )
+    fi
+
+    LIB_DIRS+=( $( pwd ) )
+    cd ../..
+}
+
+shared_library_installed()
+{
+    local libname="lib${1}.so"
+    /usr/sbin/ldconfig -p | grep [[:space:]]"$libname"[[:space:]]
+
+    # Force false for testing:
+    return 1
+}
+
+add_if_static_library_available()
+{
+    local libname="$1"
+    local libdir="libs/lib$1"
+    local libfile="$libdir/libs/lib${libname}/lib${libname}.a"
+    echo "Checking for lib path '$libdir'"
+    if [ -d "$libdir" ]; then
+        if [ -f "$libfile" ]; then
+            echo "Found the $libname static library!, Adding."
+            LIB_MODULES+=( $( pwd )"$libfile" )
+            return 0
+        fi
+    fi
+
+    echo "Failed to find $libname"
+    return 1
+}
+
+confirm_library()
+{
+    local libname="$1"
+    if shared_library_installed "$libname"; then
+        echo "Found shared library '$1'"
+        LIB_FLAGS+=( "-l$libname" )
+    elif ! add_if_static_library_available "$libname"; then
+        echo "failed to find static library, so we're gonna add it"
+        install_and_build_library "$libname"
+    fi
+}
+
+
+setup_libraries()
+{
+    for lib in "${LIBS_NEEDED[@]}"; do
+        confirm_library "$lib"
+    done
+}
+
+setup_libraries
+
+declare flags_str="s|LIB_FLAGS =.*|LIB_FLAGS = ${LIB_FLAGS[*]}|"
+declare mods_str="s|LIB_MODULES =.*|LIB_MODULES = ${LIB_MODULES[*]}|"
+flags_str="${flags_str// /\\ }"
+mods_str="${mods_str// /\\ }"
+
+printf $'flags_str with be \e[32;1m%s\e[m\n' "$flags_str"
+printf $'mods_str with be \e[32;1m%s\e[m\n' "$mods_str"
+read -n1 -p "Press any key to update the Makefile"
+
+declare -a SED_LIB_ARGS=(
+    -e "${flags_str}"
+    -e "${mods_str}"
+    )
+
+sed -i "${SED_LIB_ARGS[@]}" Makefile

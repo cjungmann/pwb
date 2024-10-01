@@ -9,9 +9,13 @@ PREFIX ?= /usr/local
 # Change if source files not in base directory:
 SRC = .
 
+# These will be set by ./configure
+LIB_FLAGS = 
+LIB_MODULES = 
+
 CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb
 LFLAGS =
-LDFLAGS = -largeater -lpager -lcontools
+LDFLAGS = $(LIB_FLAGS)
 
 # Uncomment the following if target is a Shared library
 CFLAGS += -fPIC
@@ -26,18 +30,23 @@ HEADERS = $(wildcard $(SRC)/*.h)
 
 UTILITIES = $(filter $(basename $(wildcard *)),$(wildcard pwb_*))
 
+
 # Declare non-filename targets
 .PHONY: all install uninstall clean help
 
 all: $(TARGET)
 
 $(TARGET) : $(MODULES)
-	$(CC) $(LFLAGS) -o $@ $(MODULES) $(LDFLAGS)
+ifndef LIB_FLAGS
+ifndef LIB_MODULES
+	$(error "Run 'configure' to setup libraries")
+endif
+endif
+	$(CC) $(LFLAGS) -o $@ $(MODULES) $(LIB_MODULES) $(LDFLAGS)
 
 $(ENABLER):
 	@echo "#!/usr/bin/env bash"                         > $(ENABLER)
 	@echo "echo -f $(PREFIX)/lib/$(TARGET) $(BUILTIN)" >> $(ENABLER)
-
 
 *.c: $(HEADERS)
 	@echo "Forcing full recompile after any header file change"
