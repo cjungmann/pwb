@@ -30,9 +30,6 @@ shared_library_installed()
 {
     local libname="lib${1}.so"
     /usr/sbin/ldconfig -p | grep [[:space:]]"$libname"[[:space:]]
-
-    # Force false for testing:
-    return 1
 }
 
 add_if_static_library_available()
