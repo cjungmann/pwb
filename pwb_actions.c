@@ -247,7 +247,13 @@ PWB_RESULT pwb_action_set_margins(PWBH *handle, ACLONE *args)
 
    static AE_MAP map = INIT_MAP(items);
    if (argeater_process(args, &map))
-      pager_set_margins(&handle->dparms, top, right, bottom, left);
+   {
+      if (!pager_set_margins(&handle->dparms, top, right, bottom, left))
+      {
+         (*error_sink)("Impossible margins request.");
+         result = PWB_FAILURE;
+      }
+   }
 
    return result;
 }
