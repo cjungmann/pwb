@@ -103,6 +103,34 @@ bool pwbh_position_to_foot(PWBH *pwbh)
    return false;
 }
 
+bool pwbh_position_to_left(PWBH *pwbh)
+{
+   DPARMS *dparms = &pwbh->dparms;
+   int left_chars = dparms->margin_left;
+   if (left_chars > 0)
+   {
+      int top = dparms->margin_top;
+      ti_set_cursor_position(top, 1);
+      return true;
+   }
+
+   return false;
+}
+
+bool pwbh_position_to_right(PWBH *pwbh)
+{
+   DPARMS *dparms = &pwbh->dparms;
+   int right_chars = dparms->margin_right;
+   if (right_chars > 0)
+   {
+      int right = dparms->margin_left + dparms->chars_count;
+      int top = dparms->margin_top;
+      ti_set_cursor_position(top, right);
+      return true;
+   }
+
+   return false;
+}
 /** @} */
 
 /**
@@ -177,6 +205,19 @@ int pwb_line_printer(int row_index,
             result = pwb_execute_command(ph->printer_wl);
          }
 
+         if (ph->print_func_left && pwbh_position_to_left(ph))
+         {
+            pwbh_print_set_shell_function(ph, ph->print_func_left);
+            result = pwb_execute_command(ph->printer_wl);
+         }
+
+         if (ph->print_func_right && pwbh_position_to_right(ph))
+         {
+            pwbh_print_set_shell_function(ph, ph->print_func_right);
+            result = pwb_execute_command(ph->printer_wl);
+         }
+         
+         // Restore default print function when finished printing margins
          pwbh_print_set_shell_function(ph, NULL);
       }
    }

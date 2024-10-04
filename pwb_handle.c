@@ -76,7 +76,9 @@ int pwb_calc_handle_size(const char *data_source_name,
                          const char *exec_func_name,
                          const char *data_extra_name,
                          const char *head_printer_func_name,
-                         const char *foot_printer_func_name)
+                         const char *foot_printer_func_name,
+                         const char *left_printer_func_name,
+                         const char *right_printer_func_name)
 {
    int total_bytes = sizeof(PWBH);
    int int_count = 0;
@@ -91,6 +93,8 @@ int pwb_calc_handle_size(const char *data_source_name,
    total_bytes += get_string_saved_len(exec_func_name);
    total_bytes += get_string_saved_len(head_printer_func_name);
    total_bytes += get_string_saved_len(foot_printer_func_name);
+   total_bytes += get_string_saved_len(left_printer_func_name);
+   total_bytes += get_string_saved_len(right_printer_func_name);
 
    // Reserve memory for WORD_LISTs for callback functions
    if (printer_func_name && *printer_func_name)
@@ -156,8 +160,9 @@ PWBH * pwb_initialize_handle(char *buffer,
                              const char *exec_name,
                              const char *data_extra_name,
                              const char *head_printer_name,
-                             const char *foot_printer_name
-   )
+                             const char *foot_printer_name,
+                             const char *left_printer_name,
+                             const char *right_printer_name)
 {
 #define MEMTEST free < buffer + buffer_len + 1
    memset(buffer, 0, buffer_len);
@@ -198,6 +203,8 @@ PWBH * pwb_initialize_handle(char *buffer,
    pack_string_in_block(&pwbh->print_func_line, &free, buff_end, printer_name);
    pack_string_in_block(&pwbh->print_func_head, &free, buff_end, head_printer_name);
    pack_string_in_block(&pwbh->print_func_foot, &free, buff_end, foot_printer_name);
+   pack_string_in_block(&pwbh->print_func_left, &free, buff_end, left_printer_name);
+   pack_string_in_block(&pwbh->print_func_right, &free, buff_end, right_printer_name);
 
    // Prepare WORD_LIST for printer function callback
    if (pwbh->print_func_line || pwbh->print_func_head || pwbh->print_func_foot)
