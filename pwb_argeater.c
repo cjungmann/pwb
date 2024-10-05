@@ -80,7 +80,11 @@ bool argeater_array_name_setter(const char **target, const char *value)
          *target = value;
          return true;
       }
+      else
+         (*error_sink)("Variable '%s' is not an array.", value);
    }
+   else
+      (*error_sink)("Failed to find variable '%s'.", value);
    return false;
 }
 
