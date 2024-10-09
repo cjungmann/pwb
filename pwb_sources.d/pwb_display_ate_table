@@ -1,0 +1,78 @@
+# -*- mode:shell-script; sh-shell:bash -*-
+# shellcheck shell=bash
+
+pwb_display_ate_table()
+{
+    make_format_string()
+    {
+        local -n mfs_format="$1"
+        local table_name="$2"
+
+        local token
+        local -a tokens
+        ate get_field_sizes "$table_name"
+        ate_exit_on_error
+        for field in "${ATE_ARRAY[@]}"; do
+            printf -v token "%%-%ds" "$field"
+            tokens+=( "$token" )
+        done
+
+        local IFS=' '
+        mfs_format="${tokens[*]}"
+    }
+
+    print_line()
+    {
+        local -i index="$1"
+        local table="$2"
+        local -i char_limit="$3"
+        local -n format="$6"
+
+        ate get_row "$table" "$index"
+        ate_exit_on_error
+
+        local tline
+        printf -v tline "$format" "${ATE_ARRAY[@]}"
+        printf "%s" "${tline:0:$char_limit}"
+    }
+
+    print_top()
+    {
+        printf $'\e[1;%dH\e[%dX' $(( PWB_DIMS[margin_left]+1 )) "${PWB_DIMS[pager_cols]}"
+
+        local -i index="$1"
+        local header
+        printf -v header "Row %d of %d" $(( index+1 )) "${PWB_DIMS[data_rows]}"
+        printf $'\e[1;%dH%s' $(( (PWB_DIMS[screen_cols] - ${#header}) / 2 )) "$header"
+    }
+
+    #############################
+    ### EXECUTION BEGINS HERE ###
+    #############################
+
+    local tname="$1"
+    local -i row_count
+    ate get_row_count "$tname" -v row_count
+    ate_exit_on_error
+    local HEAD_STRING
+    printf -v HEAD_STRING "Table %s has %d rows" "$tname" "$row_count"
+
+    local pdat_format
+    make_format_string pdat_format "$tname"
+
+    declare pwb_table
+    pwb declare pwb_table "$tname" "$row_count" print_line \
+        -d pdat_format \
+        -t print_top
+    pwb_exit_on_error
+
+    pwb set_margins pwb_table 2
+
+    local -A PWB_DIMS
+    pwb get_dimensions pwb_table PWB_DIMS
+    local -i HEAD_STRING_POS=$(( (PWB_DIMS[screen_cols] - ${#HEAD_STRING}) / 2))
+
+    # to prevent mismatched init/restore, assume init/restore
+    # handled earlier on call stack
+    pwb start pwb_table
+}
