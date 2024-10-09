@@ -42,16 +42,20 @@ be called to print each line.  See the
 .B PRINT FUNCTION
 section elsewhere in this document.
 .TP
-.BI "-b " bottom_margin_print_function
-Optional bottom margin print function name.  If the
-.B set_margins
-action established a bottom margin, this script function
-will be called by
+.B -h
+This parameter-less argument disables automatic line highlighting.
+Normally,
 .B pwb
-to print the contents of the bottom margin.
-It will be called for a full screen plot and with each selection
-change so the contents of the margin can reflect the current
-selection.
+will enable simple highlighting, as appropriate, before calling the
+printer function.
+Disable line highlighting with the
+.B -h
+option if the developer wants more control over highlighting.
+.TP
+.B -n
+Overrides default line highlighting.
+Set this flag to leave highlighting to be implemented in the
+printer function.
 .TP
 .BI "-d " extra_data_name
 is a name that will be passed to the callback functions to be used
@@ -69,15 +73,30 @@ clicked (see the
 .B KEYMAP
 section elsewhere in this document).
 .TP
-.B -h
-This parameter-less argument disables automatic line highlighting.
-Normally,
+.BI "-b " bottom_margin_print_function
+Optional bottom margin print function name.  If the
+.B set_margins
+action established a bottom margin, this script function
+will be called by
 .B pwb
-will enable simple highlighting, as appropriate, before calling the
-printer function.
-Disable line highlighting with the
-.B -h
-option if the developer wants more control over highlighting.
+to print the contents of the bottom margin.
+It will be called for a full screen plot and with each selection
+change so the contents of the margin can reflect the current
+selection.
+.TP
+.BI "-l " left_margin_print_function
+like the
+.I bottom_margin_print_function
+described above, this callback function will be responsible for
+populating the left margin (if established) according to the
+currently selected data item.
+.TP
+.BI "-r " right_margin_print_function
+like the
+.I bottom_margin_print_function
+described above, this callback function will be responsible for
+populating the right margin (if established) according to the
+currently selected data item.
 .TP
 .BI "-t " top_margin_print_function
 like the
