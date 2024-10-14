@@ -429,7 +429,10 @@ ARV pwb_run_keystroke(PWBH *pwbh,
 
    struct keymap_entry *xptr = NULL, *xend = NULL;
 
-   if (keymap_aux && keymap_aux->entry_count != NULL)
+   if (keymap_aux &&
+       keymap_aux->entries &&
+       keymap_aux->entry_count &&
+       *keymap_aux->entry_count > 0 )
    {
       xptr = keymap_aux->entries;
       xend = xptr + *keymap_aux->entry_count;
