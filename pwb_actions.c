@@ -28,6 +28,12 @@ PWB_RESULT pwb_action_dummy(PWBH *handle, ACLONE *args)
    return PWB_SUCCESS;
 }
 
+PWB_RESULT pwb_action_version(PWBH *handle, ACLONE *args)
+{
+   printf("pwb version 0.0.9\n");
+   return PWB_SUCCESS;
+}
+
 PWB_RESULT pwb_action_init(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_SUCCESS;

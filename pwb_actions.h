@@ -8,6 +8,8 @@
 
 PWB_RESULT pwb_action_dummy(PWBH *handle, ACLONE *args);
 
+PWB_RESULT pwb_action_version(PWBH *handle, ACLONE *args);
+
 PWB_RESULT pwb_action_init(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_restore(PWBH *handle, ACLONE *args);
 

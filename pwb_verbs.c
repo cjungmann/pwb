@@ -15,6 +15,11 @@ PWB_VERB verbs [] = {
      "pwb help",
      pwb_show_help },
 
+   { "version",
+     "Show the current version number",
+     "pwb version",
+     pwb_action_version },
+
    { "init",
      "Save terminal state and prepare for pager",
      "pwb init",
