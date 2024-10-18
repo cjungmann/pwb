@@ -59,7 +59,8 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
                pager_plot(&handle->dparms);
 
             const char *keys = get_keystroke(NULL, 0);
-            arv = pwb_run_keystroke(handle, keys, &base_keymap, &aux_keymap);
+            if (keys)
+               arv = pwb_run_keystroke(handle, keys, &base_keymap, &aux_keymap);
          }
       }
    }
