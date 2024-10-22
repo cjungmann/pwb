@@ -3,6 +3,7 @@
 #include <argeater.h>
 #include <alloca.h>
 #include <errno.h>
+#include <assert.h>
 
 ARV run_quit(PWBH *handle, WORD_LIST *word_list)
 {
@@ -103,6 +104,8 @@ PWB_RESULT initialize_kclass(KCLASS *kclass, KDATA *kdata)
 {
    if (kdata != NULL)
    {
+      assert(kclass->data == NULL);
+
       memset(kclass, 0, sizeof(KCLASS));
       char *free = (char*)kdata;
       int label_len = strlen(free);
@@ -391,7 +394,11 @@ PWB_RESULT pwb_make_kdata_shell_var(const char *name,
                   {
                      pwb_dispose_variable_value(sv_keymap);
                      sv_keymap->value = (char*)data;
-                     sv_keymap->attributes |= att_special;
+
+                     VSETATTR(sv_keymap, att_special);
+                     if (invisible_p(sv_keymap))
+                        VUNSETATTR(sv_keymap, att_invisible);
+
                      result = PWB_SUCCESS;
                   }
                   else

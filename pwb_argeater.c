@@ -173,7 +173,7 @@ bool argeater_kclass_setter(const char **target, const char *value)
    SHELL_VAR *sv = find_variable(value);
    if (sv)
    {
-      if (sv->attributes & att_special)
+      if (specialvar_p(sv))
       {
          int diff = strcmp(sv->value, KEYMAP_LABEL);
          ++diff;

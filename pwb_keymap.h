@@ -27,7 +27,7 @@ typedef struct keymap_class {
 } KCLASS;
 
 #define keymap_label_test(var) (0 == strcmp((var)->value, KEYMAP_LABEL))
-#define keymap_p(var) (((var)->attributes & att_special) && keymap_label_test((var)))
+#define keymap_p(var) (specialvar_p((var)) && keymap_label_test((var)))
 #define keymap_cell(var) fprintf(stderr, "Use initialize_kclass\n")
 
 PWB_KEYACT get_keyact(unsigned int index);

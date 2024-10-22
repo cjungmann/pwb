@@ -154,7 +154,9 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
          {
             pwb_dispose_variable_value(sv);
             sv->value = buff;
-            sv->attributes |= att_special;
+            VSETATTR(sv, att_special);
+            if (invisible_p(sv))
+               VUNSETATTR(sv, att_invisible);
 
             // Initialize the terminal and pager as soon
             // as we know everything is gonna be OK:
