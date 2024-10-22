@@ -17,8 +17,9 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
    static KCLASS aux_keymap = { 0 };
    static const char *help_flag = NULL;
 
-   // Extra step required to setup default keymap:
-   result = initialize_kclass(&base_keymap, (*get_default_kdata)());
+   // Initialize singleton (static) base_keymap only once:
+   if (base_keymap.data == NULL)
+      result = initialize_kclass(&base_keymap, (*get_default_kdata)());
 
    static AE_ITEM items[] = {
       { &help_flag, "help", 'h', AET_FLAG_OPTION,
