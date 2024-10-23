@@ -28,7 +28,7 @@ typedef struct keymap_class {
 
 #define keymap_label_test(var) (0 == strcmp((var)->value, KEYMAP_LABEL))
 #define keymap_p(var) (specialvar_p((var)) && keymap_label_test((var)))
-#define keymap_cell(var) fprintf(stderr, "Use initialize_kclass\n")
+#define keymap_cell(var) (KCLASS*)((var)->value)
 
 PWB_KEYACT get_keyact(unsigned int index);
 extern int action_table_count;
