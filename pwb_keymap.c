@@ -458,37 +458,36 @@ ARV pwb_run_keystroke(PWBH *pwbh,
    // Find the keyaction
    PWB_KEYACT cur_action = NULL;
 
-   // Search base keymap:
-   while (bptr < bend)
+   // First search alternate keymap in case of overrides:
+   while (xptr < xend)
    {
-      if (strcmp(bptr->keystroke, keystroke)==0)
+      if (strcmp(xptr->keystroke, keystroke)==0)
       {
-         int index = bptr->action_index;
+         int index = xptr->action_index;
          if (index >=0 && index < allowed_index)
          {
             cur_action = action_table[index];
             break;
          }
       }
-      ++bptr;
+      ++xptr;
    }
 
-   // If no action yet, search auxiliary keymap, if provided:
+   // Search default keymap if alternate search fails
    if (!cur_action)
    {
-      // fails entry if xptr == xend == NULL (no auxiliary keymap):
-      while (xptr < xend)
+      while (bptr < bend)
       {
-         if (strcmp(xptr->keystroke, keystroke)==0)
+         if (strcmp(bptr->keystroke, keystroke)==0)
          {
-            int index = xptr->action_index;
+            int index = bptr->action_index;
             if (index >=0 && index < allowed_index)
             {
                cur_action = action_table[index];
                break;
             }
          }
-         ++xptr;
+         ++bptr;
       }
    }
 
