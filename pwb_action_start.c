@@ -11,19 +11,19 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_FAILURE;
 
-   static unsigned int top_row = -1;
-   static unsigned int focus_row = -1;
-   static KCLASS base_keymap = { 0 };
-   static KCLASS aux_keymap = { 0 };
-   static const char *help_flag = NULL;
+   unsigned int top_row = -1;
+   unsigned int focus_row = -1;
+   KCLASS base_keymap = { 0 };
+   KCLASS aux_keymap = { 0 };
+   const char *help_flag = NULL;
 
    // Initialize singleton (static) base_keymap only once:
    if (base_keymap.data == NULL)
       result = initialize_kclass(&base_keymap, (*get_default_kdata)());
 
-   static AE_ITEM items[] = {
+   AE_ITEM items[] = {
       { &help_flag, "help", 'h', AET_FLAG_OPTION,
-        "Display help" },
+            "Display help" },
 
       { (const char**)&top_row, "top", 't', AET_VALUE_OPTION,
         "Source row of top screen line", "TOP_ROW", pwb_argeater_int_setter },
@@ -40,7 +40,7 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
         "AUXILIARY_KEYMAP", argeater_kclass_setter }
    };
 
-   static AE_MAP map = INIT_MAP(items);
+   AE_MAP map = INIT_MAP(items);
 
    if (argeater_process(args, &map))
    {
