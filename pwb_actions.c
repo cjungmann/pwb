@@ -108,7 +108,12 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
    };
 
    AE_MAP map = INIT_MAP(items);
-   if (argeater_process(args, &map))
+   if (!argeater_process(args, &map))
+   {
+      (*error_sink)("Error processing arguments.");
+      result = PWB_FAILURE;
+   }
+   else
    {
       int handle_size = pwb_calc_handle_size(data_source,
                                              print_func,
@@ -213,7 +218,12 @@ PWB_RESULT pwb_action_trigger(PWBH * handle, ACLONE *args)
    };
 
    static AE_MAP map = INIT_MAP(items);
-   if (argeater_process(args, &map))
+   if (!argeater_process(args, &map))
+   {
+      (*error_sink)("Error processing arguments.");
+      result = PWB_FAILURE;
+   }
+   else
    {
       // Last action in array calls the exec function.  Don't proceed
       // unless the exec function has been declared (test by checking
@@ -276,7 +286,12 @@ PWB_RESULT pwb_action_set_margins(PWBH *handle, ACLONE *args)
    };
 
    static AE_MAP map = INIT_MAP(items);
-   if (argeater_process(args, &map))
+   if (!argeater_process(args, &map))
+   {
+      (*error_sink)("Error processing arguments.");
+      result = PWB_FAILURE;
+   }
+   else
    {
       if (!pager_set_margins(&handle->dparms, top, right, bottom, left))
       {
@@ -307,7 +322,12 @@ PWB_RESULT pwb_action_plot_line(PWBH *handle, ACLONE *args)
    };
    static AE_MAP map = INIT_MAP(items);
 
-   if (argeater_process(args, &map))
+   if (!argeater_process(args, &map))
+   {
+      (*error_sink)("Error processing arguments.");
+      result = PWB_FAILURE;
+   }
+   else
    {
       if (row >= 0)
       {

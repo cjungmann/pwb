@@ -5,6 +5,7 @@
 #include <contools.h>
 
 #include "pwb_keymap.h"
+#include "pwb_errors.h"
 #include "pwb_argeater.h"
 
 PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
@@ -42,7 +43,12 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
 
    AE_MAP map = INIT_MAP(items);
 
-   if (argeater_process(args, &map))
+   if (!argeater_process(args, &map))
+   {
+      (*error_sink)("Error processing arguments.");
+      result = PWB_FAILURE;
+   }
+   else
    {
       if (help_flag)
       {

@@ -8,6 +8,7 @@
 #include <alloca.h>
 
 #include "pwb_handle.h"
+#include "pwb_errors.h"
 #include "pwb_argeater.h"
 #include "pwb_keymap.h"
 
@@ -25,7 +26,12 @@ PWB_RESULT pwb_action_declare_keymap(PWBH *handle, ACLONE *args)
         argeater_array_name_setter }
    };
    static AE_MAP map = INIT_MAP(items);
-   if (argeater_process(args, &map))
+   if (!argeater_process(args, &map))
+   {
+      (*error_sink)("Error processing arguments.");
+      result = PWB_FAILURE;
+   }
+   else
    {
       if (keymap_handle_name && array_name)
          result = pwb_make_kdata_shell_var(keymap_handle_name, array_name, KEYMAP_LABEL);

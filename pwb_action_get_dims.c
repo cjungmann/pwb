@@ -5,6 +5,7 @@
 #include <contools.h>
 
 #include "pwb_keymap.h"
+#include "pwb_errors.h"
 #include "pwb_argeater.h"
 
 void insert_dim(HASH_TABLE *target, const char *name, int value)
@@ -29,7 +30,12 @@ PWB_RESULT pwb_action_get_dims(PWBH *handle, ACLONE *args)
    };
 
    AE_MAP map = INIT_MAP(items);
-   if (argeater_process(args, &map))
+   if (!argeater_process(args, &map))
+   {
+      (*error_sink)("Error processing arguments.");
+      result = PWB_FAILURE;
+   }
+   else
    {
       HASH_TABLE *report_array = assoc_cell(report_var);
 
