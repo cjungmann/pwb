@@ -49,6 +49,8 @@ static int pwb_builtin(WORD_LIST *list)
    int exit_code = EXECUTION_FAILURE;
    pwb_error_clear();
 
+   argeater_set_error_sink(pwb_error_shell_var);
+
    PWB_RESULT result = perform_verb(list);
    if (result == PWB_SUCCESS)
       exit_code = EXECUTION_SUCCESS;
