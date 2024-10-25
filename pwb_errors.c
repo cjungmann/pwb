@@ -7,7 +7,7 @@
 
 type_error_sink error_sink = pwb_error_shell_var;
 
-void pwb_error_shell_var(const char *format, ...)
+int pwb_error_shell_var(const char *format, ...)
 {
    va_list args;
    va_start(args, format);
@@ -35,14 +35,18 @@ void pwb_error_shell_var(const char *format, ...)
          }
       }
    }
+
+   return len;
 }
 
-void pwb_error_print(const char *format, ...)
+int pwb_error_print(const char *format, ...)
 {
-  va_list args;
+   va_list args;
    va_start(args, format);
-   fprintf(stderr, format, args);
+   int len = fprintf(stderr, format, args);
    va_end(args);
+
+   return len;
 }
 
 void pwb_error_clear(void)
