@@ -21,7 +21,7 @@ pwb_display_ate_table()
         mfs_format="${tokens[*]}"
     }
 
-    print_line()
+    pdat_print_line()
     {
         local -i index="$1"
         local table="$2"
@@ -36,7 +36,7 @@ pwb_display_ate_table()
         printf "%s" "${tline:0:$char_limit}"
     }
 
-    print_top()
+    pdat_print_top()
     {
         printf $'\e[1;%dH\e[%dX' $(( PWB_DIMS[margin_left]+1 )) "${PWB_DIMS[pager_cols]}"
 
@@ -61,9 +61,9 @@ pwb_display_ate_table()
     make_format_string pdat_format "$tname"
 
     declare pwb_table
-    pwb declare pwb_table "$tname" "$row_count" print_line \
+    pwb declare pwb_table "$tname" "$row_count" pdat_print_line \
         -d pdat_format \
-        -t print_top
+        -t pdat_print_top
     pwb_exit_on_error
 
     pwb set_margins pwb_table 2
