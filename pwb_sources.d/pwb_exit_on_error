@@ -1,12 +1,14 @@
 # -*- mode:shell-script; sh-shell:bash -*-
+
 pwb_exit_on_error()
 {
     local -i exval="$?"
     if [ "$exval" -ne 0 ]; then
         printf $'pwb error at line %d of script %s:\n' \
                $(( "${BASH_LINENO[0]}" - 1 )) \
-               "${BASH_SOURCE[1]}"
-        printf $'   \e[31;1m%s\e[m\n' "$PWB_ERROR"
+               "${BASH_SOURCE[1]}" >&2
+        printf -v errmsg $'   \e[31;1m%s\e[m\n' "$PWB_ERROR" >&2
+        read -n1 -p "$errmsg"
         exit 1
     fi
 }
