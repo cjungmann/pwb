@@ -292,7 +292,7 @@ PWB_RESULT pwb_action_plot_header(PWBH *handle, ACLONE *pargs)
 {
    PWB_RESULT result = PWB_FAILURE;
    if (!pwb_margin_printer(handle, true))
-      result = 0;
+       result = 0;
    return result;
 }
 
@@ -322,6 +322,7 @@ PWB_RESULT pwb_action_plot_line(PWBH *handle, ACLONE *args)
 PWB_RESULT pwb_action_plot_screen(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_SUCCESS;
+   pwbh_calc_borders(handle);
    pager_plot(&handle->dparms);
    return result;
 }
