@@ -39,11 +39,13 @@ pwb_display_ate_table()
     pdat_print_top()
     {
         printf $'\e[1;%dH\e[%dX' $(( PWB_DIMS[margin_left]+1 )) "${PWB_DIMS[pager_cols]}"
+        printf $'\e[1;%dH%s' "$HEAD_STRING_POS" "$HEAD_STRING"
 
+        printf $'\e[2;%dH\e[%dX' $(( PWB_DIMS[margin_left]+1 )) "${PWB_DIMS[pager_cols]}"
         local -i index="$1"
         local header
         printf -v header "Row %d of %d" $(( index+1 )) "${PWB_DIMS[data_rows]}"
-        printf $'\e[1;%dH%s' $(( (PWB_DIMS[screen_cols] - ${#header}) / 2 )) "$header"
+        printf $'\e[2;%dH%s' $(( (PWB_DIMS[screen_cols] - ${#header}) / 2 )) "$header"
     }
 
     #############################
@@ -55,7 +57,9 @@ pwb_display_ate_table()
     ate get_row_count "$tname" -v row_count
     ate_exit_on_error
     local HEAD_STRING
-    printf -v HEAD_STRING "Table %s has %d rows" "$tname" "$row_count"
+    printf -v HEAD_STRING $'Table \e[33;1m%s\e[m' "$tname"
+    # calculate head string length without unplotted console code characters
+    local -i HEAD_STRING_LEN=$(( 6 + ${#tname} ))
 
     local pdat_format
     make_format_string pdat_format "$tname"
@@ -66,11 +70,11 @@ pwb_display_ate_table()
         -t pdat_print_top
     pwb_exit_on_error
 
-    pwb set_margins pwb_table 2
+    pwb set_margins pwb_table 3 2 2
 
     local -A PWB_DIMS
     pwb get_dimensions pwb_table PWB_DIMS
-    local -i HEAD_STRING_POS=$(( (PWB_DIMS[screen_cols] - ${#HEAD_STRING}) / 2))
+    local -i HEAD_STRING_POS=$(( (PWB_DIMS[screen_cols] - HEAD_STRING_LEN) / 2))
 
     # to prevent mismatched init/restore, assume init/restore
     # handled earlier on call stack
