@@ -206,17 +206,20 @@ int pwb_line_printer(int row_index,
 
       if (!result && ph->print_func_left && pwbh_position_to_left(ph))
       {
+         pwbh_print_set_length(ph, ph->dparms.margin_left);
          pwbh_print_set_shell_function(ph, ph->print_func_left);
          result = pwb_execute_command(ph->printer_wl);
       }
 
       if (!result && ph->print_func_right && pwbh_position_to_right(ph))
       {
+         pwbh_print_set_length(ph, ph->dparms.margin_right);
          pwbh_print_set_shell_function(ph, ph->print_func_right);
          result = pwb_execute_command(ph->printer_wl);
       }
 
       // Restore default print function when finished printing margins
+      pwbh_print_set_length(ph, ph->dparms.chars_count);
       pwbh_print_set_shell_function(ph, NULL);
    }
 
