@@ -191,35 +191,33 @@ int pwb_line_printer(int row_index,
    if (focus)
    {
       stop_standout_mode();
-      if (ph->print_func_head || ph->print_func_foot)
+
+      if (ph->print_func_head && pwbh_position_to_head(ph))
       {
-         if (ph->print_func_head && pwbh_position_to_head(ph))
-         {
-            pwbh_print_set_shell_function(ph, ph->print_func_head);
-            result = pwb_execute_command(ph->printer_wl);
-         }
-
-         if (ph->print_func_foot && pwbh_position_to_foot(ph))
-         {
-            pwbh_print_set_shell_function(ph, ph->print_func_foot);
-            result = pwb_execute_command(ph->printer_wl);
-         }
-
-         if (ph->print_func_left && pwbh_position_to_left(ph))
-         {
-            pwbh_print_set_shell_function(ph, ph->print_func_left);
-            result = pwb_execute_command(ph->printer_wl);
-         }
-
-         if (ph->print_func_right && pwbh_position_to_right(ph))
-         {
-            pwbh_print_set_shell_function(ph, ph->print_func_right);
-            result = pwb_execute_command(ph->printer_wl);
-         }
-         
-         // Restore default print function when finished printing margins
-         pwbh_print_set_shell_function(ph, NULL);
+         pwbh_print_set_shell_function(ph, ph->print_func_head);
+         result = pwb_execute_command(ph->printer_wl);
       }
+
+      if (!result && ph->print_func_foot && pwbh_position_to_foot(ph))
+      {
+         pwbh_print_set_shell_function(ph, ph->print_func_foot);
+         result = pwb_execute_command(ph->printer_wl);
+      }
+
+      if (!result && ph->print_func_left && pwbh_position_to_left(ph))
+      {
+         pwbh_print_set_shell_function(ph, ph->print_func_left);
+         result = pwb_execute_command(ph->printer_wl);
+      }
+
+      if (!result && ph->print_func_right && pwbh_position_to_right(ph))
+      {
+         pwbh_print_set_shell_function(ph, ph->print_func_right);
+         result = pwb_execute_command(ph->printer_wl);
+      }
+
+      // Restore default print function when finished printing margins
+      pwbh_print_set_shell_function(ph, NULL);
    }
 
    return result;
