@@ -10,8 +10,8 @@ PREFIX ?= /usr/local
 SRC = .
 
 # These will be set by ./configure
-LIB_FLAGS = 
-LIB_MODULES = 
+LIB_FLAGS =
+LIB_MODULES =
 
 CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb
 LFLAGS =
@@ -63,10 +63,10 @@ install: $(ENABLER)
 	soelim $(TARGET_ROOT).1 | gzip -c - > $(PREFIX)/share/man/man1/$(TARGET_ROOT).1.gz
 	soelim $(TARGET_ROOT).7 | gzip -c - > $(PREFIX)/share/man/man7/$(TARGET_ROOT).7.gz
 # install SOURCER and sources
-	install -D $(BUILTIN)_sources.d/* -t$(PREFIX)/lib/$(BUILTIN)_sources
 	rm -f $(PREFIX)/bin/$(SOURCER)
 	sed -e s^#PREFIX#^$(PREFIX)^ -e s^#BUILTIN#^$(BUILTIN)^ $(SOURCER) > $(PREFIX)/bin/$(SOURCER)
 	chmod a+x $(PREFIX)/bin/$(SOURCER)
+	install -D $(BUILTIN)_sources.d/pwb_* -t$(PREFIX)/lib/$(BUILTIN)_sources
 
 install_utilities:
 	@echo "UTILITIES are " $(UTILITIES)
