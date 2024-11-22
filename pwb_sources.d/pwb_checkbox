@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# -*- mode:shell-script; sh-shell:bash  -*-
-# shellcheck disable=SC2317
 
 pwb_checkbox()
 {

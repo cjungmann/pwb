@@ -1,4 +1,5 @@
 # -*- mode:shell-script; sh-shell:bash -*-
+# shellcheck shell=bash
 
 declare PPPI_block="█"
 declare PPPI_range="░"

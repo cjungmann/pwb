@@ -1,4 +1,6 @@
 # -*- mode:shell-script; sh-shell:bash -*-
+# shellcheck shell=bash
+
 pwb_simple_print_array_row()
 {
    local -i index="$1"

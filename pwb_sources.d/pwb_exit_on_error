@@ -1,8 +1,11 @@
 # -*- mode:shell-script; sh-shell:bash -*-
+# shellcheck shell=bash
 
 pwb_exit_on_error()
 {
+    # Must be first line to capture previous statements exit value
     local -i exval="$?"
+
     if [ "$exval" -ne 0 ]; then
         printf $'pwb error at line %d of script %s:\n' \
                $(( "${BASH_LINENO[0]}" - 1 )) \
