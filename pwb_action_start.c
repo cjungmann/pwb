@@ -1,8 +1,10 @@
 #include "pwb_actions.h"
+#include "pwb_errors.h"
 
 #include <stdio.h>
 #include <argeater.h>
 #include <contools.h>
+#include <assert.h>
 
 #include "pwb_keymap.h"
 #include "pwb_argeater.h"
@@ -19,7 +21,15 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
 
    // Initialize singleton (static) base_keymap only once:
    if (base_keymap.data == NULL)
-      result = initialize_kclass(&base_keymap, (*get_default_kdata)());
+   {
+      // Don't disturb the 'result' default value of PWB_FAILURE
+      // with a PWB_SUCCESS return of initialize_kclass:
+      if (PWB_SUCCESS != initialize_kclass(&base_keymap, (*get_default_kdata)()))
+      {
+         (*error_sink)("Unexpected failure during global kclass initialization.");
+         return PWB_FAILURE;
+      }
+   }
 
    AE_ITEM items[] = {
       { &help_flag, "help", 'h', AET_FLAG_OPTION,
@@ -42,13 +52,19 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
 
    AE_MAP map = INIT_MAP(items);
 
+   // We're assuming this, let's assert it, too:
+   assert(result==PWB_FAILURE);
+
    if (argeater_process(args, &map))
    {
+      // As of now, none of the functions called within the
+      // block return a success/fail value, so we might as well
+      // just indicate success right away.  We might have to
+      // address hidden errors in the code later (ominous music).
+      result = PWB_SUCCESS;
+
       if (help_flag)
-      {
          printf("Here's some help\n");
-         result = PWB_SUCCESS;
-      }
       else
       {
          pwbh_calc_borders(handle);
