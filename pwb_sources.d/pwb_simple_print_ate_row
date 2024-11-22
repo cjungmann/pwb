@@ -1,4 +1,6 @@
 # -*- mode:shell-script; sh-shell:bash -*-
+# shellcheck shell=bash
+
 pwb_simple_print_ate_row()
 {
    local -i index="$1"
@@ -8,5 +10,5 @@ pwb_simple_print_ate_row()
 
    ate get_row "$ds_name" "$index" -a pspar_row
    printf -v trow "%s" "${pspar_row[0]}"
-   printf "%-*s" "$char_limit" "$trow"
+   printf "%-*s" "$char_limit" "${trow:0:$char_limit}"
 }
