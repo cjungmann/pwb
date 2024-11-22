@@ -3,6 +3,15 @@
 
 pwb_display_ate_table()
 {
+    ## START FUNCTION CONFIRM SECTION
+    set -e
+    ate_confirm_functions \
+        ate_exit_on_error \
+        pwb_exit_on_error \
+        ate_get_index_with_key
+    set +e
+    ## END FUNCTION CONFIRM SECTION
+
     make_format_string()
     {
         local -n mfs_format="$1"
