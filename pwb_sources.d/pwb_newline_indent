@@ -1,5 +1,6 @@
 # -*- mode:shell-script; sh-shell:bash -*-
 # shellcheck shell=bash
+
 declare PWB_NEWLINE_INDENT_left
 
 PWB_NEWLINE_INDENT_SETUP()
