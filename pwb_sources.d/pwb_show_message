@@ -2,12 +2,14 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-declare PWM_CHAR_HORZ=$'\u2500'
-declare PWM_CHAR_VERT=$'\u2502'
-declare PWM_CHAR_UL=$'\u250C'
-declare PWM_CHAR_UR=$'\u2510'
-declare PWM_CHAR_LL=$'\u2514'
-declare PWM_CHAR_LR=$'\u2518'
+#> pwb_show_message handle strings_array_name
+
+declare PSM_CHAR_HORZ=$'\u2500'
+declare PSM_CHAR_VERT=$'\u2502'
+declare PSM_CHAR_UL=$'\u250C'
+declare PSM_CHAR_UR=$'\u2510'
+declare PSM_CHAR_LL=$'\u2514'
+declare PSM_CHAR_LR=$'\u2518'
 
 
 pwb_show_message()
@@ -19,7 +21,7 @@ pwb_show_message()
    local -i curlen maxlen=0
    local -i count=0
    for line in "${psm_lines[@]}"; do
-       curlen="${#line}"
+       pwb measure_string curlen "$line"
        (( maxlen = curlen>maxlen ? curlen : maxlen ))
        (( ++count ))
    done
@@ -36,26 +38,26 @@ pwb_show_message()
    printf $'\e[%d;%dH' "$ptop" "$pleft"
 
    # Prepare repeat-use strings
-   local linefeed rightline
+   local lf_left_position right_border
    # LF/CR, erase next line domain
-   printf -v linefeed $'\e[1E\e[%dG\e[%dX' "$pleft" $(( maxlen+2 ))
+   printf -v lf_position $'\e[1E\e[%dG\e[%dX' "$pleft" $(( maxlen+2 ))
    # Right to border, print border character
-   printf -v rightline $'\e[%dG%s' $(( pleft + maxlen + 1 )) "$PWM_CHAR_VERT"
+   printf -v right_border $'\e[%dG%s' $(( pleft + maxlen + 1 )) "$PSM_CHAR_VERT"
 
    # print top line
    local scratch
-   printf -v scratch "${PWM_CHAR_UL}%*s$PWM_CHAR_UR" "$maxlen" $' '
-   printf "%s" "${scratch// /$PWM_CHAR_HORZ}"
+   printf -v scratch "${PSM_CHAR_UL}%*s$PSM_CHAR_UR" "$maxlen" $' '
+   printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
 
    # print contents
    for line in "${psm_lines[@]}"; do
-       printf "%s" "$linefeed"
-       printf "${PWM_CHAR_VERT}%s" "$line"
-       printf "%s" "$rightline"
+       printf "%s" "$lf_position"
+       printf "${PSM_CHAR_VERT}%s" "$line"
+       printf "%s" "$right_border"
    done
 
    # print bottom line
    printf "%s" "$linefeed"
-   printf -v scratch "${PWM_CHAR_LL}%*s$PWM_CHAR_LR" "$maxlen" $' '
-   printf "%s" "${scratch// /$PWM_CHAR_HORZ}"
+   printf -v scratch "${PSM_CHAR_LL}%*s$PSM_CHAR_LR" "$maxlen" $' '
+   printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
 }
