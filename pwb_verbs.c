@@ -40,6 +40,11 @@ PWB_VERB verbs [] = {
      "pwb create_keymap handle_name array_name",
      pwb_action_declare_keymap },
 
+   { "len_print",
+     "Print string to limit of screen characters",
+     "pwb len_print count string_name",
+     pwb_action_len_print },
+
    /**
     * This marks the border between actions that take no handle,
     * either because it doesn't need one (init, restore, help), or
@@ -154,6 +159,12 @@ PWB_RESULT pwb_show_help(PWBH *handle, ACLONE *args)
    return PWB_SUCCESS;
 }
 
+/**
+ * @brief Primary function called from pwb_builtin
+ *
+ * All PWB action comes through this function, where the calling
+ * arguments request specific actions.
+ */
 PWB_RESULT perform_verb(WORD_LIST *wl)
 {
    PWB_RESULT result = PWB_UNKNOWN_VERB;
