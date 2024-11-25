@@ -34,6 +34,94 @@ PWB_RESULT pwb_action_version(PWBH *handle, ACLONE *args)
    return PWB_SUCCESS;
 }
 
+/**
+ * @brief Prints visible characters of string to limit in first argument
+ *
+ * Note that this function will get a NULL handle value because it's
+ * a 'waives_handle' function.
+ *
+ * This function will print characters found in the string, but only
+ * count those NOT IN a CSI sequence.  Trailing CSI sequences will be
+ * printed, even after the maximum visible characters are printed, to
+ * ensure cleanup CSI will be sent to the terminal.
+ */
+PWB_RESULT pwb_action_len_print(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_FAILURE;
+
+   unsigned int len = -1;
+   const char *string = NULL;
+   AE_ITEM items[] = {
+      { (const char **)&len, "length", '\0', AET_ARGUMENT,
+        "maximum screen characters to print", NULL, pwb_argeater_unsigned_int_setter },
+      { &string, "string", '\0', AET_ARGUMENT,
+        "string to print" }
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      if (len < 1)
+         (*error_sink)("length too small to print (%d)", len);
+      else if (string==NULL)
+         (*error_sink)("missing string to print");
+      else
+      {
+         bool in_csi = false;
+         int count = 0;
+         const char *ptr = string;
+         while (*ptr)
+         {
+            if (in_csi)
+            {
+               // Letter terminates a CSI, we're not discriminating beyond that
+               if ((*ptr>='a' && *ptr<='z') || (*ptr>='A' && *ptr<='Z'))
+                  in_csi = false;
+               // Only numerals and ';' in CSI expression, otherwise it's an error
+               else if (!((*ptr>='0' && *ptr <='9') || *ptr==';'))
+               {
+                  (*error_sink)("at char position %d, unexpected character '%c'"
+                                " (%d) in CSI expression",
+                                ptr - string, *ptr, *ptr);
+                  break;
+               }
+               // We're not counting 'em, just print and move along
+               putc(*ptr, stdout);
+               ++ptr;
+               continue;
+            }
+            // Check if we're starting a CSI
+            else if (*ptr=='\x27')
+            {
+               // Abort if escape does not start CSI sequence
+               if (*(ptr+1)!='[')
+               {
+                  (*error_sink)("ate char position %d, unexpected character '%c' "
+                                " (%d) following an escape character",
+                                ptr - string, *ptr, *ptr);
+                  break;
+               }
+
+               putc(*ptr++, stdout);
+               putc(*ptr++, stdout);
+               in_csi = true;
+               continue;
+            }
+
+            if (count < len)
+               putc(*ptr, stdout);
+
+            // Don't let the increment languish under a conditional,
+            // or we'll never get out of here:
+            ++ptr;
+            ++count;
+         }
+      }
+   }
+
+   return result;
+}
+
 PWB_RESULT pwb_action_init(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_SUCCESS;
