@@ -15,7 +15,7 @@ LIB_MODULES =
 
 CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb
 LFLAGS =
-LDFLAGS = $(LIB_FLAGS)
+LDFLAGS = -lm $(LIB_FLAGS)
 
 # Uncomment the following if target is a Shared library
 CFLAGS += -fPIC
