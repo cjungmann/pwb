@@ -40,6 +40,11 @@ PWB_VERB verbs [] = {
      "pwb create_keymap handle_name array_name",
      pwb_action_declare_keymap },
 
+   { "measure_string",
+     "Report printed length of string",
+     "pwb measure_string return_name string_name",
+     pwb_action_measure_string },
+
    { "len_print",
      "Print string to limit of screen characters",
      "pwb len_print count string_name",

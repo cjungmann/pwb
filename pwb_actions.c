@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>    // for malloc/free
 #include <alloca.h>
+#include <math.h>      // for log10
 
 #include "pwb_handle.h"
 #include "pwb_errors.h"
@@ -91,7 +92,7 @@ PWB_RESULT pwb_action_len_print(PWBH *handle, ACLONE *args)
                continue;
             }
             // Check if we're starting a CSI
-            else if (*ptr=='\x27')
+            else if (*ptr=='\x1b')
             {
                // Abort if escape does not start CSI sequence
                if (*(ptr+1)!='[')
@@ -111,10 +112,98 @@ PWB_RESULT pwb_action_len_print(PWBH *handle, ACLONE *args)
             if (count < len)
                putc(*ptr, stdout);
 
+            ++count;
+            ++ptr;
+         }
+      }
+   }
+
+   return result;
+}
+
+PWB_RESULT pwb_action_measure_string(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_FAILURE;
+
+   const char *var_name="PWB_VALUE";
+   const char *string=NULL;
+   AE_ITEM items[] = {
+      { &string, "string", '\0', AET_ARGUMENT,
+        "string to measure" },
+      { &var_name, "var", 'v', AET_VALUE_OPTION,
+        "Alternate to 'PWB_VALUE' for reporting result" }
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      if (string==NULL)
+         (*error_sink)("missing string to measure");
+      else
+      {
+         bool in_csi = false;
+         int count = 0;
+         const char *ptr = string;
+         while (*ptr)
+         {
+            if (in_csi)
+            {
+               // Letter terminates a CSI, we're not discriminating beyond that
+               if ((*ptr>='a' && *ptr<='z') || (*ptr>='A' && *ptr<='Z'))
+                  in_csi = false;
+               // Only numerals and ';' in CSI expression, otherwise it's an error
+               else if (!((*ptr>='0' && *ptr <='9') || *ptr==';'))
+               {
+                  (*error_sink)("at char position %d, unexpected character '%c'"
+                                " (%d) in CSI expression",
+                                ptr - string, *ptr, *ptr);
+                  break;
+               }
+               ++ptr;
+               continue;
+            }
+            // Check if we're starting a CSI
+            else if (*ptr=='\x1b')
+            {
+               // Abort if escape does not start CSI sequence
+               if (*(ptr+1)!='[')
+               {
+                  (*error_sink)("ate char position %d, unexpected character '%c' "
+                                " (%d) following an escape character",
+                                ptr - string, *ptr, *ptr);
+                  break;
+               }
+
+               ptr+=2;
+               in_csi = true;
+               continue;
+            }
+
             // Don't let the increment languish under a conditional,
             // or we'll never get out of here:
             ++ptr;
             ++count;
+         }
+
+         int num_length = floor(log10(count)) + 1;
+         // Room for \0 terminator
+         ++num_length;
+         char *buff = xmalloc(num_length);
+         if (buff)
+         {
+            SHELL_VAR *sv = find_variable(var_name);
+            if (!sv)
+               sv = bind_variable(var_name, "", 0);
+
+            if (sv)
+            {
+               snprintf(buff, num_length, "%d", count);
+               pwb_dispose_variable_value(sv);
+               sv->value = buff;
+               if (invisible_p(sv))
+                  VUNSETATTR(sv, att_invisible);
+               result = PWB_SUCCESS;
+            }
          }
       }
    }
