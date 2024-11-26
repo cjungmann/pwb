@@ -45,10 +45,10 @@ PWB_VERB verbs [] = {
      "pwb measure_string return_name string_name",
      pwb_action_measure_string },
 
-   { "len_print",
+   { "limit_print",
      "Print string to limit of screen characters",
-     "pwb len_print count string_name",
-     pwb_action_len_print },
+     "pwb limit_print count string_name",
+     pwb_action_limit_print },
 
    /**
     * This marks the border between actions that take no handle,
