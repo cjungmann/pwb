@@ -25,10 +25,14 @@
 .  cli_prototype @handle @associative_array_name
 .  sp 0
 ..
-.de pt_erase_foot
-.  B pwb erase_foot
-.  cli_prototype @handle
+.de pt_measure_string
+.  B pwb measure_string
+.  cli_prototype ?!-v:variable_name @string
 .  sp 0
+..
+.de pt_limit_print
+.  B pwb limit_print
+.  cli_prototype @length @string
 ..
 .de pt_erase_head
 .  B pwb erase_head
