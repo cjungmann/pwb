@@ -21,7 +21,7 @@ pwb_show_message()
    local -i curlen maxlen=0
    local -i count=0
    for line in "${psm_lines[@]}"; do
-       pwb measure_string curlen "$line"
+       pwb measure_string -v curlen "$line"
        (( maxlen = curlen>maxlen ? curlen : maxlen ))
        (( ++count ))
    done
@@ -38,7 +38,7 @@ pwb_show_message()
    printf $'\e[%d;%dH' "$ptop" "$pleft"
 
    # Prepare repeat-use strings
-   local lf_left_position right_border
+   local lf_position right_border
    # LF/CR, erase next line domain
    printf -v lf_position $'\e[1E\e[%dG\e[%dX' "$pleft" $(( maxlen+2 ))
    # Right to border, print border character
@@ -57,7 +57,7 @@ pwb_show_message()
    done
 
    # print bottom line
-   printf "%s" "$linefeed"
+   printf "%s" "$lf_position"
    printf -v scratch "${PSM_CHAR_LL}%*s$PSM_CHAR_LR" "$maxlen" $' '
    printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
 }
