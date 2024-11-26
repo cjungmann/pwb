@@ -46,7 +46,7 @@ PWB_RESULT pwb_action_version(PWBH *handle, ACLONE *args)
  * printed, even after the maximum visible characters are printed, to
  * ensure cleanup CSI will be sent to the terminal.
  */
-PWB_RESULT pwb_action_len_print(PWBH *handle, ACLONE *args)
+PWB_RESULT pwb_action_limit_print(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_FAILURE;
 
@@ -71,6 +71,8 @@ PWB_RESULT pwb_action_len_print(PWBH *handle, ACLONE *args)
          bool in_csi = false;
          int count = 0;
          const char *ptr = string;
+
+         result = PWB_SUCCESS;
          while (*ptr)
          {
             if (in_csi)
@@ -84,6 +86,7 @@ PWB_RESULT pwb_action_len_print(PWBH *handle, ACLONE *args)
                   (*error_sink)("at char position %d, unexpected character '%c'"
                                 " (%d) in CSI expression",
                                 ptr - string, *ptr, *ptr);
+                  result = PWB_FAILURE;
                   break;
                }
                // We're not counting 'em, just print and move along
@@ -100,6 +103,7 @@ PWB_RESULT pwb_action_len_print(PWBH *handle, ACLONE *args)
                   (*error_sink)("ate char position %d, unexpected character '%c' "
                                 " (%d) following an escape character",
                                 ptr - string, *ptr, *ptr);
+                  result = PWB_FAILURE;
                   break;
                }
 
