@@ -215,6 +215,45 @@ PWB_RESULT pwb_action_measure_string(PWBH *handle, ACLONE *args)
    return result;
 }
 
+PWB_RESULT pwb_action_get_keystroke(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_SUCCESS;
+
+   const char *var_name="PWB_VALUE";
+   AE_ITEM items[] = {
+      { &var_name, "var", 'v', AET_VALUE_OPTION,
+        "Alternate to 'PWB_VALUE' for reporting result" }
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      const char *keys = get_keystroke(NULL, 0);
+      if (keys)
+      {
+         int keylen = strlen(keys);
+         if (keylen > 0)
+         {
+            SHELL_VAR *sv = find_variable(var_name);
+            if (!sv)
+               sv = bind_variable(var_name, "", 0);
+
+            if (sv)
+            {
+               pwb_dispose_variable_value(sv);
+               sv->value = savestring(keys);
+
+               if (invisible_p(sv))
+                  VUNSETATTR(sv, att_invisible);
+               result = PWB_SUCCESS;
+            }
+         }
+      }
+   }
+
+   return result;
+}
+
 PWB_RESULT pwb_action_init(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_SUCCESS;

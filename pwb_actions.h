@@ -11,6 +11,7 @@ PWB_RESULT pwb_action_dummy(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_version(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_limit_print(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_measure_string(PWBH *handle, ACLONE *args);
+PWB_RESULT pwb_action_get_keystroke(PWBH *handle, ACLONE *args);
 
 PWB_RESULT pwb_action_init(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_restore(PWBH *handle, ACLONE *args);

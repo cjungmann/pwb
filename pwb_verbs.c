@@ -50,6 +50,11 @@ PWB_VERB verbs [] = {
      "pwb limit_print count string_name",
      pwb_action_limit_print },
 
+   { "get_keystroke",
+     "Returns user's next keystroke",
+     "pwb get_keystroke",
+     pwb_action_get_keystroke },
+
    /**
     * This marks the border between actions that take no handle,
     * either because it doesn't need one (init, restore, help), or
