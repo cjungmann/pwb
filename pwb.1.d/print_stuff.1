@@ -12,8 +12,6 @@ Please refrain from including these types of CSI sequences in strings
 that will be processed by these actions.
 .SS MEASURE_STRING
 .PP
-.pt_measure_string
-.PP
 Strings that include escaped CSI codes will print shorter than the
 number of characters in the string.
 This function parses the string to predict its screen-printed length.
@@ -24,13 +22,15 @@ unless the reporting variable is changed with the
 .B -v
 option.
 .PP
-.B ARGUMENTS
+.pt_measure_string
+.RS
 .TP
 .BI -v " variable_name"
 Optional name of variable to which the result will be reported.
 .TP
 .I string
 The string to be measured.
+.RE
 .PP
 Use
 .B measure_string
@@ -38,18 +38,18 @@ for centering text or other algorithms that need the visible length
 of a string.
 .SS LIMIT_PRINT
 .PP
-.pt_limit_print
-.PP
 Use this function to print a string containing CSI color codes
 within a constrained number of screen columns.
 .PP
-.B ARGUMENTS
+.pt_limit_print
+.RS
 .TP
 .I length
 The maximum number of screen characters to be printed.
 .TP
 .I string
 The string to be printed.
+.RE
 .PP
 Use this function to prevent a string from printing past its
 boundaries.
