@@ -1,0 +1,23 @@
+.so fork.tmac
+.SS GET_KEYSTROKE ACTION
+.PP
+Convenient scripting function that waits for and returns the
+contents of a single keystroke.
+.PP
+The function reliably returns exactly one keystroke string per call,
+whether it is a singleton or a string of printable or non-printable
+characters.
+.PP
+The function prevents the keystroke from disturbing the screen,
+neither echoing the character nor allowing the cursor to move.
+.PP
+.pt_get_keystroke
+.RS
+.TP
+.BI "-v " variable_name
+By default, the keystroke will be found in variable
+.BR PWB_VALUE ,
+but by using the
+.B -v
+option, you can declare a variable.
+.RE
