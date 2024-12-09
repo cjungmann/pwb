@@ -22,12 +22,12 @@ The navigation responses are indicated by index values as follows:
 tab(|);
 l l.
 0|exit
-1|down-arrow
-2|up-arrow
-3|page down
-4|page up
-5|end
-6|home
+1|down one line
+2|up one line
+3|down one page
+4|up one page
+5|bottom of document
+6|top of document
 7|execute
 .TE
 .PP
@@ -37,15 +37,21 @@ This is the default keymap:
 .TS
 tab(|);
 l l l.
-\(dq\q\(dq|0|# exit interaction
-\(Do\(aq\(rseOB\(aq|1|# down-arrow
-\(Do\(aq\(rseOA\(aq|2|# up-arrow
-\(Do\(aq\(rse[6~\(aq|3|# page down
-\(Do\(aq\(rse[5~\(aq|4|# page up
-\(Do\(aq\(rseOF\(aq|5|# end
-\(Do\(aq\(rseOH\(aq|6|# home
-\(Do\(aq\(rscm\(aq|7|# execute
+\(dq\q\(dq|0|# 'q' key
+\(Do\(aq\(rseOB\(aq|1|# down-arrow key
+\(Do\(aq\(rseOA\(aq|2|# up-arrow key
+\(Do\(aq\(rse[6~\(aq|3|# page down key
+\(Do\(aq\(rse[5~\(aq|4|# page up key
+\(Do\(aq\(rseOF\(aq|5|# end key
+\(Do\(aq\(rseOH\(aq|6|# home key
+\(Do\(aq\(rscm\(aq|7|# control-m (ENTER key)
 .TE
+.TP
+.B HINT
+Control keys often emit unintuitive keystroke strings.
+Use the
+.B showkey -a
+command to see the keystroke string of any typed key.
 .SH PRINTER CALLBACK FUNCTION
 .PP
 The command will repeatedly a script-provided printer function to
