@@ -1,0 +1,43 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+#> pwb_print_head handle strings_array_name
+
+pwb_print_head()
+{
+    local -A HDIMS
+    pwb get_dimensions "$1" HDIMS
+    pwb_exit_on_error
+    local -i max_line="${HDIMS[margin_top]}"
+    local -i screen_width="${HDIMS[screen_cols]}"
+    local -i lineno=1
+
+    local -n pph_lines="$2"
+    local line
+    local -i left linelen
+    for line in "${pph_lines[@]}"; do
+        if (( lineno <= max_line )); then
+            pwb measure_string "$line" -v linelen
+            pwb_exit_on_error
+            if (( linelen > screen_width )); then
+                linelen = screen_width;
+                left=1
+            else
+                left=$(( ( screen_width - linelen ) / 2 ))
+            fi
+
+            # Erase entire line, then position for the line
+            printf $'\e[%d;1H\e[2K\e[%dG' "$lineno" "$left"
+
+            pwb limit_print "$linelen" "$line"
+            pwb_exit_on_error
+            (( ++lineno ))
+        fi
+    done
+
+    while (( lineno <= max_line )); do
+        printf $'\e[%d;1H\e[2K' "$lineno"
+        (( ++lineno ))
+    done
+}
