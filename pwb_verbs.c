@@ -204,11 +204,23 @@ PWB_RESULT perform_verb(WORD_LIST *wl)
       }
       else if (!handle)
       {
-         handle = pwb_get_handle_from_name(wl->word->word);
-         if (!handle)
+         // Make sure the handle name is at least 1 character long
+         // (or pwb_get_handle_from_name will fail):
+         const char *handle_name = wl->word->word;
+         if (handle_name && *handle_name)
          {
-            result = PWB_UNKNOWN_HANDLE;
-            (*error_sink)("Unrecognized PWB handle name '%s'.", wl->word->word);
+            handle = pwb_get_handle_from_name(handle_name);
+            if (!handle)
+            {
+               result = PWB_UNKNOWN_HANDLE;
+               (*error_sink)("Unrecognized PWB handle name '%s'.", handle_name);
+               goto take_leave;
+            }
+         }
+         else
+         {
+            result = PWB_INVALID_ARGUMENT;
+            (*error_sink)("Empty string passed for handle name.");
             goto take_leave;
          }
       }
