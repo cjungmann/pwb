@@ -62,17 +62,18 @@ PWB_RESULT pwb_action_limit_print(PWBH *handle, ACLONE *args)
    AE_MAP map = INIT_MAP(items);
    if (argeater_process(args, &map))
    {
-      if (len < 1)
-         (*error_sink)("length too small to print (%d)", len);
-      else if (string==NULL)
+      if (string==NULL)
          (*error_sink)("missing string to print");
-      else
+      else if (len < 0)
+         (*error_sink)("Invalid string length (%d)", len);
+
+      result = PWB_SUCCESS;
+      if (len > 0)
       {
          bool in_csi = false;
          int count = 0;
          const char *ptr = string;
 
-         result = PWB_SUCCESS;
          while (*ptr)
          {
             if (in_csi)
@@ -189,7 +190,10 @@ PWB_RESULT pwb_action_measure_string(PWBH *handle, ACLONE *args)
             ++count;
          }
 
-         int num_length = floor(log10(count)) + 1;
+         // Don't attempt log10 on a zero value, but
+         // make sure there's room for a '0'
+         int num_length = count==0?1:(floor(log10(count))+1);
+
          // Room for \0 terminator
          ++num_length;
          char *buff = xmalloc(num_length);
