@@ -9,3 +9,11 @@ The command manages keystroke response and the screen contents
 by calling back to functions in the script hosting the command.
 As a builting command, it benefits from operating in the same process
 as the script, avoiding expensive child process calls.
+.PP
+For actions that return a value,
+.BR get_data_source ", " get_data_count ", " measure_string ", and " get_keystroke ,
+the default variable name will be
+.BR PWB_VALUE .
+Use the
+.BI -v " variable_name"
+option to write the value to another variable.
