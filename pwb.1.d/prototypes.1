@@ -76,3 +76,16 @@
 .  B exec_function
 .  cli_prototype @keystroke @data_row_number @data_source_name @pwb_handle_name ?@extra_data_name
 ..
+.de pt_get_data_source
+.  B pwb get_data_source
+.  cli_prototype @handle ?!-v:variable_name
+..
+.de pt_get_data_count
+.  B pwb get_data_count
+.  cli_prototype @handle ?!-v:variable_name
+..
+.de pt_update_data_count
+.  B pwb update_data_count
+.  cli_prototype @handle @new_count
+..
+
