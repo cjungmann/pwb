@@ -110,6 +110,21 @@ PWB_VERB verbs [] = {
      "pwb erase_foot handle_name",
      pwb_action_erase_foot },
 
+   { "get_data_source",
+     "Get the name of the data source",
+     "pwb get_data_source handle_name [-v varname]",
+     pwb_action_get_data_source },
+
+   { "get_data_count",
+     "Get count of elements of data source",
+     "pwb get_data_count handle_name [-v varname]",
+     pwb_action_get_data_count },
+
+   { "update_data_count",
+     "Set new value for number of rows in data source",
+     "pwb update_data_count handle_name new_count",
+     pwb_action_update_data_count },
+
    // Move the focus row by relative amount (+/- N) or to
    // to an absolute data-row index
    { "move",
