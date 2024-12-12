@@ -1,0 +1,19 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+#> pwb_erase_dims dims_array_name
+#> dims array will contain #top #left #rows #columns
+
+pwb_erase_dims()
+{
+    local -n pwd_array="$1"
+    local -i top="${pwd_array[0]}"
+    local -i left="${pwd_array[1]}"
+    local -i bottom=$(( top + "${pwd_array[2]}" ))
+    local -i wide="${pwd_array[3]}"
+
+    for (( row=top; row<bottom; ++row )); do
+        printf $'\e[%d;%dH\e[%dX' "$row" "$left" "$wide"
+    done
+}
