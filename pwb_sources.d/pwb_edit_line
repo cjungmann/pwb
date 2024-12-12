@@ -1,0 +1,50 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+#> pwb_edit_line name_of_return name_of_exit_key exit_keys_array [char_limit]
+#> If not set, the edit line will be limited to 80 characters
+
+pwb_edit_line()
+{
+    is_exit_key()
+    {
+        local iek_keyp="$1"
+        local -n iek_keys="$2"
+
+        for key in "${iek_keys[@]}"; do
+            if [[ "$key" == "$iek_keyp" ]]; then
+                return 0
+            fi
+        done
+        return 1
+    }
+
+    local -n psle_line="$1"          # return reference
+    local -n psle_exit_key="$2"      # reference to key that terminated edit
+    local exit_array_name="$3"       # name of array of exit keys
+    local -i char_limit="${4:- 80}"  # max characters to accept
+
+    local -i curlen="${#psle_line}"
+
+    psle_exit_key=""
+    local keyp=""
+    local -a exkeys=( $'\e' $'\cm' )
+
+    pwb get_keystroke -v keyp
+    if [ -n "$keyp" ]; then
+        if is_exit_key "$keyp" "$exit_array_name"; then
+            psle_exit_key="$keyp"
+            return 1
+        elif [[ "$keyp" == $'\c?' ]] && (( curlen > 0 )); then
+            # erase key:
+            psle_line="${psle_line:0:-1}"
+        elif [[ "$keyp" =~ [[:print:]] ]] && (( curlen < char_limit )); then
+            # only add printable characters
+            psle_line="${psle_line}$keyp"
+        fi
+    fi
+
+    return 0
+}
+
