@@ -2,7 +2,8 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-#> pwb_show_message handle strings_array_name
+#> pwb_show_message handle strings_array_name [ -a dims_array_name ]
+#> dims_array will contain #top #left #rows #columns
 
 declare PSM_CHAR_HORZ=$'\u2500'
 declare PSM_CHAR_VERT=$'\u2502'
@@ -11,53 +12,72 @@ declare PSM_CHAR_UR=$'\u2510'
 declare PSM_CHAR_LL=$'\u2514'
 declare PSM_CHAR_LR=$'\u2518'
 
-
 pwb_show_message()
 {
-   local handle="$1"
-   local -n psm_lines="$2"
+    local handle_name lines_name dims_name
+    local -a arr_names=( handle_name lines_name )
+    local -i arrndx=0
 
-   # From submitted lines, get count and maximum length
-   local -i curlen maxlen=0
-   local -i count=0
-   for line in "${psm_lines[@]}"; do
-       pwb measure_string -v curlen "$line"
-       (( maxlen = curlen>maxlen ? curlen : maxlen ))
-       (( ++count ))
-   done
+    for arg in "$@"; do
+        if [[ "$dims_name" == $'\e' ]]; then
+            dims_name="$arg"
+        elif [[ "$arg" == "-a" ]] && [ -z "$dims_name" ]; then
+            dims_name=$'\e'
+        else
+            local -n psm_var="${arr_names[$arrndx]}"
+            psm_var="$arg"
+            (( ++arrndx ))
+        fi
+    done
 
-   # Get screen dimensions
-   local -A dims
-   pwb get_dimensions "$handle" dims
+    local -n psm_lines="$lines_name"
 
-   # UL origin of text box
-   local -i pleft ptop
-   (( pleft = (dims[screen_cols] - maxlen - 2) / 2 ))
-   (( ptop = (dims[screen_lines] - count - 2) / 2 ))
-   # Cursor to origin
-   printf $'\e[%d;%dH' "$ptop" "$pleft"
+    # From submitted lines, get count and maximum length
+    local -i curlen maxlen=0
+    local -i count=0
+    for line in "${psm_lines[@]}"; do
+        pwb measure_string -v curlen "$line"
+        (( maxlen = curlen>maxlen ? curlen : maxlen ))
+        (( ++count ))
+    done
 
-   # Prepare repeat-use strings
-   local lf_position right_border
-   # LF/CR, erase next line domain
-   printf -v lf_position $'\e[1E\e[%dG\e[%dX' "$pleft" $(( maxlen+2 ))
-   # Right to border, print border character
-   printf -v right_border $'\e[%dG%s' $(( pleft + maxlen + 1 )) "$PSM_CHAR_VERT"
+    # Get screen dimensions
+    local -A dims
+    pwb get_dimensions "$handle_name" dims
 
-   # print top line
-   local scratch
-   printf -v scratch "%s%*s%s" "$PSM_CHAR_UL" "$maxlen" $' ' "$PSM_CHAR_UR"
-   printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
+    # UL origin of text box
+    local -i pleft ptop
+    (( pleft = (dims[screen_cols] - maxlen - 2) / 2 ))
+    (( ptop = (dims[screen_lines] - count - 2) / 2 ))
+    # Cursor to origin
+    printf $'\e[%d;%dH' "$ptop" "$pleft"
 
-   # print contents
-   for line in "${psm_lines[@]}"; do
-       printf "%s" "$lf_position"
-       printf "${PSM_CHAR_VERT}%s" "$line"
-       printf "%s" "$right_border"
-   done
-   printf "%s" "$lf_position"
+    # Prepare repeat-use strings
+    local lf_position right_border
+    # LF/CR, erase next line domain
+    printf -v lf_position $'\e[1E\e[%dG\e[%dX' "$pleft" $(( maxlen+2 ))
+    # Right to border, print border character
+    printf -v right_border $'\e[%dG%s' $(( pleft + maxlen + 1 )) "$PSM_CHAR_VERT"
 
-   # print bottom line
-   printf -v scratch "%s%*s%s" "$PSM_CHAR_LL" "$maxlen" $' ' "$PSM_CHAR_LR"
-   printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
+    # print top line
+    local scratch
+    printf -v scratch "%s%*s%s" "$PSM_CHAR_UL" "$maxlen" $' ' "$PSM_CHAR_UR"
+    printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
+
+    # print contents
+    for line in "${psm_lines[@]}"; do
+        printf "%s" "$lf_position"
+        printf "${PSM_CHAR_VERT}%s" "$line"
+        printf "%s" "$right_border"
+    done
+    printf "%s" "$lf_position"
+
+    # print bottom line
+    printf -v scratch "%s%*s%s" "$PSM_CHAR_LL" "$maxlen" $' ' "$PSM_CHAR_LR"
+    printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
+
+    if [ -n "$dims_name" ]; then
+        local -n psm_dims="$dims_name"
+        psm_dims=( "$ptop" "$pleft" $(( 2 + count )) $(( 2 + maxlen )) )
+    fi
 }
