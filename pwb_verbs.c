@@ -55,6 +55,11 @@ PWB_VERB verbs [] = {
      "pwb get_keystroke",
      pwb_action_get_keystroke },
 
+   { "get_dimensions",
+     "get screen, margin, and window dimensions",
+     "pwb git_dimensions handle_name [associative_array_name]",
+     pwb_action_get_dims },
+
    /**
     * This marks the border between actions that take no handle,
     * either because it doesn't need one (init, restore, help), or
@@ -71,11 +76,6 @@ PWB_VERB verbs [] = {
      "Set margins of active area",
      "pwb set_margins handle_name top [right] [bottom] [left]",
      pwb_action_set_margins },
-
-   { "get_dimensions",
-     "get screen, margin, and window dimensions",
-     "pwb git_dimensions handle_name [associative_array_name]",
-     pwb_action_get_dims },
 
    { "report",
      "Report handle values",
