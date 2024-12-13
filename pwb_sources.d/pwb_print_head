@@ -6,11 +6,10 @@
 
 pwb_print_head()
 {
-    local -A HDIMS
-    pwb get_dimensions "$1" HDIMS
+    pwb get_dimensions "$1"
     pwb_exit_on_error
-    local -i max_line="${HDIMS[margin_top]}"
-    local -i screen_width="${HDIMS[screen_cols]}"
+    local -i max_line="${PWB_ASSOC[margin_top]}"
+    local -i screen_width="${PWB_ASSOC[screen_cols]}"
     local -i lineno=1
 
     local -n pph_lines="$2"

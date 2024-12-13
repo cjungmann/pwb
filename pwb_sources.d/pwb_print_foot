@@ -6,12 +6,11 @@
 
 pwb_print_foot()
 {
-    local -A HDIMS
-    pwb get_dimensions "$1" HDIMS
+    pwb get_dimensions "$1"
     pwb_exit_on_error
-    local -i max_line="${HDIMS[screen_lines]}"
-    local -i screen_width="${HDIMS[screen_cols]}"
-    local -i lineno=$(( HDIMS[screen_lines] - HDIMS[margin_bottom] + 1 ))
+    local -i max_line="${PWB_ASSOC[screen_lines]}"
+    local -i screen_width="${PWB_ASSOC[screen_cols]}"
+    local -i lineno=$(( PWB_ASSOC[screen_lines] - PWB_ASSOC[margin_bottom] + 1 ))
 
     local -n pph_lines="$2"
     local line

@@ -81,9 +81,8 @@ pwb_display_ate_table()
 
     pwb set_margins pwb_table 3 2 2
 
-    local -A PWB_DIMS
-    pwb get_dimensions pwb_table PWB_DIMS
-    local -i HEAD_STRING_POS=$(( (PWB_DIMS[screen_cols] - HEAD_STRING_LEN) / 2))
+    pwb get_dimensions
+    local -i HEAD_STRING_POS=$(( (PWB_ASSOC[screen_cols] - HEAD_STRING_LEN) / 2))
 
     # to prevent mismatched init/restore, assume init/restore
     # handled earlier on call stack

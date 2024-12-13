@@ -6,11 +6,10 @@ declare PWB_NEWLINE_INDENT_left
 PWB_NEWLINE_INDENT_SETUP()
 {
     local pnhs_name="$1"
-    local -A aarray
-    pwb get_dimensions "$pnhs_name" aarray
+    pwb get_dimensions "$pnhs_name"
     # shellcheck disable=2181
     if [ "$?" -eq 0 ]; then
-        PWB_NEWLINE_INDENT_left="${aarray[margin_left]}"
+        PWB_NEWLINE_INDENT_left="${PWB_ASSOC[margin_left]}"
         (( ++PWB_NEWLINE_INDENT_left ))
     else
         printf "pwb get_dimension failed: %s\n" "$PWB_ERROR"

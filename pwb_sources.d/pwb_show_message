@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-#> pwb_show_message handle strings_array_name [ -a dims_array_name ]
+#> pwb_show_message strings_array_name [ -a dims_array_name ]
 #> dims_array will contain #top #left #rows #columns
 
 declare PSM_CHAR_HORZ=$'\u2500'
@@ -14,9 +14,7 @@ declare PSM_CHAR_LR=$'\u2518'
 
 pwb_show_message()
 {
-    local handle_name lines_name dims_name
-    local -a arr_names=( handle_name lines_name )
-    local -i arrndx=0
+    local lines_name dims_name
 
     for arg in "$@"; do
         if [[ "$dims_name" == $'\e' ]]; then
@@ -24,9 +22,7 @@ pwb_show_message()
         elif [[ "$arg" == "-a" ]] && [ -z "$dims_name" ]; then
             dims_name=$'\e'
         else
-            local -n psm_var="${arr_names[$arrndx]}"
-            psm_var="$arg"
-            (( ++arrndx ))
+            lines_name="$arg"
         fi
     done
 
@@ -42,13 +38,12 @@ pwb_show_message()
     done
 
     # Get screen dimensions
-    local -A dims
-    pwb get_dimensions "$handle_name" dims
+    pwb get_dimensions
 
     # UL origin of text box
     local -i pleft ptop
-    (( pleft = (dims[screen_cols] - maxlen - 2) / 2 ))
-    (( ptop = (dims[screen_lines] - count - 2) / 2 ))
+    (( pleft = (PWB_ASSOC[screen_cols] - maxlen - 2) / 2 ))
+    (( ptop = (PWB_ASSOC[screen_lines] - count - 2) / 2 ))
     # Cursor to origin
     printf $'\e[%d;%dH' "$ptop" "$pleft"
 

@@ -11,7 +11,7 @@ pwb_print_progress_info()
     local pwb_handle="$5"
 
     local -A dims
-    pwb get_dimensions "$pwb_handle" dims
+    pwb get_dimensions "$pwb_handle" -A dims
     local -i data_rows=$(( dims[data_rows] ))
     local -i pager_lines=$(( dims[pager_lines] ))
 
