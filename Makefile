@@ -16,12 +16,13 @@ LIB_MODULES =
 CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb
 LFLAGS =
 LDFLAGS = -lm $(LIB_FLAGS)
+INCFLAGS =
 
 # Uncomment the following if target is a Shared library
 CFLAGS += -fPIC
 LFLAGS += --shared
 
-CFLAGS += -I/usr/include/bash -I/usr/include/bash/include
+CFLAGS += -I/usr/include/bash -I/usr/include/bash/include $(INCFLAGS)
 
 # Build module list (info make -> "Functions" -> "File Name Functions")
 MODULES = $(addsuffix .o,$(basename $(wildcard $(SRC)/*.c)))
