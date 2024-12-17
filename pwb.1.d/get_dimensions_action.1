@@ -7,26 +7,48 @@ action retrieves important screen parameters including screen
 dimensions and
 .B pwb
 output specifications.
+The dimension values will be returned in
+.B PWB_ASSOC
+unless the
+.B -A
+option is used.
 .PP
 .pt_get_dimensions
 .RS
 .TP
+.RI [ handle ]
+Optional name of handle from which the dimensions are to be retrieved.
+If
 .I handle
-Name of handle from which the dimensions are to be retrieved.
+is provided, all of the following array indexes will be set.  Otherwise,
+only
+.BR screen_lines " and " screen_cols
+will be set.
 .TP
-.I associative_array_name
-Name of the associative array in which the dimensions will be
+.BI -A " associative_array_name"
+Name of a associative array in which the dimensions should be
 returned.
 The array will be created if it doesn't already exist.
+.IP
+If
+.B -A
+is not used, the dimensions will be returned in
+.BR PWB_ASSOC .
 .RS
 .PP
-The index names of this associative array are:
+The index names of the associative array are:
 .TS
 tab(|);
 lb l.
-data_rows|number of elements in data source
 screen_lines|full count of screen lines
 screen_cols|full count of screen columns
+
+T{
+\ \ \if
+.I handle
+provided:
+T}
+data_rows|number of elements in data source
 pager_lines|lines controlled by the pager
 pager_cols|characters per pager-controlled line
 margin_top|number of rows in head (top of screen)
