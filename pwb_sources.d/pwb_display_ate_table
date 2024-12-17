@@ -47,14 +47,14 @@ pwb_display_ate_table()
 
     pdat_print_top()
     {
-        printf $'\e[1;%dH\e[%dX' $(( PWB_DIMS[margin_left]+1 )) "${PWB_DIMS[pager_cols]}"
+        printf $'\e[1;%dH\e[%dX' $(( PWB_ASSOC[margin_left]+1 )) "${PWB_ASSOC[pager_cols]}"
         printf $'\e[1;%dH%s' "$HEAD_STRING_POS" "$HEAD_STRING"
 
-        printf $'\e[2;%dH\e[%dX' $(( PWB_DIMS[margin_left]+1 )) "${PWB_DIMS[pager_cols]}"
+        printf $'\e[2;%dH\e[%dX' $(( PWB_ASSOC[margin_left]+1 )) "${PWB_ASSOC[pager_cols]}"
         local -i index="$1"
         local header
-        printf -v header "Row %d of %d" $(( index+1 )) "${PWB_DIMS[data_rows]}"
-        printf $'\e[2;%dH%s' $(( (PWB_DIMS[screen_cols] - ${#header}) / 2 )) "$header"
+        printf -v header "Row %d of %d" $(( index+1 )) "${PWB_ASSOC[data_rows]}"
+        printf $'\e[2;%dH%s' $(( (PWB_ASSOC[screen_cols] - ${#header}) / 2 )) "$header"
     }
 
     #############################
@@ -81,7 +81,7 @@ pwb_display_ate_table()
 
     pwb set_margins pwb_table 3 2 2
 
-    pwb get_dimensions
+    pwb get_dimensions pwb_table
     local -i HEAD_STRING_POS=$(( (PWB_ASSOC[screen_cols] - HEAD_STRING_LEN) / 2))
 
     # to prevent mismatched init/restore, assume init/restore
