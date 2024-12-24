@@ -35,7 +35,7 @@ UTILITIES = $(filter $(basename $(wildcard *)),$(wildcard pwb_*))
 # Declare non-filename targets
 .PHONY: all install uninstall clean help
 
-all: $(TARGET)
+all: $(TARGET) $(ENABLER)
 
 $(TARGET) : $(MODULES)
 ifndef LIB_FLAGS
@@ -49,6 +49,7 @@ $(ENABLER):
 	@echo "#!/usr/bin/env bash"                         > $(ENABLER)
 	@echo "read -n1 -p\"Using enable $$\\\\( pwb_enable \\\\) is deprecated. Please just enable 'pwb'\"" >> $(ENABLER)
 	@echo "echo -f $(PREFIX)/lib/bash/$(TARGET) $(BUILTIN)" >> $(ENABLER)
+	chmod a+x $(ENABLER)
 
 *.c: $(HEADERS)
 	@echo "Forcing full recompile after any header file change"
