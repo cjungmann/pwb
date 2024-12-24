@@ -1,5 +1,5 @@
 TARGET_ROOT = pwb
-TARGET = $(TARGET_ROOT).so
+TARGET = $(TARGET_ROOT)
 BUILTIN = $(TARGET_ROOT)
 ENABLER = $(addprefix enable_,$(TARGET_ROOT))
 SOURCER = $(addprefix $(TARGET_ROOT),_sources)
@@ -47,7 +47,8 @@ endif
 
 $(ENABLER):
 	@echo "#!/usr/bin/env bash"                         > $(ENABLER)
-	@echo "echo -f $(PREFIX)/lib/$(TARGET) $(BUILTIN)" >> $(ENABLER)
+	@echo "read -n1 -p\"Using enable $$\\\\( pwb_enable \\\\) is deprecated. Please just enable 'pwb'\"" >> $(ENABLER)
+	@echo "echo -f $(PREFIX)/lib/bash/$(TARGET) $(BUILTIN)" >> $(ENABLER)
 
 *.c: $(HEADERS)
 	@echo "Forcing full recompile after any header file change"
@@ -58,7 +59,7 @@ $(ENABLER):
 
 install: $(ENABLER)
 	install -D --mode=775 $(ENABLER) $(PREFIX)/bin
-	install -D --mode=775 $(TARGET) $(PREFIX)/lib
+	install -D --mode=775 $(TARGET) -t $(PREFIX)/lib/bash
 	mkdir --mode=755 -p $(PREFIX)/share/man/man1
 	mkdir --mode=755 -p $(PREFIX)/share/man/man7
 	soelim $(TARGET_ROOT).1 | gzip -c - > $(PREFIX)/share/man/man1/$(TARGET_ROOT).1.gz
@@ -78,7 +79,7 @@ uninstall_utilities:
 
 uninstall:
 	rm -f $(PREFIX)/bin/$(ENABLER)
-	rm -f $(PREFIX)/lib/$(TARGET)
+	rm -f $(PREFIX)/lib/bash/$(TARGET)
 	rm -f $(PREFIX)/bin/$(UTILITIES)
 	rm -f $(PREFIX)/share/man/man1/$(TARGET_ROOT).1.gz
 	rm -f $(PREFIX)/share/man/man7/$(TARGET_ROOT).7.gz
@@ -87,6 +88,7 @@ uninstall:
 	rm -f $(PREFIX)/bin/$(SOURCER)
 # Utilities won't work if builtin is uninstalled:
 	rm -f $(PREFIX)/bin/$(UTILITIES)
+	rm -f $(ENABLER)
 
 clean:
 	rm -f $(TARGET)
