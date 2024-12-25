@@ -39,7 +39,7 @@ elif [[ "$1" == "help" ]]; then
         declare PWB_READ_ARGS_SHOW_USAGE=1
         "$func"
     else
-        printf $'Unrecognized script "\4[32;1m%s\e[m"\n' "$func"
+        printf $'Unrecognized scriptlet "\e[32;1m%s\e[m"\n' "$func"
     fi
 else
     return_source_name "$@"
