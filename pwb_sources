@@ -31,6 +31,16 @@ return_source_name()
 
 if [ "$#" -eq 0 ]; then
     list_sources
+elif [[ "$1" == "help" ]]; then
+    declare func="$2"
+    if pwb_script_exists "$func"; then
+        enable pwb
+        source "${SOURCE_PATH}/$2"
+        declare PWB_READ_ARGS_SHOW_USAGE=1
+        "$func"
+    else
+        printf $'Unrecognized script "\4[32;1m%s\e[m"\n' "$func"
+    fi
 else
     return_source_name "$@"
 fi
