@@ -7,6 +7,86 @@
 
 pwb_read_args()
 {
+    show_usage()
+    {
+        fit_the_print()
+        {
+            local tline="$1"
+            pwb measure_string curlen "$tline"
+            if (( curlen + curpos < maxlen )); then
+                printf "%s" "$tline"
+            else
+                printf $'\n\e[%dC%s' "$indent" "$tline"
+            fi
+        }
+
+        local fname="$1"
+        local -n su_arg_names="$2"
+        local -n su_opts_list="$3"
+
+        local -i indent=$(( 2 + "${#fname}" ))
+        local -i maxlen=80
+
+        local col_bold="${LESS_TERMCAP_md}"
+        if [ -z "$col_bold" ]; then col_bold=$'\e[34;1m'; fi
+        local col_ital="${LESS_TERMCAP_us}"
+        if [ -z "$col_ital" ]; then col_ital=$'\e[32;1m'; fi
+        local col_none=$'\e[m'
+
+        printf "\nUSAGE for $fname:\n"
+        printf "  %s " "$fname"
+        for s in "${BASH_SOURCE[@]}"; do
+            printf "  %2d: %s\n" "$bs_count" "${BASH_SOURCE[$bs_count]}"
+            (( ++bs_count ))
+        done
+
+        local -i count_flags=0
+        local -i curlen curpos="$indent"
+        local tline
+        local trigger name
+        for el in "${su_opts_list[@]}"; do
+            if [ -z "$trigger" ]; then
+                trigger="$el"
+            else
+                if [ "${#trigger}" -gt 1 ]; then
+                    printf -v tline \
+                           " ${col_bold}-%s${col_none} ${col_ital}%s${col_none}" \
+                           "${trigger:0:1}" "$el"
+                else
+                    # Flags need further info, count 'em to show the extra later:
+                    (( ++count_flags ))
+                    printf -v tline " ${col_bold}-%s${col_none}" "${trigger:0:1}"
+                fi
+
+                fit_the_print "$tline"
+                trigger=""
+            fi
+        done
+
+        for arg in "${su_arg_names[@]}"; do
+            printf -v tline " ${col_ital}%s${col_none}" "$arg"
+            fit_the_print "$tline"
+        done
+
+        if (( count_flags > 0 )); then
+            printf "Flag variables:\n"
+            for el in "${su_opts_list[@]}"; do
+                if [ -z "$trigger" ]; then
+                    trigger="$el"
+                else
+                    if [ "${#trigger}" -eq 1 ]; then
+                        printf "  ${col_bold}%-s${col_none} ${col_ital}%s${col_none}\n" \
+                               "$trigger" "$el"
+                    fi
+                    trigger=""
+                fi
+            done
+        fi
+
+        # Set off from following prompt
+        echo
+    }
+
     # Value returned in variable named in $1 indicates how to continue:
     # If it's blank, we're done with the argument, if it has a value,
     # it's the name of the variable to set from the next argument.
@@ -38,14 +118,15 @@ pwb_read_args()
                     continue
                 # Second time through, we have enough to work
                 else
-                    # Save and clear opt_name for next pair search
+                    # Save and clear opt_flag for next pair search
                     local opt_name="$opt_flag"
                     opt_flag=""
 
                     # Compare first letters to find a match
                     if [[ "${opt_name:0:1}" == "${option_arg:0:1}" ]]; then
-                        # Option is a flag, set it, update option_arg and continue
-                        if [ "${#opt_name}" -gt 1 ]; then
+                        # If the option is a flag (it's one char lone),
+                        # set it, update option_arg, and continue:
+                        if [ "${#opt_name}" -eq 1 ]; then
                             local -n tval="$el"
 
                             # Caller's reponsibility to clear values before calling:
@@ -102,6 +183,12 @@ pwb_read_args()
     local -n pra_arg_names="${2:-pra_empty}"
     local -n pra_opts_list="${3:-pra_empty}"
 
+    # Show usage and return if environment var is set:
+    if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
+        show_usage "${FUNCNAME[1]}" pra_arg_names pra_opts_list
+        return 0
+    fi
+
     local -i opts_count="${#pra_opts_list[@]}"
     # Minimally validate opts array contents
     if (( opts_count % 2 != 0 )); then
@@ -120,7 +207,6 @@ pwb_read_args()
     for arg in "${pra_command_args[@]}"; do
         # Value arg of '-o' 'value' pair
         if [ -n "$opt_name" ]; then
-            echo "Setting '$opt_name' to '$arg'"
             local -n tvar="$opt_name"
             tvar="$arg"
             opt_name=""
