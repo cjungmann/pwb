@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-echo -f /usr/local/lib/pwb.so pwb
