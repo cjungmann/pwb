@@ -2,8 +2,11 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-#> pwb_edit_line name_of_return name_of_exit_key exit_keys_array [char_limit]
-#> If not set, the edit line will be limited to 80 characters
+##! Unsophisiticated line editor whose main value is its ability
+##! to update the target of its contents while being edited.
+
+
+source $( pwb_sources pwb_read_args )
 
 pwb_edit_line()
 {
@@ -20,10 +23,30 @@ pwb_edit_line()
         return 1
     }
 
-    local -n psle_line="$1"          # return reference
-    local -n psle_exit_key="$2"      # reference to key that terminated edit
-    local exit_array_name="$3"       # name of array of exit keys
-    local -i char_limit="${4:- 80}"  # max characters to accept
+    local return_name exit_key_name exit_array_name
+    local -i char_limit=80
+
+    local -a func_args=( "$@" )
+    local -a args_array=( return_name exit_key_name exit_array_name )
+    local -a opts_list=(
+        "l+" char_limit
+        )
+
+    # Self-documenting USAGE generation:
+    if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
+        pwb_read_args func_args args_array opts_list
+        return 0
+    fi
+
+    # Script-called function should have no errors, exit on argument error
+    if ! pwb_read_args func_args args_array opts_list; then
+        read -n -p "Script-called function should have no errors!"
+        exit 1
+    fi
+
+    local -n psle_line="$return_name"
+    local -n psle_exit_key="$exit_key_name"
+    local exit_array_name="$exit_array_name"
 
     local -i curlen="${#psle_line}"
 
