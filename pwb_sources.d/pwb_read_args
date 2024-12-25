@@ -34,11 +34,7 @@ pwb_read_args()
         local col_none=$'\e[m'
 
         printf "\nUSAGE for $fname:\n"
-        printf "  %s " "$fname"
-        for s in "${BASH_SOURCE[@]}"; do
-            printf "  %2d: %s\n" "$bs_count" "${BASH_SOURCE[$bs_count]}"
-            (( ++bs_count ))
-        done
+        printf "  %s" "$fname"
 
         local -i count_flags=0
         local -i curlen curpos="$indent"
@@ -178,7 +174,7 @@ pwb_read_args()
     # empty array whose name will be used missing array names
     local -a pra_empty=()
 
-    local -n pra_command_args="$1"
+    local -n pra_command_args="${1:-pra_empty}"
 
     local -n pra_arg_names="${2:-pra_empty}"
     local -n pra_opts_list="${3:-pra_empty}"
