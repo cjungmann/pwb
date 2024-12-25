@@ -1,11 +1,19 @@
 # -*- mode:shell-script; sh-shell:bash -*-
 # shellcheck shell=bash
+
 pwb_printf_limited()
 {
+    if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
+        source $( pwb_sources pwb_read_args )
+        local -a usage_names=( char_limit format "args..." )
+        pwb_read_args "" usage_names ""
+        return 0
+    fi
+
     local -i char_limit="$1"
     local format="$2"
     local -a args=( "${@:3}" )
     # shellcheck disable=SC2059
     printf -v ppll_temp "$format" "${args[@]}"
-    printf "%s" "${ppll_temp:0:$char_limit}"
+    pwb limit_print "$char_limit" "$ppl_ttemp"
 }
