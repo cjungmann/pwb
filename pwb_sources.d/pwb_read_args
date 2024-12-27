@@ -95,16 +95,16 @@ pwb_read_args()
         goe_name=""
 
         # Trim off leading '-' so chars can be considered individually
-        local option_arg="${2:1}"
+        local option_progress="${2:1}"
 
         local opt_flag
         # For each option letter of the option arg, seek an options list match.
         # Use remainder of option characters as the option value if the option
         # takes an option value rather than used to set a flag:
-        while [ "${#option_arg}" -gt 0 ]; do
+        while [ "${#option_progress}" -gt 0 ]; do
 
             # Search opts_list for matching option flag/name pair
-            for el in "${pra_opts_list[@]}"; do
+            for el in "${pa_opts_list[@]}"; do
 
                 # It's a two-part search, so the first time we just get
                 # the option letter, the following time through gets the
@@ -114,14 +114,14 @@ pwb_read_args()
                     continue
                 # Second time through, we have enough to work
                 else
-                    # Save and clear opt_flag for next pair search
+                    # Save and clear opt_flag to permit break or continue
                     local opt_name="$opt_flag"
                     opt_flag=""
 
                     # Compare first letters to find a match
-                    if [[ "${opt_name:0:1}" == "${option_arg:0:1}" ]]; then
+                    if [[ "${opt_name:0:1}" == "${option_progress:0:1}" ]]; then
                         # If the option is a flag (it's one char lone),
-                        # set it, update option_arg, and continue:
+                        # set it, update option_progress, and continue:
                         if [ "${#opt_name}" -eq 1 ]; then
                             local -n tval="$el"
 
@@ -134,7 +134,7 @@ pwb_read_args()
                             else
                                 tval=1
                                 # Remove matched flag char in order to process the next one
-                                option_arg="${option_arg:1}"
+                                option_progress="${option_progress:1}"
                                 # return to outer loop for next character
                                 continue 2
                             fi
@@ -143,9 +143,9 @@ pwb_read_args()
                             # If chars follow value-taking option, they are the value.
                             # save the remainder directly to the target variable and leave
                             #    just save the rest
-                            if [ "${#option_arg}" -gt 1  ]; then
+                            if [ "${#option_progress}" -gt 1  ]; then
                                 local -n tval="$el"
-                                tval="${option_arg:1}"
+                                tval="${option_progress:1}"
                             # If the current char is the last, the value will be in the
                             # next argument.  Return the variable name to be set with the
                             # with the next argument:
@@ -161,8 +161,56 @@ pwb_read_args()
                 fi
             done
 
-            echo "Unrecognized option '-${option_arg:0:1}' from '$option_arg'"
+            echo "Unrecognized option '-${option_progress:0:1}' from '$option_progress'"
             exit 1
+        done
+    }
+
+    parse_args()
+    {
+        local -n pa_command_args="$1"
+        local -n pa_arg_names="$2"
+        local -n pa_opts_list="$3"
+
+        local -i opts_count="${#pa_opts_list[@]}"
+        # Minimally validate opts array contents
+        if (( opts_count % 2 != 0 )); then
+            echo "Invalid array of opt args (must be paired ($opts_count))"
+            read -n1 -p "opts are ${pa_opts_list[*]}"
+            # Do not tolerate arguments mistakes committed by script function caller
+            exit 1
+        fi
+
+        local -i option_parsing=1
+        still_processing_options() { [ "$option_parsing" -eq 1 ]; }
+
+        local -i args_index=0
+        local -i args_count="${#pa_arg_names[@]}"
+        local opt_name
+        for arg in "${pa_command_args[@]}"; do
+            # Value arg of '-o' 'value' pair
+            if [ -n "$opt_name" ]; then
+                local -n tvar="$opt_name"
+                tvar="$arg"
+                opt_name=""
+                # '-' prefix starts option processing
+                # elif still_processing_options && [[ "$arg" =~ ^-..? ]]; then
+            elif still_processing_options && [[ "$arg" =~ ^-..? ]]; then
+                if [[ "$arg" == "--" ]]; then
+                    option_parsing=0
+                    continue
+                else
+                    # if 'opt_name' is set on return, opt_name is the variable
+                    # to set with the value of the next CL argument
+                    get_option_entry opt_name "$arg"
+                fi
+                # not an option, set next positional argument
+            elif (( args_index < args_count )); then
+                local argname="${pa_arg_names[$args_index]}"
+                local -n tvar="$argname"
+                tvar="$arg"
+                (( ++args_index ))
+            fi
         done
     }
 
@@ -170,61 +218,29 @@ pwb_read_args()
     ###   EXECUTION BEGINS HERE   ###
     #################################
 
-
-    # empty array whose name will be used missing array names
-    local -a pra_empty=()
-
-    local -n pra_command_args="${1:-pra_empty}"
-
-    local -n pra_arg_names="${2:-pra_empty}"
-    local -n pra_opts_list="${3:-pra_empty}"
+    local -a empty_array=()
+    local command_args_array="${1:-empty_array}"
+    local arg_names_array="${2:-empty_array}"
+    local opts_list_array="${3:-empty_array}"
 
     # Show usage and return if environment var is set:
     if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
-        show_usage "${FUNCNAME[1]}" pra_arg_names pra_opts_list
-        return 0
-    fi
+        local funcname="${FUNCNAME[@]: -2:1}"
 
-    local -i opts_count="${#pra_opts_list[@]}"
-    # Minimally validate opts array contents
-    if (( opts_count % 2 != 0 )); then
-        echo "Invalid array of opt args (must be paired ($opts_count))"
-        read -n1 -p "opts are ${pra_opts_list[*]}"
-        # Do not tolerate arguments mistakes committed by script function caller
-        exit 1
-    fi
-
-    local -i option_parsing=1
-    still_processing_options() { [ "$option_parsing" -eq 1 ]; }
-
-    local -i args_index=0
-    local -i args_count="${#pra_arg_names[@]}"
-    local opt_name
-    for arg in "${pra_command_args[@]}"; do
-        # Value arg of '-o' 'value' pair
-        if [ -n "$opt_name" ]; then
-            local -n tvar="$opt_name"
-            tvar="$arg"
-            opt_name=""
-        # '-' prefix starts option processing
-        # elif still_processing_options && [[ "$arg" =~ ^-..? ]]; then
-        elif still_processing_options && [[ "$arg" =~ ^-..? ]]; then
-            if [[ "$arg" == "--" ]]; then
-                option_parsing=0
-                continue
-            else
-                # if 'opt_name' is set on return, opt_name is the variable
-                # to set with the value of the next CL argument
-                get_option_entry opt_name "$arg"
-            fi
-        # not an option, set next positional argument
-        elif (( args_index < args_count )); then
-            local argname="${pra_arg_names[$args_index]}"
-            local -n tvar="$argname"
-            tvar="$arg"
-            (( ++args_index ))
+        # Using FUNCNAME[0]} to protect against renaming this script:
+        if [[ "$funcname" == "${FUNCNAME[0]}" ]]; then
+            local -a arg_names=(
+                command_args_array
+                args_name_array
+                opts_list_array
+            )
+            show_usage "$funcname" arg_names empty_array
+        else
+            show_usage "$funcname" "$arg_names_array" "$opts_list_array"
         fi
-    done
-
-    return 0
+        return 1
+    else
+        parse_args "$command_args_array" "$arg_names_array" "$opts_list_array"
+        return "$?"
+    fi
 }
