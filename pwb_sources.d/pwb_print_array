@@ -1,0 +1,147 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+## BEGIN_DOC
+## Prints the contents of an array to an area limited by line count.
+## Justifies output (center, left, or right) according to -j option.
+## END_DOC
+
+source <( pwb_sources \
+              pwb_read_args \
+              pwb_noop )
+
+pwb_print_array()
+{
+    confirm_array_name()
+    {
+        local output
+        if output=$( declare -p "$1" 2>/dev/null ); then
+            if [[ "$output" =~ ^declare\ .a ]]; then
+                return 0
+            else
+                echo "Argument '$1' is not an array name"
+            fi
+        else
+            echo "Missing '$1' argument"
+        fi
+        return 1
+    }
+
+    massage_justified()
+    {
+        local -l jval="${justified:0:1}"
+        if ! [[ "$jval" =~ [lcr] ]]; then
+            local -a format=(
+                $'The "\e[31;1m%s\e[m" value for "-j" '
+                $'should be either '
+                $'\e[32;1m%s\e[m, '
+                $'\e[32;1m%s\e[m, or '
+                $'\e[32;1m%s\e[m.'
+            )
+            local IFS=""
+            printf "${format[*]}" "$justified" center left right
+            return 1
+        fi
+
+        local -n mj_jus="${justified:0:1}"
+        mj_jus="${mj_jus,,*}"
+        return 0
+    }
+
+    confirm_arguments()
+    {
+        if [ -z "$array_name" ]; then
+            echo "Must provide an array name"
+        elif ! confirm_array_name "$array_name"; then
+            return 1
+        elif ! massage_justified; then
+            return 1
+        fi
+
+        return 0
+    }
+
+    # Returns the length of the longest string and fills
+    # the array with each line's length (save redundant
+    # measurements).
+    measure_lines()
+    {
+        local -n ml_return="$1"
+        local -n ml_lens_array="$2"
+        local -n ml_lines="$3"
+
+        declare -i ml_maxlen=0
+        ml_lens_array=()
+        local -i curlen
+        local line
+        for line in "${ml_lines[@]:0:$lines_limit}"; do
+            pwb measure_string -v curlen "$line"
+            ml_lens_array+=( "$curlen" )
+            (( ml_maxlen = (curlen > ml_maxlen ? curlen : ml_maxlen) ))
+        done
+
+        local scrlen=$(( screen_width - 4 ))
+        (( ml_return = ml_maxlen > scrlen ? scrlen : ml_maxlen ))
+    }
+
+    ############################
+    ###   EXECUTION STARTS   ###
+    ############################
+
+    local array_name justified=c
+    local -i start_line=1 lines_limit=0
+    local -i maxlen
+
+    local -a cmd_args=( "$@" )
+    local -a arg_names=( array_name lines_limit )
+    local -a opts_list=(
+        j+ justified
+        s+ start_line
+    )
+
+    pwb get_dimensions
+    local -i screen_width=$(( "${PWB_ASSOC[screen_cols]}" - 4 ))
+
+    local -a len_array
+
+    if pwb_read_args cmd_args arg_names opts_list; then
+        if confirm_arguments; then
+            measure_lines maxlen len_array "$array_name"
+
+            local -i static_left=$(( (screen_width - maxlen) / 2 ))
+
+            local -n ppa_lines="$array_name"
+            local line
+            local -i left curlen index=0
+
+            local -i cur_row="$start_line"
+            local -i limit_row=$(( cur_row + lines_limit ))
+
+            if [[ "$justified" == "l" ]]; then
+                left="$static_left"
+            fi
+
+            for line in "${ppa_lines[@]:0:$lines_limit}"; do
+                echo
+                curlen="${len_array[$(( index++ ))]}"
+                case "$justified" in
+                    c) (( left = (screen_width - curlen) / 2 )) ;;
+                    r) (( left = static_left + maxlen - curlen )) ;;
+                esac
+
+                # position cursor for next text, erase entire line
+                printf $'\e[%d;%dH\e[2K' $(( cur_row++ )) "$left"
+
+                pwb limit_print "$maxlen" "$line"
+            done
+
+            # Erase extra lines, if necessary
+            while (( cur_row < limit_row )); do
+                # position cursor for next text, erase entire line
+                printf $'\e[%d;%dH\e[2K' $(( cur_row )) "$left"
+                (( ++cur_row ))
+            done
+        fi
+    fi
+}
