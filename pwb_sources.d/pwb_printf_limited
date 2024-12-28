@@ -1,8 +1,18 @@
 # -*- mode:shell-script; sh-shell:bash -*-
 # shellcheck shell=bash
 
+## BEGIN_DOC
+## Implementation of printf that limits output to a given
+## number of _visible_ characters, ignoring the characters
+## in CSI color directions when counting characters.
+## END_DOC
+
+source <( pwb_sources pwb_read_args pwb_noop )
+
+
 pwb_printf_limited()
 {
+    # Contrived pwb_read_args call for usage message generation
     if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
         source $( pwb_sources pwb_read_args )
         local -a usage_names=( char_limit format "args..." )
