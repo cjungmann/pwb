@@ -2,11 +2,14 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-##! Unsophisiticated line editor whose main value is its ability
-##! to update the target of its contents while being edited.
+## BEGIN_DOC
+## Unsophisiticated line editor whose main value is its ability
+## to update the target of its contents while being edited.
+## END_DOC
 
-
-source $( pwb_sources pwb_read_args )
+source <( pwb_sources \
+              pwb_read_args     \
+              pwb_exit_on_error )
 
 pwb_edit_line()
 {

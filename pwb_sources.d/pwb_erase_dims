@@ -2,18 +2,33 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-#> pwb_erase_dims dims_array_name
-#> dims array will contain #top #left #rows #columns
+## BEGIN_DOC
+## pwb_erase_dims dims_array_name
+## dims array will contain #top #left #rows #columns
+## END_DOC
+
+# Add 'pwb_noop' to prevent 1-argument call from
+# returning the script contents:
+source <( pwb_sources \
+              pwb_read_args \
+              pwb_noop )
 
 pwb_erase_dims()
 {
-    local -n pwd_array="$1"
-    local -i top="${pwd_array[0]}"
-    local -i left="${pwd_array[1]}"
-    local -i bottom=$(( top + "${pwd_array[2]}" ))
-    local -i wide="${pwd_array[3]}"
+    local array_name
 
-    for (( row=top; row<bottom; ++row )); do
-        printf $'\e[%d;%dH\e[%dX' "$row" "$left" "$wide"
-    done
+    local -a cmd_args=( "$@" )
+    local -a args_array=( array_name )
+
+    if pwb_read_args cmd_args args_array; then
+        local -n pwb_array="$array_name"
+        local -i top="${pwd_array[0]}"
+        local -i left="${pwd_array[1]}"
+        local -i bottom=$(( top + "${pwd_array[2]}" ))
+        local -i wide="${pwd_array[3]}"
+
+        for (( row=top; row<bottom; ++row )); do
+            printf $'\e[%d;%dH\e[%dX' "$row" "$left" "$wide"
+        done
+    fi
 }

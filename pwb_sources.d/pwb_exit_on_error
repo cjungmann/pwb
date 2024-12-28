@@ -1,6 +1,12 @@
 # -*- mode:shell-script; sh-shell:bash -*-
 # shellcheck shell=bash
 
+## BEGIN_DOC
+## Put this command after any invocation of pwb to respond
+## to errors with helpful line number of explanation of the
+## error.
+## END_DOC
+
 pwb_exit_on_error()
 {
     # Must be first line to capture previous statements exit value

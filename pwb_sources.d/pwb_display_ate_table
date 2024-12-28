@@ -1,17 +1,19 @@
 # -*- mode:shell-script; sh-shell:bash -*-
 # shellcheck shell=bash
 
+## BEGIN_DOC
+## This function initiates a PWB interaction using the contents of
+## an ATE table. It's primary use is to debug table contents.
+## END_DOC
+
+source <( pwb_sources \
+              pwb_read_args     \
+              pwb_exit_on_error \
+              ate_exit_on_error \
+              ate_get_index_with_key )
+
 pwb_display_ate_table()
 {
-    ## START FUNCTION CONFIRM SECTION
-    set -e
-    ate_confirm_functions \
-        ate_exit_on_error \
-        pwb_exit_on_error \
-        ate_get_index_with_key
-    set +e
-    ## END FUNCTION CONFIRM SECTION
-
     make_format_string()
     {
         local -n mfs_format="$1"
@@ -61,20 +63,34 @@ pwb_display_ate_table()
     ### EXECUTION BEGINS HERE ###
     #############################
 
-    local tname="$1"
+    local table_name
+    local -a cmd_args=( "$@" )
+    local -a args_array=( table_name )
+
+    if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
+        pwb_read_args func_args args_array opts_list
+        return 0
+    fi
+
+    # Script-called function should have no errors, exit on argument error
+    if ! pwb_read_args cmd_args args_array ""; then
+        read -n -p "Script-called function should have no errors!"
+        exit 1
+    fi
+
     local -i row_count
-    ate get_row_count "$tname" -v row_count
+    ate get_row_count "$table_name" -v row_count
     ate_exit_on_error
     local HEAD_STRING
-    printf -v HEAD_STRING $'Table \e[33;1m%s\e[m' "$tname"
+    printf -v HEAD_STRING $'Table \e[33;1m%s\e[m' "$table_name"
     # calculate head string length without unplotted console code characters
-    local -i HEAD_STRING_LEN=$(( 6 + ${#tname} ))
+    local -i HEAD_STRING_LEN=$(( 6 + ${#table_name} ))
 
     local pdat_format
-    make_format_string pdat_format "$tname"
+    make_format_string pdat_format "$table_name"
 
     declare pwb_table
-    pwb declare pwb_table "$tname" "$row_count" pdat_print_line \
+    pwb declare pwb_table "$table_name" "$row_count" pdat_print_line \
         -d pdat_format \
         -t pdat_print_top
     pwb_exit_on_error
