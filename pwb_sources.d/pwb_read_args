@@ -86,7 +86,7 @@ pwb_read_args()
     # Value returned in variable named in $1 indicates how to continue:
     # If it's blank, we're done with the argument, if it has a value,
     # it's the name of the variable to set from the next argument.
-    get_option_entry()
+    get_option_entries()
     {
         # Clear goe_name as signal it shouldn't be changed,
         # which might be because it is a flag whose value
@@ -160,8 +160,12 @@ pwb_read_args()
                 fi
             done
 
-            echo "Unrecognized option '-${option_progress:0:1}' from '$option_progress'"
-            exit 1
+            if [ -z "$PWB_READ_ARGS_SILENTLY" ]; then
+                echo "Unrecognized option '-${option_progress:0:1}' from '$option_progress'"
+                exit 1
+            else
+                option_progress="${option_progress:1}"
+            fi
         done
     }
 
@@ -180,6 +184,8 @@ pwb_read_args()
             exit 1
         fi
 
+        # Flag to clear when encounterin '--', following which arguments
+        # will be treated as values, even if they look like an option.
         local -i option_parsing=1
         still_processing_options() { [ "$option_parsing" -eq 1 ]; }
 
@@ -188,20 +194,21 @@ pwb_read_args()
         local opt_name
         local -i clas_index=0
         for arg in "${pa_command_args[@]}"; do
-            # Value arg of '-o' 'value' pair
+            # If previous pass identified an option that sets a value,
+            # set the value and clear the opt_name variable.
             if [ -n "$opt_name" ]; then
                 local -n tvar="$opt_name"
                 tvar="$arg"
                 opt_name=""
-                # '-' prefix starts option processing
-                # elif still_processing_options && [[ "$arg" =~ ^-..? ]]; then
+            # '-' prefix starts option processing
+            # elif still_processing_options && [[ "$arg" =~ ^-..? ]]; then
             elif still_processing_options && [[ "$arg" =~ ^-..? ]]; then
                 if [[ "$arg" == "--" ]]; then
                     option_parsing=0
                 else
                     # if 'opt_name' is set on return, opt_name is the variable
                     # to set with the value of the next CL argument
-                    get_option_entry opt_name "$arg"
+                    get_option_entries opt_name "$arg"
                 fi
                 # not an option, set next positional argument
             elif (( args_index < args_count )); then
@@ -235,7 +242,7 @@ pwb_read_args()
         if [[ "$funcname" == "${FUNCNAME[0]}" ]]; then
             local -a arg_names=(
                 command_args_array
-                args_name_array
+                arg_names_array
                 opts_list_array
             )
             show_usage "$funcname" arg_names empty_array
@@ -248,3 +255,4 @@ pwb_read_args()
         return "$?"
     fi
 }
+
