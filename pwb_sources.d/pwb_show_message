@@ -2,8 +2,16 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
-#> pwb_show_message strings_array_name [ -a dims_array_name ]
-#> dims_array will contain #top #left #rows #columns
+## BEGIN_DOC
+## Displays an array of lines in a screen-centered box.
+## If called with a 'dims_name', the array with that name will
+## be filled with the dimensions of the displayed block.  Pass
+## the dimensions array name to pwb_erase_dims to clear the
+## area covered by the message box.
+## END_DOC
+
+source <( pwb_sources pwb_read_args pwb_noop )
+
 
 declare PSM_CHAR_HORZ=$'\u2500'
 declare PSM_CHAR_VERT=$'\u2502'
@@ -16,15 +24,16 @@ pwb_show_message()
 {
     local lines_name dims_name
 
-    for arg in "$@"; do
-        if [[ "$dims_name" == $'\e' ]]; then
-            dims_name="$arg"
-        elif [[ "$arg" == "-a" ]] && [ -z "$dims_name" ]; then
-            dims_name=$'\e'
-        else
-            lines_name="$arg"
-        fi
-    done
+    local -a cmd_args=( "$@" )
+    local -a names_array=( lines_name )
+    local -a opts_list=(
+        a+  dims_name
+    )
+
+    # Parse args, return if calling for usage info only
+    if ! pwb_read_args cmd_args names_array opts_list; then
+        return 0
+    fi
 
     local -n psm_lines="$lines_name"
 

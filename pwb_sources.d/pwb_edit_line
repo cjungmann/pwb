@@ -35,16 +35,9 @@ pwb_edit_line()
         "l+" char_limit
         )
 
-    # Self-documenting USAGE generation:
-    if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
-        pwb_read_args func_args args_array opts_list
-        return 0
-    fi
-
-    # Script-called function should have no errors, exit on argument error
+    # Exit for "error" code, generated after showing usage.
     if ! pwb_read_args func_args args_array opts_list; then
-        read -n -p "Script-called function should have no errors!"
-        exit 1
+        return 0
     fi
 
     local -n psle_line="$return_name"

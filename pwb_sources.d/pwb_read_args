@@ -88,11 +88,11 @@ pwb_read_args()
     # it's the name of the variable to set from the next argument.
     get_option_entry()
     {
-        local -n goe_name="$1"
         # Clear goe_name as signal it shouldn't be changed,
         # which might be because it is a flag whose value
         # will have already been set upon return
-        goe_name=""
+        local -n goe_rname="$1"
+        goe_rname=""
 
         # Trim off leading '-' so chars can be considered individually
         local option_progress="${2:1}"
@@ -105,7 +105,6 @@ pwb_read_args()
 
             # Search opts_list for matching option flag/name pair
             for el in "${pa_opts_list[@]}"; do
-
                 # It's a two-part search, so the first time we just get
                 # the option letter, the following time through gets the
                 # target variable name
@@ -115,14 +114,14 @@ pwb_read_args()
                 # Second time through, we have enough to work
                 else
                     # Save and clear opt_flag to permit break or continue
-                    local opt_name="$opt_flag"
+                    local goe_opt_name="$opt_flag"
                     opt_flag=""
 
                     # Compare first letters to find a match
-                    if [[ "${opt_name:0:1}" == "${option_progress:0:1}" ]]; then
+                    if [[ "${goe_opt_name:0:1}" == "${option_progress:0:1}" ]]; then
                         # If the option is a flag (it's one char lone),
                         # set it, update option_progress, and continue:
-                        if [ "${#opt_name}" -eq 1 ]; then
+                        if [ "${#goe_opt_name}" -eq 1 ]; then
                             local -n tval="$el"
 
                             # Caller's reponsibility to clear values before calling:
@@ -150,7 +149,7 @@ pwb_read_args()
                             # next argument.  Return the variable name to be set with the
                             # with the next argument:
                             else
-                                goe_name="$el"
+                                goe_rname="$el"
                             fi
 
                             # break out of outer loop to finish early
@@ -187,6 +186,7 @@ pwb_read_args()
         local -i args_index=0
         local -i args_count="${#pa_arg_names[@]}"
         local opt_name
+        local -i clas_index=0
         for arg in "${pa_command_args[@]}"; do
             # Value arg of '-o' 'value' pair
             if [ -n "$opt_name" ]; then
@@ -198,7 +198,6 @@ pwb_read_args()
             elif still_processing_options && [[ "$arg" =~ ^-..? ]]; then
                 if [[ "$arg" == "--" ]]; then
                     option_parsing=0
-                    continue
                 else
                     # if 'opt_name' is set on return, opt_name is the variable
                     # to set with the value of the next CL argument
@@ -210,7 +209,12 @@ pwb_read_args()
                 local -n tvar="$argname"
                 tvar="$arg"
                 (( ++args_index ))
+            else
+                continue # without discarding the argument
             fi
+
+            # Discard any consumed arguments
+            unset pa_command_args[$(( clas_index++ ))]
         done
     }
 
