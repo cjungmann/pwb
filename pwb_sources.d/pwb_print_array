@@ -30,7 +30,9 @@ pwb_print_array()
 
     massage_justified()
     {
+        # -l to make lower case, take only first letter:
         local -l jval="${justified:0:1}"
+
         if ! [[ "$jval" =~ [lcr] ]]; then
             local -a format=(
                 $'The "\e[31;1m%s\e[m" value for "-j" '
@@ -44,8 +46,46 @@ pwb_print_array()
             return 1
         fi
 
-        local -n mj_jus="${justified:0:1}"
-        mj_jus="${mj_jus,,*}"
+        local -n mj_jus=justified
+        mj_jus="$jval"
+        return 0
+    }
+
+    massage_location()
+    {
+        # -l to make lower case, take only first letter:
+        local -l lval="${location_type:0:1}"
+
+        # Confirm acceptable value
+        if ! [[ "$lval" =~ [fgh] ]]; then
+            local -a format=(
+                $'The "\e[31;1m%s\e[m" value for "-t" '
+                $'should be either '
+                $'\e[32;1m%s\e[m, '
+                $'\e[32;1m%s\e[m, or '
+                $'\e[32;1m%s\e[m.'
+            )
+            local IFS=""
+            printf "${format[*]}" "$location_type" foot head generic
+            return 1
+        fi
+
+        # Confirm prerequisites if head or foot
+        if [[ "$lval" =~ [fh] ]]; then
+            if [ -n "$handle_name" ]; then
+                if ! pwb get_data_count "$handle_name"; then
+                    printf $'"\e[31;1m%s\e[ is not a valid pwb handle.\n' "$handle_name"
+                    return 1
+                fi
+            else
+                echo "A handle name must be provided for 'head' or 'foot types."
+                return 1
+            fi
+        fi
+
+        local -n ml_loc=location_type
+        ml_loc="$lval"
+
         return 0
     }
 
@@ -53,13 +93,30 @@ pwb_print_array()
     {
         if [ -z "$array_name" ]; then
             echo "Must provide an array name"
-        elif ! confirm_array_name "$array_name"; then
-            return 1
-        elif ! massage_justified; then
+        elif ! confirm_array_name "$array_name" \
+               || ! massage_justified \
+               || ! massage_location ; then
             return 1
         fi
 
         return 0
+    }
+
+    set_constraints_from_handle()
+    {
+        local -n cfh_start_line="$1"
+        local -n cfh_line_limit="$2"
+        local handle_name="$3"
+        local -l type="$4"
+
+        pwb get_dimensions "$handle_name"
+        if [[ "${type:0:1}" == "h" ]]; then
+            cfh_start_line=1
+            cfh_line_limit="${PWB_ASSOC[margin_top]}"
+        elif [[ "${type:0:1}" == "f" ]]; then
+            cfh_start_line=$(( 1 + PWB_ASSOC[screen_lines] - PWB_ASSOC[margin_bottom] ))
+            cfh_line_limit=$(( PWB_ASSOC[margin_bottom] ))
+        fi
     }
 
     # Returns the length of the longest string and fills
@@ -70,34 +127,39 @@ pwb_print_array()
         local -n ml_return="$1"
         local -n ml_lens_array="$2"
         local -n ml_lines="$3"
+        local -i ml_lines_limit="$4"
 
         declare -i ml_maxlen=0
         ml_lens_array=()
         local -i curlen
         local line
-        for line in "${ml_lines[@]:0:$lines_limit}"; do
+
+        for line in "${ml_lines[@]:0:$ml_lines_limit}"; do
             pwb measure_string -v curlen "$line"
             ml_lens_array+=( "$curlen" )
             (( ml_maxlen = (curlen > ml_maxlen ? curlen : ml_maxlen) ))
         done
 
-        local scrlen=$(( screen_width - 4 ))
-        (( ml_return = ml_maxlen > scrlen ? scrlen : ml_maxlen ))
+        ml_return="$ml_maxlen"
     }
 
     ############################
     ###   EXECUTION STARTS   ###
     ############################
 
-    local array_name justified=c
+    local array_name handle_name justified=c location_type=generic
+    local use_color
     local -i start_line=1 lines_limit=0
     local -i maxlen
 
     local -a cmd_args=( "$@" )
-    local -a arg_names=( array_name lines_limit )
+    local -a arg_names=( array_name handle_name )
     local -a opts_list=(
         j+ justified
         s+ start_line
+        l+ lines_limit
+        t+ location_type
+        c+ use_color
     )
 
     pwb get_dimensions
@@ -107,7 +169,14 @@ pwb_print_array()
 
     if pwb_read_args cmd_args arg_names opts_list; then
         if confirm_arguments; then
-            measure_lines maxlen len_array "$array_name"
+
+            # Set contraints before measuring possibly restricted number of lines
+            if [ -n "$handle_name" ] && [[ "$location_type" =~ [hf] ]]; then
+                set_constraints_from_handle start_line lines_limit "$handle_name" "$location_type"
+            fi
+
+            measure_lines maxlen len_array "$array_name" "$lines_limit"
+            (( maxlen = (maxlen < screen_width ? maxlen : screen_width) ))
 
             local -i static_left=$(( (screen_width - maxlen) / 2 ))
 
@@ -122,8 +191,11 @@ pwb_print_array()
                 left="$static_left"
             fi
 
+            if [ -n "$use_color" ]; then
+                printf $'\e[%sm' "$use_color"
+            fi
+
             for line in "${ppa_lines[@]:0:$lines_limit}"; do
-                echo
                 curlen="${len_array[$(( index++ ))]}"
                 case "$justified" in
                     c) (( left = (screen_width - curlen) / 2 )) ;;
@@ -132,7 +204,6 @@ pwb_print_array()
 
                 # position cursor for next text, erase entire line
                 printf $'\e[%d;%dH\e[2K' $(( cur_row++ )) "$left"
-
                 pwb limit_print "$maxlen" "$line"
             done
 
@@ -142,6 +213,10 @@ pwb_print_array()
                 printf $'\e[%d;%dH\e[2K' $(( cur_row )) "$left"
                 (( ++cur_row ))
             done
+
+            if [ -n "$use_color" ]; then
+                printf $'\e[m'
+            fi
         fi
     fi
 }
