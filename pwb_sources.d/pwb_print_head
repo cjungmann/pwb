@@ -8,5 +8,36 @@ source <( pwb_sources pwb_print_array pwb_read_args )
 
 pwb_print_head()
 {
-    pwb_print_array -t head "$@"
+    local handle_name array_name color_string
+    local justification=c
+
+    local -a cmd_args=( "$@" )
+    local -a arg_names=( handle_name array_name )
+    local -a opts_list=(
+        j+  justification
+        c+  color_string
+    )
+
+    if pwb_read_args cmd_args arg_names opts_list; then
+        if ! pwb get_dimensions "$handle_name"; then
+            echo "Bad handle name, '$handle_name'"
+            exit 1
+        fi
+
+        local -i start_line="1"
+        local -i line_count="${PWB_ASSOC[margin_top]}"
+
+        if [ -n "$color_string" ]; then
+            printf $'\e[%sm' "$color_string"
+        fi
+
+        pwb_print_array "$array_name" \
+                        -s "$start_line" \
+                        -l "$line_count"  \
+                        -j "$justification"
+
+        if [ -n "$color_string" ]; then
+            printf $'\e[m'
+        fi
+    fi
 }

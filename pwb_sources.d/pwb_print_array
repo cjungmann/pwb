@@ -51,72 +51,16 @@ pwb_print_array()
         return 0
     }
 
-    massage_location()
-    {
-        # -l to make lower case, take only first letter:
-        local -l lval="${location_type:0:1}"
-
-        # Confirm acceptable value
-        if ! [[ "$lval" =~ [fgh] ]]; then
-            local -a format=(
-                $'The "\e[31;1m%s\e[m" value for "-t" '
-                $'should be either '
-                $'\e[32;1m%s\e[m, '
-                $'\e[32;1m%s\e[m, or '
-                $'\e[32;1m%s\e[m.'
-            )
-            local IFS=""
-            printf "${format[*]}" "$location_type" foot head generic
-            return 1
-        fi
-
-        # Confirm prerequisites if head or foot
-        if [[ "$lval" =~ [fh] ]]; then
-            if [ -n "$handle_name" ]; then
-                if ! pwb get_data_count "$handle_name"; then
-                    printf $'"\e[31;1m%s\e[ is not a valid pwb handle.\n' "$handle_name"
-                    return 1
-                fi
-            else
-                echo "A handle name must be provided for 'head' or 'foot types."
-                return 1
-            fi
-        fi
-
-        local -n ml_loc=location_type
-        ml_loc="$lval"
-
-        return 0
-    }
-
     confirm_arguments()
     {
         if [ -z "$array_name" ]; then
             echo "Must provide an array name"
         elif ! confirm_array_name "$array_name" \
-               || ! massage_justified \
-               || ! massage_location ; then
+                || ! massage_justified; then
             return 1
         fi
 
         return 0
-    }
-
-    set_constraints_from_handle()
-    {
-        local -n cfh_start_line="$1"
-        local -n cfh_line_limit="$2"
-        local handle_name="$3"
-        local -l type="$4"
-
-        pwb get_dimensions "$handle_name"
-        if [[ "${type:0:1}" == "h" ]]; then
-            cfh_start_line=1
-            cfh_line_limit="${PWB_ASSOC[margin_top]}"
-        elif [[ "${type:0:1}" == "f" ]]; then
-            cfh_start_line=$(( 1 + PWB_ASSOC[screen_lines] - PWB_ASSOC[margin_bottom] ))
-            cfh_line_limit=$(( PWB_ASSOC[margin_bottom] ))
-        fi
     }
 
     # Returns the length of the longest string and fills
@@ -147,19 +91,16 @@ pwb_print_array()
     ###   EXECUTION STARTS   ###
     ############################
 
-    local array_name handle_name justified=c location_type=generic
-    local use_color
+    local array_name justified=c
     local -i start_line=1 lines_limit=0
     local -i maxlen
 
     local -a cmd_args=( "$@" )
-    local -a arg_names=( array_name handle_name )
+    local -a arg_names=( array_name )
     local -a opts_list=(
-        j+ justified
         s+ start_line
         l+ lines_limit
-        t+ location_type
-        c+ use_color
+        j+ justified
     )
 
     pwb get_dimensions
@@ -169,11 +110,6 @@ pwb_print_array()
 
     if pwb_read_args cmd_args arg_names opts_list; then
         if confirm_arguments; then
-
-            # Set contraints before measuring possibly restricted number of lines
-            if [ -n "$handle_name" ] && [[ "$location_type" =~ [hf] ]]; then
-                set_constraints_from_handle start_line lines_limit "$handle_name" "$location_type"
-            fi
 
             measure_lines maxlen len_array "$array_name" "$lines_limit"
             (( maxlen = (maxlen < screen_width ? maxlen : screen_width) ))
@@ -191,9 +127,9 @@ pwb_print_array()
                 left="$static_left"
             fi
 
-            if [ -n "$use_color" ]; then
-                printf $'\e[%sm' "$use_color"
-            fi
+            # if [ -n "$use_color" ]; then
+            #     printf $'\e[%sm' "$use_color"
+            # fi
 
             for line in "${ppa_lines[@]:0:$lines_limit}"; do
                 curlen="${len_array[$(( index++ ))]}"
@@ -214,9 +150,9 @@ pwb_print_array()
                 (( ++cur_row ))
             done
 
-            if [ -n "$use_color" ]; then
-                printf $'\e[m'
-            fi
+            # if [ -n "$use_color" ]; then
+            #     printf $'\e[m'
+            # fi
         fi
     fi
 }
