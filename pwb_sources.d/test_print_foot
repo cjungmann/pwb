@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+enable pwb
+
+source pwb_read_args
+source pwb_print_array
+source pwb_print_foot
+source pwb_print_head
+source pwb_exit_on_error
+
+declare -a lines=(
+    $'1234567890\e[31;1m1234567890\e[32;1m1234567890\e[33;1m1234567890\e[34;1m1234567890\e[35;1m1234567890\e[36;1m1234567890\e[31;1m1234567890\e[32;1m1234567890\e[33;1m1234567890\e[34;1m1234567890\e[35;1m1234567890\e[39m'
+    $'This is a \e[32;1mvery long\e[39m second line that include \e[32;1mcolor codes\e[39m that make it \e[31;1mmore complicated\e[39m to measure and print accurately.'
+    "Note that the previous line used \\e[39m to restore default foreground color"
+    "Short to test centering"
+)
+
+# Setup very simple PWB
+
+simple_print_func()
+{
+    local -i index="$1"
+    local -n pf_data="$2"
+    local -i chars_limit="$3"
+
+    local val="${pf_data[$index]}"
+
+    declare tline
+    printf -v tline "%-*s" "$chars_limit" "$val"
+    printf "%s" "${val:0:$chars_limit}"
+}
+
+# Array as data source
+declare -a test_source=( one two three )
+
+# Make pwb handle with margins to dictate foot dimensions
+pwb declare phandle test_source "${#test_source[@]}" simple_print_func
+pwb_exit_on_error
+pwb set_margins phandle 5
+pwb_exit_on_error
+
+# Set traps before start to ensure orderly exit:
+handle_signal() { pwb restore; }
+trap handle_signal SIGINT EXIT SIGABRT
+
+pwb init
+
+pwb_print_head phandle lines -jl -c "48;2;64;64;64"
+pwb_print_foot phandle lines -jr -c "48;2;32;32;32"
+pwb start phandle
+

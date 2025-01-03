@@ -1,0 +1,241 @@
+#!/usr/bin/env bash
+
+source pwb_read_args
+
+show_help()
+{
+    local -a empty=()
+    local sh_func_name="$1"
+    local -n sh_arg_names="${2:-empty}"
+    local -n sh_opt_list="${3:-empty}"
+
+    local col_bold="${LESS_TERMCAP_md}"
+    if [ -z "$col_bold" ]; then col_bold=$'\e[34;1m'; fi
+    local col_ital="${LESS_TERMCAP_us}"
+    if [ -z "$col_ital" ]; then col_ital=$'\e[32;1m'; fi
+    local col_none=$'\e[m'
+
+    printf "%s " "$sh_func_name"
+    for arg in "${sh_arg_names[@]}"; do
+        printf " ${col_ital}%s${col_none}" "$arg"
+    done
+    local trigger var
+    for el in "${sh_opt_list[@]}"; do
+        if [ -z "$trigger" ]; then
+            trigger="$el"
+        else
+            printf " ${col_bold}-%s${col_none}" "${trigger:0:1}"
+            if [ "${#trigger}" -gt 1 ]; then
+                printf " ${col_ital}%s${col_none}" "$el"
+            fi
+            trigger=""
+        fi
+    done
+    printf "\n"
+
+    if [ "${#sh_opt_list[@]}" -gt 0 ]; then
+        printf "  OPTIONS:\n"
+        for el in "${sh_opt_list[@]}"; do
+            if [ -z "$trigger" ]; then
+                trigger="$el"
+            else
+                printf "    ${col_bold}-%s${col_none}   ${col_ital}%s${col_none}" \
+                       "${trigger:0:1}" \
+                       "$el"
+
+                if [ "${#trigger}" -eq 1 ]; then
+                    printf "  (flag)\n"
+                else
+                    printf "\n"
+                fi
+
+                trigger=""
+            fi
+        done
+    fi
+}
+
+test_basic()
+{
+    cat <<EOF
+pwb_read_args takes three arguments, all of which are names
+of arrays.  The first argument is a copy of the arguments to
+parse.  The second argument is the name of an array of variable
+names.  The third is an array of paired elements, an option
+letter followed by the variable to be modified if the option is
+included in the argument list.
+
+The first argument is required, and also required is at least
+one of the last two arguments.  An empty string can replace an
+array name if that class of arguments is not needed.
+
+The pwb_read_args function attempts to follow the POSIX convention
+as described in:
+
+info(libc), section 25.1.1: 'Program Argument Syntax Conventions'
+
+pwb_read_args does not attempt to handle
+
+
+Press any key to continue.
+EOF
+    read -n1 -s
+
+    local var1 var2 var3
+    local optionA
+    local -i flagB
+
+    # Arg 1, CLI arguments
+    local -a cli_args=( "$@" )
+    # Copy the command arguments so they can be named
+    # for a nameref variable in pwb_read_args
+
+    # Arg 2, array of variable names
+    local -a arg_names=( var1 var2 var3 )
+    # The named variables will be set with non-option
+    # argument values in the order they are received.
+    # Arg 2 can be an empty string if there are no
+    # positional arguments.
+
+    # Arg 3, array of options
+    local -a flag_names=(
+        a+  optionA
+        b   flagB
+    )
+    # This array contains paired-up elements, with the
+    # first of the pair being the letter that triggers
+    # the option, and the second of the pair being the
+    # name of the variable to be set.
+    #
+    # If the trigger element is a single character,
+    # it is a "value option", and the named variable will
+    # be set with a string value.  It will be set with
+    # either the remaining chars in the argument or,
+    # if no argument chars remain, the next argument.
+    #
+    # If the trigger element is more than one char,
+    # it is a "flag option", and the named variable will
+    # be set to 1.
+
+    # If the calling argument is an option with several
+    # characters, pwb_read_args will process each flag
+    # trigger character until it reaches the end of the
+    # option string or until it encounters a "value option"
+    # that consumes the rest of the argument.
+
+    show_help "$FUNCNAME" arg_names flag_names
+
+    pwb_read_args cli_args arg_names flag_names
+}
+
+test_varied_options()
+{
+    echo "In 'test_varied_options with arguments"
+    echo "$*"
+
+    local opt1 opt2 opt3
+    local -i flag1 flag2
+
+    local -a arg_names=( opt1 opt2 opt3 flag1 flag2 )
+
+    local -a opts_list=(
+        a+  opt1
+        b+  opt2
+        c+  opt3
+        d   flag1
+        e   flag2
+    )
+
+    local -a args_copy=( "$@" )
+
+    show_help "$FUNCNAME" "" opts_list
+
+    if pwb_read_args \
+           args_copy \
+           ""        \
+           opts_list; then
+        echo "Successfully parsed the read args"
+    fi
+
+    for name in "${arg_names[@]}"; do
+        local -n tvar="$name"
+        printf $'Variable "\e[34;1m%s\e[m" is set to "\e[34;1m%s\e[m"\n' \
+               "$name" "$tvar"
+    done
+       
+}
+
+
+# test_full_set val1 val2 var3 [-j] [-a value] [-t title]
+test_full_set()
+{
+    echo
+    printf $'Called \e[34;1m%s\e[m with arguments \e[34;1m%s\e[m\n' \
+           "${FUNCNAME[0]}" "$*"
+
+    local val1 val2 val3
+    local title
+    local -i flagA flagB
+    local -i optC optD
+
+    local -a args_names=( val1 val2 val3 )
+    local -a opts_list=(
+        a   flagA
+        b   flagB
+        c+  optC
+        d+  optD
+        t+  title
+    )
+
+    local -a all_vars=(
+        val1 val2 val3
+        flagA flagB
+        optC optD
+    )
+
+    # Copy arguments to create a named array argument:
+    local -a func_args=( "$@" )
+
+    show_help "$FUNCNAME" args_names opts_list
+
+    # Process the arguments:
+    pwb_read_args \
+        func_args \
+        args_names\
+        opts_list
+
+    ### Report: arguments and results ###
+
+    if [ -n "$title" ]; then
+        echo "Title '$title'"
+    fi
+
+    for var in "${all_vars[@]}"; do
+        local -n tvar="$var"
+        printf $'Variable \e[34;1m%s\e[m is set to "\e[34;1m%s\e[m"\n' \
+               "$var" "$tvar"
+    done
+}
+
+test_single_char()
+{
+    local justified=c
+    local tsc_args=( "$@" )
+    local opts_list=(
+        j+  justified
+    )
+
+    pwb_read_args tsc_args "" opts_list
+    echo "Justified is '$justified'"
+}
+
+# test_single_char -jl
+
+test_full_set -bacOpt four one two three
+test_full_set -t"Calling a title" -a four -- -j three one two
+
+
+# test_varied_options -a one -b two -c three -d -e
+# test_varied_options -da one -b two -ec three
+# test_varied_options -aone -btwo -cthree -d -e
+# test_varied_options -deaone -b two -c three
