@@ -92,14 +92,16 @@ pwb_print_array()
     ############################
 
     local array_name justified=c
-    local -i start_line=1 lines_limit=0
-    local -i maxlen
+    local -i top_line=1 line_count=0 left_start=1 wide_count=-1
+    local -i maxlen plotlen
 
     local -a cmd_args=( "$@" )
     local -a arg_names=( array_name )
     local -a opts_list=(
-        s+ start_line
-        l+ lines_limit
+        t+ top_line
+        c+ line_count
+        l+ left_start
+        w+ wide_count
         j+ justified
     )
 
@@ -111,48 +113,62 @@ pwb_print_array()
     if pwb_read_args cmd_args arg_names opts_list; then
         if confirm_arguments; then
 
-            measure_lines maxlen len_array "$array_name" "$lines_limit"
-            (( maxlen = (maxlen < screen_width ? maxlen : screen_width) ))
+            # Calculate boundaries of designated plotting region
+            # limit is right of screen if no wide_count value given
+            (( wide_count = ( wide_count<0 ? screen_width : wide_count) ))
 
-            local -i static_left=$(( (screen_width - maxlen) / 2 ))
+            # Fix for overrun
+            (( plotlen = ( wide_count + left_start > screen_width \
+                                      ?  screen_width-left_start  \
+                                      : wide_count ) ))
+
+            # Calculate length of content, adjust to fit in plotlen if necessary
+            measure_lines maxlen len_array "$array_name" "$line_count"
+            (( maxlen = ( plotlen < maxlen ? plotlen : maxlen ) ))
+
+            # Reference point for left- and right-justified output:
+            local -i static_left=$(( left_start + ((plotlen - maxlen) / 2) ))
+            (( static_left = ( static_left < left_start ? left_start : static_left ) ))
+            local -i static_center=$(( ( plotlen / 2 ) + left_start ))
 
             local -n ppa_lines="$array_name"
             local line
             local -i left curlen index=0
 
-            local -i cur_row="$start_line"
-            local -i limit_row=$(( cur_row + lines_limit ))
+            local -i cur_row="$top_line"
+            local -i limit_row=$(( cur_row + line_count ))
 
+            # No need to calculate left for each line if left-justified:
             if [[ "$justified" == "l" ]]; then
                 left="$static_left"
             fi
 
-            # if [ -n "$use_color" ]; then
-            #     printf $'\e[%sm' "$use_color"
-            # fi
-
-            for line in "${ppa_lines[@]:0:$lines_limit}"; do
+            for line in "${ppa_lines[@]:0:$line_count}"; do
                 curlen="${len_array[$(( index++ ))]}"
+                (( curlen = ( curlen > maxlen ? maxlen : curlen ) ))
                 case "$justified" in
-                    c) (( left = (screen_width - curlen) / 2 )) ;;
+                    c) (( left = static_center - (curlen / 2) )) ;;
                     r) (( left = static_left + maxlen - curlen )) ;;
                 esac
 
-                # position cursor for next text, erase entire line
-                printf $'\e[%d;%dH\e[2K' $(( cur_row++ )) "$left"
+                # erase plotting area, position cursor for text
+                printf $'\e[%d;%dH\e[%dX\e[%dG' \
+                       $(( cur_row++ )) \
+                       "$left_start"    \
+                       "$plotlen"       \
+                       "$left"
+
                 pwb limit_print "$maxlen" "$line"
             done
 
             # Erase extra lines, if necessary
             while (( cur_row < limit_row )); do
-                # position cursor for next text, erase entire line
-                printf $'\e[%d;%dH\e[2K' $(( cur_row )) "$left"
-                (( ++cur_row ))
+                # erase plotting area for each empty line:
+                printf $'\e[%d;%dH\e[%dX' \
+                       $(( cur_row++ )) \
+                       "$left_start"    \
+                       "$plotlen"
             done
-
-            # if [ -n "$use_color" ]; then
-            #     printf $'\e[m'
-            # fi
         fi
     fi
 }
