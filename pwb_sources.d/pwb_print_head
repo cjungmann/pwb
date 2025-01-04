@@ -5,6 +5,10 @@
 ## BEGIN_DOC
 ## As much as fits in the area, print the lines in an array of
 ## strings to the header of the page.
+##
+## The head print region will exclude left and right margins.
+## Use pwb_print_array with appropriate options to print in the
+## margins.
 ## END_DOC
 
 source <( pwb_sources pwb_print_array pwb_read_args )
