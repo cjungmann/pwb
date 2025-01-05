@@ -21,14 +21,19 @@ pwb_erase_dims()
     local -a args_array=( array_name )
 
     if pwb_read_args cmd_args args_array; then
-        local -n pwb_array="$array_name"
-        local -i top="${pwd_array[0]}"
-        local -i left="${pwd_array[1]}"
-        local -i bottom=$(( top + "${pwd_array[2]}" ))
-        local -i wide="${pwd_array[3]}"
+        if [ -n "$array_name" ]; then
+            local -n ped_array="$array_name"
+            if [ "${#ped_array[*]}" -eq 4 ]; then
+                local -i top="${ped_array[0]}"
+                local -i left="${ped_array[1]}"
+                local -i bottom=$(( top + ped_array[2] ))
+                local -i wide="${ped_array[3]}"
 
-        for (( row=top; row<bottom; ++row )); do
-            printf $'\e[%d;%dH\e[%dX' "$row" "$left" "$wide"
-        done
+
+                for (( row=top; row<bottom; ++row )); do
+                    printf $'\e[%d;%dH\e[%dX' "$row" "$left" "$wide"
+                done
+            fi
+        fi
     fi
 }
