@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+
+enable pwb
+
+# This test script is a development tool.  Explicit sources
+# enables 'shellcheck -x' and will use development scriptlets
+# rather than possibly different installed scriptlets.
+#
+# Order is important to prevent later sources from using
+# pwb_sources to load installed scripts.
+#
+source pwb_read_args
+source pwb_exit_on_error
+source pwb_show_message
+source pwb_erase_dims
+source pwb_get_regions
+source pwb_print_array
+
+show_help()
+{
+    declare -a help_lines=(
+        " Fill regions with numerals to confirm dimensions: "
+        ""
+        $'   \e[32;1m?\e[39m to see this help message.'
+        $'   \e[32;1mq\e[39m to quit.'
+        ""
+        $'   \e[32;1mb\e[39m to fill the bottom margin (footer) region.'
+        $'   \e[32;1ml\e[39m to fill the left margin region.'
+        $'   \e[32;1mr\e[39m to fill the right margin region.'
+        $'   \e[32;1mt\e[39m to fill the top margin (header) region.'
+        ""
+        " Press any key to continue."
+    )
+
+    declare -a dims
+    pwb_show_message help_lines -a dims
+    read -sn1
+
+    # Good practice to explicitely erase the message area in case
+    # the content region is narrower than the message display.
+    pwb_erase_dims dims
+}
+
+print_line()
+{
+    local -i index="$1"
+    local sname="$2"
+    local -i chars_count="$3"
+
+    local tline
+    printf -v tline "   %d %*s" "$index" "$chars_count" " "
+    tline="${tline// /-}"
+    printf "%s" "${tline:0:$chars_count}"
+}
+
+message_dimensions()
+{
+    declare -a msg_array=(
+        "pr_top:   $pr_top"
+        "pr_left:  $pr_left"
+        "pr_wide:  $pr_wide"
+        "pr_lines: $pr_lines"
+        ""
+        "Press any key to continue"
+    )
+
+    local -a dims
+    pwb_show_message -a dims msg_array
+    read -sn1
+    pwb_erase_dims dims
+    pwb print_all PHANDLE
+}
+
+
+print_region()
+{
+    local region="$1"
+    local regprefix="${1^^}M_"
+
+    local -n pr_top=REGION_DIMS["${regprefix}TOP"]
+    local -n pr_left=REGION_DIMS["${regprefix}LEFT"]
+    local -n pr_wide=REGION_DIMS["${regprefix}WIDE"]
+    local -n pr_lines=REGION_DIMS["${regprefix}LINES"]
+
+    local -a pr_line_array
+
+    for (( i=0; i<pr_lines; ++i )); do
+        pr_line_array+=( "$NUMBERED_LINE" )
+    done
+
+    # message_dimensions
+
+    pwb_print_array pr_line_array \
+                    -t "$pr_top"  \
+                    -l "$pr_left" \
+                    -w "$pr_wide" \
+                    -c "$pr_lines"
+}
+
+exec_func()
+{
+    local keyp="$1"
+    local pname="$4"
+
+    if [[ "$keyp" == "?" ]]; then
+        show_help
+        pwb print_all "$pname"
+    elif [[ "tlbr" =~ "$keyp" ]]; then
+        print_region "$keyp"
+    fi
+}
+
+exit_trap() { pwb restore; }
+
+
+############################
+###   EXECUTION BEGINS   ###
+############################
+
+# Construct a line with groups of ten numerals delineated by colors:
+declare -a num_line_arr=(
+    $'\e[38;2;255;0;0m1234567890\e[39m'
+    $'\e[38;2;0;255;0m1234567890\e[39m'
+    $'\e[38;2;255;255;0m1234567890\e[39m'
+    $'\e[38;2;0;0;255m1234567890\e[39m'
+    $'\e[38;2;255;0;255m1234567890\e[39m'
+    $'\e[38;2;0;255;255m1234567890\e[39m'
+    $'\e[38;2;255;255;255m1234567890\e[39m'
+
+    $'\e[38;2;255;0;0m1234567890\e[39m'
+    $'\e[38;2;0;255;0m1234567890\e[39m'
+    $'\e[38;2;255;255;0m1234567890\e[39m'
+    $'\e[38;2;0;0;255m1234567890\e[39m'
+    $'\e[38;2;255;0;255m1234567890\e[39m'
+    $'\e[38;2;0;255;255m1234567890\e[39m'
+    $'\e[38;2;255;255;255m1234567890\e[39m'
+)
+
+declare OIFS="$IFS"
+declare IFS=""
+declare NUMBERED_LINE="${num_line_arr[*]}${num_line_arr[*]}"
+IFS="$OIFS"
+unset OIFS
+
+declare -a keymap_arr=(
+    "l"   7
+    "r"   7
+    "t"   7
+    "b"   7
+    "?"   7
+)
+
+declare KEYMAP
+pwb declare_keymap KEYMAP keymap_arr
+
+declare PHANDLE
+pwb declare PHANDLE bogus 100 print_line -e exec_func
+pwb_exit_on_error
+
+pwb set_margins PHANDLE 5 45 10 0
+pwb_exit_on_error
+
+declare -A REGION_DIMS
+pwb_get_regions REGION_DIMS PHANDLE
+
+trap exit_trap EXIT SIGABRT SIGINT
+
+pwb init
+
+# Show after pwb_init clears the screen
+show_help
+
+pwb start PHANDLE -a KEYMAP
+
+
+
