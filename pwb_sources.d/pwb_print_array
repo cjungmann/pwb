@@ -106,7 +106,7 @@ pwb_print_array()
     )
 
     pwb get_dimensions
-    local -i screen_width=$(( "${PWB_ASSOC[screen_cols]}" - 4 ))
+    local -i screen_width="${PWB_ASSOC[screen_cols]}"
 
     local -a len_array
 
@@ -115,60 +115,65 @@ pwb_print_array()
 
             # Calculate boundaries of designated plotting region
             # limit is right of screen if no wide_count value given
-            (( wide_count = ( wide_count<0 ? screen_width : wide_count) ))
+            (( wide_count = ( wide_count<0 ? screen_width : wide_count ) ))
 
             # Fix for overrun
-            (( plotlen = ( wide_count + left_start > screen_width \
-                                      ?  screen_width-left_start  \
-                                      : wide_count ) ))
+            (( plotlen = ( wide_count + left_start <= screen_width \
+                                      ? wide_count                 \
+                                      : screen_width - left_start + 1 ) ))
 
-            # Calculate length of content, adjust to fit in plotlen if necessary
-            measure_lines maxlen len_array "$array_name" "$line_count"
-            (( maxlen = ( plotlen < maxlen ? plotlen : maxlen ) ))
+            # Don't print if no room to print
+            if [ "$plotlen" -gt 0 ]; then
+                # Calculate length of content, adjust to fit in plotlen if necessary
+                measure_lines maxlen len_array "$array_name" "$line_count"
+                (( maxlen = ( plotlen < maxlen ? plotlen : maxlen ) ))
 
-            # Reference point for left- and right-justified output:
-            local -i static_left=$(( left_start + ((plotlen - maxlen) / 2) ))
-            (( static_left = ( static_left < left_start ? left_start : static_left ) ))
-            local -i static_center=$(( ( plotlen / 2 ) + left_start ))
+                # Reference point for left- and right-justified output:
+                local -i static_left=$(( left_start + ((plotlen - maxlen) / 2) ))
+                (( static_left = ( static_left < left_start ? left_start : static_left ) ))
+                local -i static_center=$(( ( plotlen / 2 ) + left_start ))
 
-            local -n ppa_lines="$array_name"
-            local line
-            local -i left curlen index=0
+                local -n ppa_lines="$array_name"
+                local line
+                local -i left curlen index=0
 
-            local -i cur_row="$top_line"
-            local -i limit_row=$(( cur_row + line_count ))
+                local -i cur_row="$top_line"
+                local -i limit_row=$(( cur_row + line_count ))
 
-            # No need to calculate left for each line if left-justified:
-            if [[ "$justified" == "l" ]]; then
-                left="$static_left"
+                # No need to calculate left for each line if left-justified:
+                if [[ "$justified" == "l" ]]; then
+                    left="$static_left"
+                fi
+
+                for line in "${ppa_lines[@]:0:$line_count}"; do
+                    curlen="${len_array[$(( index++ ))]}"
+                    (( curlen = ( curlen > maxlen ? maxlen : curlen ) ))
+                    case "$justified" in
+                        c) (( left = static_center - (curlen / 2) )) ;;
+                        r) (( left = static_left + maxlen - curlen )) ;;
+                    esac
+
+                    # erase plotting area, position cursor for text
+                    printf $'\e[%d;%dH\e[%dX\e[%dG' \
+                           $(( cur_row++ )) \
+                           "$left_start"    \
+                           "$plotlen"       \
+                           "$left"
+
+                    pwb limit_print "$maxlen" "$line"
+
+                done
+
+                # Erase extra lines, if necessary
+                while (( cur_row < limit_row )); do
+                    # erase plotting area for each empty line:
+                    printf $'\e[%d;%dH\e[%dX' \
+                           $(( cur_row++ )) \
+                           "$left_start"    \
+                           "$plotlen"
+                done
             fi
 
-            for line in "${ppa_lines[@]:0:$line_count}"; do
-                curlen="${len_array[$(( index++ ))]}"
-                (( curlen = ( curlen > maxlen ? maxlen : curlen ) ))
-                case "$justified" in
-                    c) (( left = static_center - (curlen / 2) )) ;;
-                    r) (( left = static_left + maxlen - curlen )) ;;
-                esac
-
-                # erase plotting area, position cursor for text
-                printf $'\e[%d;%dH\e[%dX\e[%dG' \
-                       $(( cur_row++ )) \
-                       "$left_start"    \
-                       "$plotlen"       \
-                       "$left"
-
-                pwb limit_print "$maxlen" "$line"
-            done
-
-            # Erase extra lines, if necessary
-            while (( cur_row < limit_row )); do
-                # erase plotting area for each empty line:
-                printf $'\e[%d;%dH\e[%dX' \
-                       $(( cur_row++ )) \
-                       "$left_start"    \
-                       "$plotlen"
-            done
         fi
     fi
 }
