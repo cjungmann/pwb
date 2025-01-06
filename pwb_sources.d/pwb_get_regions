@@ -1,0 +1,114 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+## BEGIN_DOC
+## Calculates four values (top, left, width, height) for each of the five
+## regions (content, top-margin, bottom-margin, left-margin, right-margin).
+## The values can be used by pwb_print_array to safely print one of the
+## regions.
+##
+## Call this function with a declared associative array, into which the
+## dimensions will be set.
+##
+## The associative array indexes will have prefixes to indicate the
+## region:
+## CO for content, TM: top margin, BM: bottom margin, LM: left margin,
+## an RM for right margin.
+##
+## The index suffixes will be LEFT, TOP, WIDE, and LINES.
+##
+## Example:
+## pwb_print_array lines_array \
+##              -t "$RM_TOP"   \
+##              -l "$RM_LEFT"  \
+##              -w "$RM_WIDE"  \
+##              -c "$RM_LINES"
+##
+## The function returns true (0) upon success.  No extra information
+## is prepared for a failure.  Just check your parameters.
+##
+## END_DOC
+
+source <( pwb_sources \
+              pwb_read_args     \
+              pwb_exit_on_error )
+
+pwb_get_regions()
+{
+    validate_args()
+    {
+        local -i good_handle=0 good_array=0
+        if [ -n "$handle_name" ] && pwb get_data_count "$handle_name"; then
+            good_handle=1
+        fi
+        if [ -n "$assoc_array_name" ]; then
+            local pline
+            if pline=$( declare -p "$assoc_array_name" ); then
+                if [[ "$pline" =~ ^declare\ -A\ "$assoc_array_name"$ ]]; then
+                    good_array=1
+                fi
+
+            fi
+        fi
+
+        # returns error code:
+        [ "$good_handle" -ne 0 ] && [ "$good_array" -ne 0 ]
+    }
+
+    get_values()
+    {
+        local -n gv_aarray="$assoc_array_name"
+        gv_aarray=()
+
+        pwb get_dimensions "$handle_name"
+        pwb_exit_on_error
+
+        # Content region:
+        gv_aarray[CO_TOP]=$(( PWB_ASSOC[margin_top] + 1 ))
+        gv_aarray[CO_LEFT]=$(( PWB_ASSOC[margin_left] + 1 ))
+        gv_aarray[CO_WIDE]=$(( PWB_ASSOC[screen_cols] \
+                                        - PWB_ASSOC[margin_left] \
+                                        - PWB_ASSOC[margin_right] ))
+        gv_aarray[CO_LINES]=$(( PWB_ASSOC[screen_lines] \
+                                         - PWB_ASSOC[margin_top] \
+                                         - PWB_ASSOC[margin_bottom] ))
+        # Top Margin region:
+        gv_aarray[TM_LEFT]="${gv_aarray[CO_LEFT]}"
+        gv_aarray[TM_WIDE]="${gv_aarray[CO_WIDE]}"
+        gv_aarray[TM_TOP]="1"
+        gv_aarray[TM_LINES]="${PWB_ASSOC[margin_top]}"
+
+        # Bottom Margin region
+        gv_aarray[BM_LEFT]="${gv_aarray[CO_LEFT]}"
+        gv_aarray[BM_WIDE]="${gv_aarray[CO_WIDE]}"
+        gv_aarray[BM_TOP]=$(( PWB_ASSOC[screen_lines] - PWB_ASSOC[margin_bottom] + 1 ))
+        gv_aarray[BM_LINES]="${PWB_ASSOC[margin_bottom]}"
+
+        # Left Margin region:
+        gv_aarray[LM_TOP]="${gv_aarray[CO_TOP]}"
+        gv_aarray[LM_LINES]="${gv_aarray[CO_LINES]}"
+        gv_aarray[LM_LEFT]=1
+        gv_aarray[LM_WIDE]="${PWB_ASSOC[margin_left]}"
+
+        # Right Margin region:
+        gv_aarray[RM_TOP]="${gv_aarray[CO_TOP]}"
+        gv_aarray[RM_LINES]="${gv_aarray[CO_LINES]}"
+        gv_aarray[RM_LEFT]=$(( PWB_ASSOC[screen_cols] - PWB_ASSOC[margin_right] + 1 ))
+        gv_aarray[RM_WIDE]=$(( PWB_ASSOC[margin_right] ))
+    }
+
+    local handle_name assoc_array_name
+
+    local -a cmd_args=( "$@" )
+    local -a name_array=( assoc_array_name handle_name )
+
+    if pwb_read_args cmd_args name_array ""; then
+        if validate_args; then
+            get_values
+            return 0
+        fi
+    fi
+
+    return 1
+}
