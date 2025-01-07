@@ -25,6 +25,10 @@
 ##              -w "$RM_WIDE"  \
 ##              -c "$RM_LINES"
 ##
+## In addition to region dimensions, the associative array includes
+## elemnts with indexes SC_WIDE and SC_LINES for screen width and
+## screen height.
+##
 ## The function returns true (0) upon success.  No extra information
 ## is prepared for a failure.  Just check your parameters.
 ##
@@ -63,6 +67,10 @@ pwb_get_regions()
 
         pwb get_dimensions "$handle_name"
         pwb_exit_on_error
+
+        # Screen dimensions
+        gv_array[SC_LINES]="${PWB_ASSOC[screen_lines]}"
+        gv_array[SC_WIDE]="${PWB_ASSOC[screen_cols]}"
 
         # Content region:
         gv_aarray[CO_TOP]=$(( PWB_ASSOC[margin_top] + 1 ))
