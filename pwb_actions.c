@@ -334,6 +334,18 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
    AE_MAP map = INIT_MAP(items);
    if (argeater_process(args, &map))
    {
+      // Validate a few parameters
+      if ( data_count < 0 )
+      {
+         (*error_sink)("PWB action 'declare' requires a non-negative data count value.");
+         goto early_exit;
+      }
+      if ( print_func == NULL || handle_name == NULL || data_source == NULL )
+      {
+         (*error_sink)("PWB action 'declare' requires a handle, a data_source, and a print function.");
+         goto early_exit;
+      }
+
       int handle_size = pwb_calc_handle_size(data_source,
                                              print_func,
                                              handle_name,
@@ -394,6 +406,7 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
          (*error_sink)("Out of memory for creating a new PWB handle.");
    }
 
+     early_exit:
    return result;
 }
 
