@@ -69,8 +69,8 @@ pwb_get_regions()
         pwb_exit_on_error
 
         # Screen dimensions
-        gv_array[SC_LINES]="${PWB_ASSOC[screen_lines]}"
-        gv_array[SC_WIDE]="${PWB_ASSOC[screen_cols]}"
+        gv_aarray[SC_LINES]="${PWB_ASSOC[screen_lines]}"
+        gv_aarray[SC_WIDE]="${PWB_ASSOC[screen_cols]}"
 
         # Content region:
         gv_aarray[CO_TOP]=$(( PWB_ASSOC[margin_top] + 1 ))
