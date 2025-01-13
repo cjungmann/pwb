@@ -129,8 +129,7 @@ pwb_print_array()
                 (( maxlen = ( plotlen < maxlen ? plotlen : maxlen ) ))
 
                 # Reference point for left- and right-justified output:
-                local -i static_left=$(( left_start + ((plotlen - maxlen) / 2) ))
-                (( static_left = ( static_left < left_start ? left_start : static_left ) ))
+                local -i static_left=$(( left_start + ( plotlen - maxlen ) / 2 ))
                 local -i static_center=$(( ( plotlen / 2 ) + left_start ))
 
                 local -n ppa_lines="$array_name"
