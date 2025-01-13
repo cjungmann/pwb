@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+enable pwb
+enable ate
+
+source pwb_display_ate_table
+
+# Access info from which to fill other columns
+enable stat
+enable finfo
+
+fill_table()
+{
+    local table_name="$1"
+    local path="$2"
+
+    local -a files=( "${path}/"* )
+    local -a owners=( $( finfo -U "${files[@]}" ) )
+
+    ate get_array_name "$table_name"
+    local -n ft_array="$ATE_VALUE"
+    local fowner
+
+    local -i index=0
+    for file in "${files[@]}"; do
+        stat "$file"
+        owner="${owners[$(( index++ ))]}"
+        ft_array+=( "$file" "${STAT[type]}" "$owner" "${STAT[perms]}" )
+    done
+
+    ate index_rows "$table_name"
+}
+
+
+exit_trap() { pwb restore; }
+
+
+
+###########################
+###   BEGIN EXECUTION   ###
+###########################
+
+if [ "$#" -gt 0 ]; then
+    path="$1"
+else
+    path=.
+fi
+
+declare ATABLE
+ate declare ATABLE 4
+
+fill_table ATABLE $path
+
+
+# Use trap to exit to ensure proper cleanup
+trap exit_trap EXIT SIGABRT SIGINT
+
+pwb init
+pwb_display_ate_table ATABLE
+pwb_exit_on_error
+
