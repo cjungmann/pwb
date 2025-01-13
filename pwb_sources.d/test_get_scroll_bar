@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+enable pwb
+
+source pwb_get_scroll_bar
+
+declare keyp
+declare -i sum=1000
+declare -i visible=10
+declare -i top=0
+declare -i count=25
+
+declare max_top=$(( sum - visible ))
+
+declare -a barray
+
+declare OIFS="$IFS"
+declare IFS=""
+
+# erase screen
+printf $'\e[2J'
+
+while [[ "$keyp" != 'q' ]]; do
+    pwb_get_scroll_bar \
+        barray        \
+        -s "$sum"     \
+        -v "$visible" \
+        -t "$top"     \
+        -c "$count"
+
+    pwb get_keystroke -v keyp
+    case "$keyp" in
+        $'\eOB' )           # down one
+            (( ++top )) ;;
+        $'\eOA' )           # up one
+            (( --top )) ;;
+        $'\e[6~')           # down page
+            (( top += visible )) ;;
+        $'\e[5~')           # up page
+            (( top -= visible )) ;;
+        $'\e[OF')           # end
+            (( top = max_top )) ;;
+        $'\e[OH')           # top
+            (( top = 0 )) ;;
+    esac
+
+    # Constrain out-of-range
+    (( top = top < 0 ? 0 : top ))
+    (( top = top > max_top ? max_top : top ))
+
+    printf $'\e[1;1H%3d out of %d items' "$top" "$sum"
+    printf $'\e[2;1H'
+    echo "${barray[*]}"
+    for block in "${barray[@]}"; do
+        echo "$block"
+    done
+done
+
+
+

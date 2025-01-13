@@ -1,0 +1,50 @@
+# -*- mode:shell-script; sh-shell:bash -*-
+# shellcheck shell=bash
+
+## BEGIN_DOC
+## Returns an array of characters which, when strung together,
+## will produce a scroll bar.  Using an array enables using
+## the contents either horizontally or vertically.
+## END_DOC
+
+declare PGSB_block="█"
+declare PGSB_range="░"
+source <( pwb_sources pwb_read_args pwb_bogus )
+
+pwb_get_scroll_bar()
+{
+   local array_name
+   local -i sum_rows=0 visible_rows=0 top_row=0 total_chars=0
+
+   declare -a cmd_args=( "$@" )
+   declare -a name_args=( array_name )
+   declare -a opts_list=(
+       s+ sum_rows
+       v+ visible_rows
+       t+ top_row
+       c+ total_chars
+   )
+
+   if pwb_read_args cmd_args name_args opts_list; then
+       local -i handle_width=$(( total_chars * visible_rows / sum_rows ))
+       # handle must be at least 1 char
+       (( handle_width = ( handle_width < 1 ? 1 : handle_width ) ))
+
+       local -i progress_range=$(( total_chars - handle_width ))
+       local -i chars_before=$(( top_row * progress_range / ( sum_rows - visible_rows ) ))
+       local -i chars_after=$(( progress_range - chars_before ))
+
+       local -n pgsb_array="$array_name"
+       pgsb_array=()
+
+       for (( i=0; i<chars_before; ++i )); do
+           pgsb_array+=( "$PGSB_range" )
+       done
+       for (( i=0; i<handle_width; ++i )); do
+           pgsb_array+=( "$PGSB_block" )
+       done
+       for (( i=0; i<chars_after; ++i )); do
+           pgsb_array+=( "$PGSB_range" )
+       done
+   fi
+}
