@@ -5,6 +5,8 @@
 ## Implementation of printf that limits output to a given
 ## number of _visible_ characters, ignoring the characters
 ## in CSI color directions when counting characters.
+##
+## This function uses `pwb` action 'limit_print'.
 ## END_DOC
 
 source <( pwb_sources pwb_read_args pwb_noop )
