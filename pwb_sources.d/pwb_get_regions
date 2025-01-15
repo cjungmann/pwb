@@ -19,11 +19,13 @@
 ## The index suffixes will be LEFT, TOP, WIDE, and LINES.
 ##
 ## Example:
-## pwb_print_array lines_array \
-##              -t "$RM_TOP"   \
-##              -l "$RM_LEFT"  \
-##              -w "$RM_WIDE"  \
-##              -c "$RM_LINES"
+##     declare -A MAA
+##     pwb_get_regions MAA pwb_handle
+##     pwb_print_array lines_array \
+##                  -t "${MAA[RM_TOP]}"   \
+##                  -l "${MAA[RM_LEFT]}"  \
+##                  -w "${MAA[RM_WIDE]}"  \
+##                  -c "${MAA[RM_LINES]}"
 ##
 ## In addition to region dimensions, the associative array includes
 ## elemnts with indexes SC_WIDE and SC_LINES for screen width and
