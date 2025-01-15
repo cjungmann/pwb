@@ -384,11 +384,9 @@ PWB_RESULT pwb_make_kdata_shell_var(const char *name,
                KDATA *data = get_kdata_from_array(els, els_count, label, xmalloc, xfree);
                if (data)
                {
-                  SHELL_VAR *sv_keymap = NULL;
-                  if (variable_context == 0)
+                  SHELL_VAR *sv_keymap = find_variable(name);
+                  if (!sv_keymap)
                      sv_keymap = bind_variable(name, "", 0);
-                  else
-                     sv_keymap = make_local_variable(name, 0);
 
                   if (sv_keymap)
                   {
