@@ -27,5 +27,5 @@ pwb_printf_limited()
     local -a args=( "${@:3}" )
     # shellcheck disable=SC2059
     printf -v ppll_temp "$format" "${args[@]}"
-    pwb limit_print "$char_limit" "$ppl_ttemp"
+    pwb limit_print "$char_limit" "$ppll_temp"
 }
