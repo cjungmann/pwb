@@ -29,9 +29,6 @@ MODULES = $(addsuffix .o,$(basename $(wildcard $(SRC)/*.c)))
 
 HEADERS = $(wildcard $(SRC)/*.h)
 
-UTILITIES = $(filter $(basename $(wildcard *)),$(wildcard pwb_*))
-
-
 # Declare non-filename targets
 .PHONY: all install uninstall clean help
 
@@ -71,24 +68,14 @@ install: $(ENABLER)
 	chmod a+x $(PREFIX)/bin/$(SOURCER)
 	install -D $(BUILTIN)_sources.d/pwb_* -t$(PREFIX)/lib/$(BUILTIN)_sources
 
-install_utilities:
-	@echo "UTILITIES are " $(UTILITIES)
-	install -D --mode=775 $(UTILITIES) $(PREFIX)/bin
-
-uninstall_utilities:
-	rm -f $(PREFIX)/bin/$(UTILITIES)
-
 uninstall:
 	rm -f $(PREFIX)/bin/$(ENABLER)
 	rm -f $(PREFIX)/lib/bash/$(TARGET)
-	rm -f $(PREFIX)/bin/$(UTILITIES)
 	rm -f $(PREFIX)/share/man/man1/$(TARGET_ROOT).1.gz
 	rm -f $(PREFIX)/share/man/man7/$(TARGET_ROOT).7.gz
 # uninstall SOURCER stuff:
 	rm -rf $(PREFIX)/lib/$(BUILTIN)_sources
 	rm -f $(PREFIX)/bin/$(SOURCER)
-# Utilities won't work if builtin is uninstalled:
-	rm -f $(PREFIX)/bin/$(UTILITIES)
 	rm -f $(ENABLER)
 
 clean:
