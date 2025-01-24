@@ -20,7 +20,7 @@ declare PSM_CHAR_UR=$'\u2510'
 declare PSM_CHAR_LL=$'\u2514'
 declare PSM_CHAR_LR=$'\u2518'
 
-pwb_show_message()
+pwb_print_message()
 {
     local lines_name dims_name
 
