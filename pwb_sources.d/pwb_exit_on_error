@@ -7,17 +7,21 @@
 ## error.
 ## END_DOC
 
+source <( pwb_sources pwb_print_message pwb_noop )
+
 pwb_exit_on_error()
 {
     # Must be first line to capture previous statements exit value
     local -i exval="$?"
 
     if [ "$exval" -ne 0 ]; then
-        printf $'pwb error at line %d of script %s:\n' \
+        declare -a peoe_lines
+        printf -v peoe_lines[0] $'pwb error at line %d of script %s:\n' \
                $(( "${BASH_LINENO[0]}" - 1 )) \
                "${BASH_SOURCE[1]}" >&2
-        printf -v errmsg $'   \e[31;1m%s\e[m\n' "$PWB_ERROR" >&2
-        read -n1 -p "$errmsg"
+        printf -v peoe_lines[1] $'   \e[31;1m%s\e[m\n' "$PWB_ERROR" >&2
+        pwb_print_message peoe_lines
+        read -n1
         exit 1
     fi
 }
