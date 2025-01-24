@@ -11,7 +11,7 @@ enable pwb
 #
 source pwb_read_args
 source pwb_exit_on_error
-source pwb_show_message
+source pwb_print_message
 source pwb_erase_dims
 source pwb_get_regions
 source pwb_print_array
@@ -33,7 +33,7 @@ show_help()
     )
 
     declare -a dims
-    pwb_show_message help_lines -a dims
+    pwb_print_message help_lines -a dims
     read -sn1
 
     # Good practice to explicitely erase the message area in case
@@ -65,7 +65,7 @@ message_dimensions()
     )
 
     local -a dims
-    pwb_show_message -a dims msg_array
+    pwb_print_message -a dims msg_array
     read -sn1
     pwb_erase_dims dims
     pwb print_all PHANDLE
