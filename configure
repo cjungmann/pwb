@@ -17,6 +17,7 @@ declare -a HEADERS_REQUIRED=(
     builtins.h  bash-builtins
 )
 declare -a APPS_REQUIRED=(
+    gcc      build-essential
     soelim   man-db
 )
 
