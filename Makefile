@@ -58,7 +58,7 @@ install:
 	rm -f $(PREFIX)/bin/$(SOURCER)
 	sed -e s^#PREFIX#^$(PREFIX)^ -e s^#BUILTIN#^$(BUILTIN)^ $(SOURCER) > $(PREFIX)/bin/$(SOURCER)
 	chmod a+x $(PREFIX)/bin/$(SOURCER)
-	install -D $(BUILTIN)_sources.d/pwb_* -t$(PREFIX)/lib/$(BUILTIN)_sources
+	install -D $(BUILTIN)_sources.d/$(BUILTIN)_* -t$(PREFIX)/lib/$(BUILTIN)_sources
 
 uninstall:
 	rm -f $(PREFIX)/lib/bash/$(TARGET)
