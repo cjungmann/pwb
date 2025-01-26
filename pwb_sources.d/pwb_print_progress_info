@@ -15,7 +15,7 @@ declare PPPI_range="░"
 
 pwb_print_progress_info()
 {
-    if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
+    if [ -n "$READ_ARGS_SHOW_USAGE" ]; then
         echo "Consult pwb man page for description of \"PRINTER CALLBACK FUNCTION\""
         return 0
     fi

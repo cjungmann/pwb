@@ -15,7 +15,7 @@ source <( pwb_sources pwb_read_args pwb_noop )
 pwb_printf_limited()
 {
     # Contrived pwb_read_args call for usage message generation
-    if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
+    if [ -n "$READ_ARGS_SHOW_USAGE" ]; then
         source $( pwb_sources pwb_read_args )
         local -a usage_names=( char_limit format "args..." )
         pwb_read_args "" usage_names ""

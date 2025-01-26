@@ -2,6 +2,11 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2317
 
+## BEGIN_DOC
+## Argument-management function that parses command line arguments,
+## assigning values, and self-documents for usage display.
+## 
+## END_DOC
 #> pwb_read_args args_array_name [var_names_array_name] [opts_list_name]
 #> see test_read_args script for examples
 
@@ -209,7 +214,7 @@ pwb_read_args()
     local opts_list_array="${3:-empty_array}"
 
     # Show usage and return if environment var is set:
-    if [ -n "$PWB_READ_ARGS_SHOW_USAGE" ]; then
+    if [ -n "$READ_ARGS_SHOW_USAGE" ]; then
         local funcname="${FUNCNAME[@]: -2:1}"
 
         # Using FUNCNAME[0]} to protect against renaming this script:
