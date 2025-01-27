@@ -6,7 +6,7 @@ declare GITHUB_BASE="https://github.com/cjungmann/lib"
 ### CUSTOMIZED TO PROJECT ###
 #############################
 
-# My libraries, cloned and built below if not installed
+# github.com/cjungmann libraries, cloned and built below if not installed
 declare -a LIBS_NEEDED=( argeater pager contools )
 
 # System resource prerequisites:
@@ -24,15 +24,6 @@ declare -a APPS_REQUIRED=(
 #############################
 ### END OF PROJECT CUSTOM ###
 #############################
-
-# Array to track missing prerequisites for final message
-declare -a PACKAGES_REQUIRED=()
-
-# Arrays to track Makefile updates:
-declare -a LIB_DIRS_ARRAY=()
-declare -a LIB_FLAGS_ARRAY=()
-declare -a LIB_MODULES_ARRAY=()
-declare -a INCFLAGS_ARRAY=()
 
 app_test()
 {
@@ -176,8 +167,17 @@ setup_libraries()
     done
 }
 
+############################
+###   EXECUTION BEGINS   ###
+############################
+
+# GLobal variable to host collection of missing libraries,
+# populated by function 'confirm_reqrequisites', immediately
+# following:
+declare -a PACKAGES_REQUIRED=()
 # This will identify/warn about missing libraries, with advice
 # on which package will remedy the omission:
+# Array to track missing prerequisites for final message
 if ! confirm_prerequisites; then
     echo "Use your package manager to install the following packages:"
     echo "${PACKAGES_REQUIRED[*]}"
@@ -186,12 +186,16 @@ if ! confirm_prerequisites; then
     exit
 fi
 
-
 # This checks only for my libraries, cloning and installing as
 # as static library under this project if the library is not
 # installed globally:
 setup_libraries
 
+# Arrays to track Makefile updates:
+declare -a LIB_DIRS_ARRAY=()
+declare -a LIB_FLAGS_ARRAY=()
+declare -a LIB_MODULES_ARRAY=()
+declare -a INCFLAGS_ARRAY=()
 
 declare flags_str="s|LIB_FLAGS =.*|LIB_FLAGS = ${LIB_FLAGS_ARRAY[*]}|"
 declare mods_str="s|LIB_MODULES =.*|LIB_MODULES = ${LIB_MODULES_ARRAY[*]}|"
@@ -199,10 +203,6 @@ declare incflags_str="s|INCFLAGS =.*|INCFLAGS = ${INCFLAGS_ARRAY[*]}|"
 flags_str="${flags_str// /\\ }"
 mods_str="${mods_str// /\\ }"
 incflags_str="${incflags_str// /\\ }"
-
-printf $'flags_str with be \e[32;1m%s\e[m\n' "$flags_str"
-printf $'mods_str with be \e[32;1m%s\e[m\n' "$mods_str"
-printf $'incflags_str with be \e[32;1m%s\e[m\n' "$incflags_str"
 
 declare -a SED_LIB_ARGS=(
     -e "${flags_str}"
