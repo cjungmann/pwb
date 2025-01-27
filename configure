@@ -92,22 +92,20 @@ confirm_prerequisites()
 
     local -i error_count=0
     confirm_prereq "LIBS_REQUIRED" "lib_test" "library"
-    (( error_count += $? ))
+    (( TOTAL_ERRORS += $? ))
     confirm_prereq "APPS_REQUIRED" "app_test" "app"
-    (( error_count += $? ))
+    (( TOTAL_ERRORS += $? ))
     confirm_prereq "HEADERS_REQUIRED" "header_test" "header"
-    (( error_count += $? ))
+    (( TOTAL_ERRORS += $? ))
 
-    if [ "$error_count" -gt 0 ]; then
+    if [ "$TOTAL_ERRORS" -gt 0 ]; then
+        echo
         echo "Use your package manager to install the following packages:"
         echo "   ${PACKAGES_REQUIRED[*]}"
         echo ""
         echo "Hint: copy the list to paste into your install command."
-
-        return 1
+        echo
     fi
-
-    return 0
 }
 
 ########################################################
@@ -138,7 +136,7 @@ install_and_build_library()
 shared_library_installed()
 {
     local libname="lib${1}.so"
-    /usr/sbin/ldconfig -p | grep [[:space:]]"$libname"[[:space:]]
+    /usr/sbin/ldconfig -p | grep [[:space:]]"$libname"[[:space:]] 2>&1 >/dev/null
 }
 
 add_if_static_library_available()
@@ -164,10 +162,8 @@ confirm_library()
 {
     local libname="$1"
     if shared_library_installed "$libname"; then
-        echo "Found shared library '$1'"
         LIB_FLAGS_ARRAY+=( "-l$libname" )
     elif ! add_if_static_library_available "$libname"; then
-        echo "failed to find static library, so we're gonna add it"
         install_and_build_library "$libname"
     fi
 }
@@ -199,9 +195,9 @@ setup_cjungmann_libs()
     scl_SED_ARGS+=( -e "$incflags_str" )
 }
 
-check_for_prefix()
+update_makefile_prefix()
 {
-    local -n cfp_SED_ARGS="$1"
+    local -n ump_SED_ARGS="$1"
     shift
     local option value prefix="/usr/local"
     for arg in "$@"; do
@@ -213,10 +209,9 @@ check_for_prefix()
                 if [ -d "$value" ]; then
                     prefix="$value"
                 else
-                    echo
+                    (( ++TOTAL_ERRORS ))
                     printf $'Prefix directory \e[31;1m%s\e[39;22m does not exist.\n' "$value"
-                    echo "Please correct your spelling or create the directory."
-                    echo
+                    return 1
                 fi
             fi
 
@@ -229,34 +224,40 @@ check_for_prefix()
 
     local sedscr="s|PREFIX +\\?= +.*|PREFIX ?= $prefix|g"
     sedscr="s|^PREFIX\ ?= .*$|PREFIX ?= $prefix|g"
-    echo "sedscr ='$sedscr'"
-    cfp_SED_ARGS+=( -e "$sedscr" )
+    ump_SED_ARGS+=( -e "$sedscr" )
 }
 
 ############################
 ###   EXECUTION BEGINS   ###
 ############################
 
-# This will identify/warn about missing libraries, with advice
-# on which package will remedy the omission:
-if ! confirm_prerequisites; then
-    exit
-fi
+# Global variable for tracking total errors during calls to
+# 'confirm_prerequisites' and 'update_makefile_prefix'.
+# Makefile updates will not be performed unless TOTAL_ERRORS == 0"
+declare -i TOTAL_ERRORS=0
 
 # Global array variable that will be used as arguments to a
 # 'sed' call for updating the Makefile with appropriate values.
-#
 # It will be set by 'setup_cjungmann_libs' for Makefile updates
 # dictated by the global array CJUNGMANN_LIBS_NEEDED
 declare -a MAKEFILE_SED_ARGS=()
+
+# This will identify/warn about missing libraries, with advice
+# on which package will remedy the omission:
+confirm_prerequisites
+
+
+# Check for --prefix option, adding a sed script to update the
+# Makefile PREFIX variable if specified
+update_makefile_prefix MAKEFILE_SED_ARGS "$@"
 
 # This checks only for github.com/cjungmann libraries, cloning and
 # installing as static libraries under this project if the library
 # is not installed globally:
 setup_cjungmann_libs MAKEFILE_SED_ARGS
 
-# Check for --prefix option, adding a sed script to update the
-# Makefile PREFIX variable if specified
-check_for_prefix MAKEFILE_SED_ARGS "$@"
-
-sed -i "${MAKEFILE_SED_ARGS[@]}" Makefile
+if [ "$TOTAL_ERRORS" -eq 0 ]; then
+    sed -i "${MAKEFILE_SED_ARGS[@]}" Makefile
+else
+    echo "Please correct the errors and rerun ./configure."
+fi
