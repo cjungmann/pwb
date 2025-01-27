@@ -199,6 +199,40 @@ setup_cjungmann_libs()
     scl_SED_ARGS+=( -e "$incflags_str" )
 }
 
+check_for_prefix()
+{
+    local -n cfp_SED_ARGS="$1"
+    shift
+    local option value prefix="/usr/local"
+    for arg in "$@"; do
+        if [ -z "$option" ] && [[ "${arg:0:2}" == "--" ]]; then
+            option="${arg:2}"
+        else
+            value="$arg"
+            if [[ "$option" == "prefix" ]]; then
+                if [ -d "$value" ]; then
+                    prefix="$value"
+                else
+                    echo
+                    printf $'Prefix directory \e[31;1m%s\e[39;22m does not exist.\n' "$value"
+                    echo "Please correct your spelling or create the directory."
+                    echo
+                fi
+            fi
+
+            # Ignoring, for now, additional arguments or unrecognized options
+
+            option=
+            value=
+        fi
+    done
+
+    local sedscr="s|PREFIX +\\?= +.*|PREFIX ?= $prefix|g"
+    sedscr="s|^PREFIX\ ?= .*$|PREFIX ?= $prefix|g"
+    echo "sedscr ='$sedscr'"
+    cfp_SED_ARGS+=( -e "$sedscr" )
+}
+
 ############################
 ###   EXECUTION BEGINS   ###
 ############################
@@ -220,5 +254,9 @@ declare -a MAKEFILE_SED_ARGS=()
 # installing as static libraries under this project if the library
 # is not installed globally:
 setup_cjungmann_libs MAKEFILE_SED_ARGS
+
+# Check for --prefix option, adding a sed script to update the
+# Makefile PREFIX variable if specified
+check_for_prefix MAKEFILE_SED_ARGS "$@"
 
 sed -i "${MAKEFILE_SED_ARGS[@]}" Makefile
