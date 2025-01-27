@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 declare PREFIX=#PREFIX#
 
+declare APP_PREFIX="${0##*/}"
+APP_PREFIX="${APP_PREFIX:0:3}"
+if [[ "$APP_PREFIX" != "pwb" ]] && [[ "$APP_PREFIX" != "ate" ]]; then
+    echo "APP_PREFIX '$APP_PREFIX' breaks nameing convention necessary for success." >&2
+    exit 1
+fi
+
 declare ATE_PATH="${PREFIX}/lib/ate_sources"
 declare PWB_PATH="${PREFIX}/lib/pwb_sources"
 
@@ -9,7 +16,7 @@ function_loaded() { [[ $( type -f "$1" 2>/dev/null ) == "function" ]]; }
 
 list_sources()
 {
-    local -a sources=( "${PWB_PATH}/"* )
+    local -a sources=( "${PREFIX}/lib/${APP_PREFIX}_sources/"* )
     local OIFS="$IFS"
     local IFS='/'
     for func in "${sources[@]}"; do
