@@ -9,7 +9,7 @@ PREFIX ?= /usr/local
 SRC = .
 
 # These will be set by ./configure
-LIB_FLAGS = -largeater -lpager -lcontools
+LIB_FLAGS =
 LIB_MODULES =
 
 CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb
