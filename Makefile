@@ -10,12 +10,12 @@ SRC = .
 
 # These will be set by ./configure
 LIB_FLAGS = -largeater -lpager -lcontools
-LIB_MODULES = 
+LIB_MODULES =
 
 CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb
 LFLAGS =
 LDFLAGS = -lm $(LIB_FLAGS)
-INCFLAGS = 
+INCFLAGS =
 
 # Uncomment the following if target is a Shared library
 CFLAGS += -fPIC
