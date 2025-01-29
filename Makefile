@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 TARGET_ROOT = pwb
 TARGET = $(TARGET_ROOT)
 BUILTIN = $(TARGET_ROOT)
@@ -27,6 +29,9 @@ CFLAGS += -I/usr/include/bash -I/usr/include/bash/include $(INCFLAGS)
 MODULES = $(addsuffix .o,$(basename $(wildcard $(SRC)/*.c)))
 
 HEADERS = $(wildcard $(SRC)/*.h)
+
+APATH=$(PREFIX)/bin/ate_sources
+PPATH=$(PREFIX)/bin/pwb_sources
 
 # Declare non-filename targets
 .PHONY: all install uninstall clean help
@@ -58,6 +63,10 @@ install:
 	rm -f $(PREFIX)/bin/$(SOURCER)
 	sed -e s^#PREFIX#^$(PREFIX)^ -e s^#BUILTIN#^$(BUILTIN)^ $(SOURCER) > $(PREFIX)/bin/$(SOURCER)
 	chmod a+x $(PREFIX)/bin/$(SOURCER)
+# If 'ate' installed, Change link so pwb_sources is used for ate_sources
+	if [ -f $(PREFIX)/bin/ate_sources ]; then \
+	   cp -fs $(PREFIX)/bin/$(SOURCER) $(PREFIX)/bin/ate_sources; \
+	fi
 	install -D $(BUILTIN)_sources.d/$(BUILTIN)_* -t$(PREFIX)/lib/$(BUILTIN)_sources
 
 uninstall:
@@ -67,6 +76,10 @@ uninstall:
 # uninstall SOURCER stuff:
 	rm -rf $(PREFIX)/lib/$(BUILTIN)_sources
 	rm -f $(PREFIX)/bin/$(SOURCER)
+# If ate still installed, update link to point to original ate_sources_impl
+	if [ -f $(PREFIX)/bin/ate_sources_impl ]; then \
+		cp -fs $(PREFIX)/bin/ate_sources_impl $(PREFIX)/bin/ate_sources; \
+	fi
 
 clean:
 	rm -f $(TARGET)
