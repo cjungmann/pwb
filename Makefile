@@ -1,5 +1,3 @@
-SHELL := /bin/bash
-
 TARGET_ROOT = pwb
 TARGET = $(TARGET_ROOT)
 BUILTIN = $(TARGET_ROOT)
@@ -64,7 +62,8 @@ install:
 	sed -e s^#PREFIX#^$(PREFIX)^ -e s^#BUILTIN#^$(BUILTIN)^ $(SOURCER) > $(PREFIX)/bin/$(SOURCER)
 	chmod a+x $(PREFIX)/bin/$(SOURCER)
 # If 'ate' installed, Change link so pwb_sources is used for ate_sources
-	if [ -f $(PREFIX)/bin/ate_sources ]; then \
+	@if [ -f $(PREFIX)/bin/ate_sources ]; then \
+	   echo "Replacing ate_sources link with line to pwb_sources."; \
 	   cp -fs $(PREFIX)/bin/$(SOURCER) $(PREFIX)/bin/ate_sources; \
 	fi
 	install -D $(BUILTIN)_sources.d/$(BUILTIN)_* -t$(PREFIX)/lib/$(BUILTIN)_sources
@@ -77,7 +76,8 @@ uninstall:
 	rm -rf $(PREFIX)/lib/$(BUILTIN)_sources
 	rm -f $(PREFIX)/bin/$(SOURCER)
 # If ate still installed, update link to point to original ate_sources_impl
-	if [ -f $(PREFIX)/bin/ate_sources_impl ]; then \
+	@if [ -f $(PREFIX)/bin/ate_sources_impl ]; then \
+	   echo "Restoring orignal link to ate_sources."; \
 		cp -fs $(PREFIX)/bin/ate_sources_impl $(PREFIX)/bin/ate_sources; \
 	fi
 
