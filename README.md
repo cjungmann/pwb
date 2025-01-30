@@ -92,7 +92,7 @@ it there yet).
 pwb [action_name] [handle_name] [options]
 ```
 
-## Example
+### Example
 
 This example can be found in [PWB samples][pwb_samples], file
 *pwb_example_01_readme*, which is part of a series of examples
