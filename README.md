@@ -2,10 +2,6 @@
 
 ## OVERVIEW
 
-`pwb` is a pager with benefits.  When integrated into a Bash script,
-it enables the presentation and interaction with items in an arbitrarily
-large collection.
-
 `pwb` is a pager with benefits.  It manages the display of collections
 of items, whether they are lines of text, files in a directory,
 commits in a repository, or something else.  The tool provides a
@@ -20,8 +16,8 @@ that trigger actions on a selected item.
 ## FEATURES
 
 - **Bash builtin**
-  Bash builtins can avoid the performance penalty of starting new
-  processes, and initiate script responses through callbacks to
+  Bash builtins can avoid the performance penalty of starting child
+  processes, and can initiate script responses through callbacks to
   script functions.
 
 - **Flexible**
