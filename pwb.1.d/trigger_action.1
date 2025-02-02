@@ -1,0 +1,35 @@
+.so fork.tmac
+.SS TRIGGER ACTION
+.PP
+The
+.B trigger
+action prompts
+.B pwb
+to react as if a navigation, exec, or exit event was called for
+by a user's keypress.
+.PP
+.pt_trigger
+.RS
+.TP
+.I handle
+Name of the currently active
+.B pwb
+handle.
+.TP
+.I key_action
+An integer value from 0 through 7, corresponding to the action
+to be triggered.
+Refer to
+.B KEYMAP
+section below for the
+.I key_action
+values.
+.TP
+.I keypress
+This is an optional value that will only be used for the
+.I key_action
+value of 7.
+In that case, the exec function will be triggered, and the
+.I keypress
+value will be passed to the exec function as the first argument
+(\(Do1).
