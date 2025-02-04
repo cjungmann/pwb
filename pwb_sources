@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 declare PREFIX=#PREFIX#
 
+# Get app prefix from first three characters of the called function,
+# accommodating either 'pwb_sources' or 'ate_sources':
 declare APP_PREFIX="${0##*/}"
 APP_PREFIX="${APP_PREFIX:0:3}"
+
 if [[ "$APP_PREFIX" != "pwb" ]] && [[ "$APP_PREFIX" != "ate" ]]; then
     echo "APP_PREFIX '$APP_PREFIX' breaks nameing convention necessary for success." >&2
     exit 1
@@ -85,7 +88,7 @@ show_func_doc()
 {
     local path="$1"
     local IFS=$'\n'
-    local -a lines=( $( grep ^##[[:space:]].*$ "$path" ) )
+    local -a lines=( $( grep ^##\\\([[:space:]].*\\\)\\?$ "$path" ) )
 
     local -i progress=0
     local line cline
@@ -110,7 +113,9 @@ show_func_doc()
 if [ "$#" -eq 0 ]; then
     list_sources
 elif [[ "$1" == "help" ]]; then
-    if [ "$#" -gt 2 ]; then
+    if [ "$#" -eq 1 ]; then
+        show_usage
+    else
         declare func="$2"
         declare prefix="${func%%_*}"
         declare path="${PREFIX}/lib/${prefix}_sources/$func"
@@ -123,11 +128,7 @@ elif [[ "$1" == "help" ]]; then
         else
             printf $'Unrecognized scriptlet "\e[32;1m%s\e[m"\n' "$func"
         fi
-    else
-        show_usage
     fi
-# elif [ "$#" -eq 1 ]; then
-#      return_source_name "$1"
 else
     return_sources_script "$@"
 fi
