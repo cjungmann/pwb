@@ -15,10 +15,10 @@
 ## used to refill the area.
 ##
 ## Other options
-## '-a key_array' where 'key_array' contains keys that can
-##                can terminate the dialog.
+## '-a key_array'   where 'key_array' contains keys that can
+##                  can terminate the dialog.
 ##
-## '-r keyp_return' will write the keystroke to terminated the
+## '-r keyp_return' will write the keypress that terminated the
 ##                  dialog to the variable named by the keyp_return
 ##                  argument.
 ## END_DOC
