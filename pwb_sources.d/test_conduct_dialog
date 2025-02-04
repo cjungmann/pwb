@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+print_line()
+{
+    local -i index="$1"
+    printf -v tline "%*s%-3d%*s" 25 " " "$index" 25 " "
+    printf "%s" "${tline// /-}"
+}
+
+declare -a message_stub=(
+    ""
+    "This is a nice message with several canned lines."
+    "It will be used as part of the message for each"
+    "test."
+    )
+
+test_no_limits()
+{
+    local -a loc_lines=(
+        "Testing conduct_dialog without any limits."
+        "${message_stub[@]}"
+        ""
+        "Press any key to continue."
+    )
+
+    pwb_conduct_dialog loc_lines "$1"
+}
+
+test_with_key_limit()
+{
+    local -a loc_lines=(
+        "Testing conduct_dialog with some key limits."
+        "${message_stub[@]}"
+        ""
+        "Press ESC or Ctrl-C to continue"
+        "(Other keys will be ignored)."
+    )
+
+    local pwbh="$1"
+    local -a twkl_keys_arr=(
+        $'\cc'
+        $'\e'
+    )
+
+    pwb_conduct_dialog loc_lines "$1" -a twkl_keys_arr
+}
+
+show_usage()
+{
+    local ph="$1"
+
+    local -a usage_lines=(
+        "Running conduct_dialog tests"
+        ""
+        "'1'  shows dialog and erases after any keypress"
+        "'2'  shows dialog and erases only after"
+        "     'ESC' or 'Ctrl-C'."
+        ""
+        "'q'  to quit"
+        "'?'  for this usage display"
+        ""
+        "Press any key to continue."
+        )
+
+    local -a su_dims
+    pwb_print_message -a su_dims usage_lines
+    read -sn1
+    pwb_erase_dims su_dims
+    pwb print_all "$ph"
+}
+
+exec_line()
+{
+    local keyp="$1"
+    local pwbh="$4"
+
+    case "$keyp" in
+        1) test_no_limits "$pwbh" ;;
+        2) test_with_key_limit "$pwbh" ;;
+        ?) show_usage "$pwbh" ;;
+        esac
+}
+
+###########################
+###   BEGIN EXECUTION   ###
+###########################
+
+enable pwb
+source pwb_conduct_dialog
+source pwb_exit_on_error
+
+
+declare PHANDLE
+pwb declare PHANDLE "bogus" 100 print_line -e exec_line
+pwb_exit_on_error
+
+declare -a keymap=(
+    1   7
+    2   7
+    ?   7
+)
+
+declare KEYMAP
+pwb declare_keymap KEYMAP keymap
+pwb_exit_on_error
+
+pwb init
+pwb start PHANDLE -a KEYMAP
+pwb restore

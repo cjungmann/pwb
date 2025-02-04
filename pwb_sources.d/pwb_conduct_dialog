@@ -1,0 +1,94 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+# shellcheck disable=SC2034
+
+## BEGIN_DOC
+## Executes a complete dialog interaction, from printing to
+## waiting for keypress, to clean up.
+##
+## By default, any key will terminate the dialog, the dialog
+## will be erased and no effort made to refill area behind the
+## dialog.
+##
+## If the 'pwb_handle' argument is set, pwb print_all will be
+## used to refill the area.
+##
+## Other options
+## '-a key_array' where 'key_array' contains keys that can
+##                can terminate the dialog.
+##
+## '-r keyp_return' will write the keystroke to terminated the
+##                  dialog to the variable named by the keyp_return
+##                  argument.
+## END_DOC
+
+source <( pwb_sources \
+              pwb_read_args \
+              pwb_print_message \
+              pwb_erase_dims \
+        )
+
+pwb_conduct_dialog()
+{
+    local lines_array pwb_handle keys_allowed keyp_return
+
+    local -a cmd_args=( "$@" )
+    local -a names_array=( lines_array pwb_handle )
+    local -a opts_list=(
+        r+ keyp_return
+        a+ keys_allowed
+    )
+
+    local -a emptya=()
+
+    # Parse args, retourn if calling for usage info only
+    if ! pwb_read_args cmd_args names_array opts_list; then
+        return 0
+    fi
+
+    # Default key_allowed function is to allow any key
+    unlimited_key_allowed() { return 0; }
+    local key_test=unlimited_key_allowed
+
+    # If keys array provided, replace key_allowed() with test function:
+    if [ -n "$keys_allowed" ]; then
+        local -n pcd_keys_array="$keys_allowed"
+        limited_key_allowed()
+        {
+            local keyp="$1"
+            for akey in "${pcd_keys_array[@]}"; do
+                if [[ "$akey" == "$keyp" ]]; then
+                    return 0
+                fi
+            done
+
+            return 1
+        }
+        key_test=limited_key_allowed
+    fi
+
+    local -n pcd_return="${keyp_return:-keyp_return}"
+
+    local -a pcd_dims
+    pwb_print_message -a pcd_dims "$lines_array"
+
+    while :; do
+        pwb get_keystroke -v KEYSTROKE
+        if "$key_test" "$KEYSTROKE"; then
+            if [ -n "$keyp_return" ]; then
+                local -n pcd_return="$keyp_return"
+                pcd_return="$KEYSTROKE"
+            fi
+            break
+        fi
+    done
+
+    pwb_erase_dims pcd_dims
+
+    if [ -n "$pwb_handle" ]; then
+        pwb print_all "$pwb_handle"
+    fi
+
+    return 0
+}
