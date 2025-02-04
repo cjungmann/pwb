@@ -10,7 +10,7 @@
 ## area covered by the message box.
 ## END_DOC
 
-source <( pwb_sources pwb_read_args pwb_noop )
+source <( pwb_sources pwb_read_args )
 
 
 declare PSM_CHAR_HORZ=$'\u2500'
