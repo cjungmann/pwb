@@ -16,12 +16,12 @@ pwb_exit_on_error()
 
     if [ "$exval" -ne 0 ]; then
         declare -a peoe_lines
-        printf -v peoe_lines[0] $'pwb error at line %d of script %s:\n' \
+        printf -v peoe_lines[0] $'pwb error at line %d of script %s:' \
                $(( "${BASH_LINENO[0]}" - 1 )) \
                "${BASH_SOURCE[1]}" >&2
-        printf -v peoe_lines[1] $'   \e[31;1m%s\e[m\n' "$PWB_ERROR" >&2
+        printf -v peoe_lines[1] $'   \e[31;1m%s\e[m' "$PWB_ERROR" >&2
         pwb_print_message peoe_lines
-        read -n1
+        read -sn1
         exit 1
     fi
 }
