@@ -36,8 +36,8 @@ that trigger actions on a selected item.
 - **Tutorial**
   A companion repository, [pwb_samples][pwb_samples], contains
   several useful applications developed with `pwb`, and a simple
-  tutorial that works through a series of increasingly sophisticated
-  scripts.
+  tutorial (`./pwb_tutorial`) that works through a series of
+  increasingly sophisticated scripts.
 
   Please be aware that [pwb_samples][pwb_samples] is somewhat of
   a sandbox where I am trying to develop difficult ideas.  I am
@@ -94,48 +94,43 @@ pwb [action_name] [handle_name] [options]
 
 ### Example
 
-This example can be found in [PWB samples][pwb_samples], file
-*pwb_example_01_readme*, which is part of a series of examples
-with names prefixed with *pwb_example_*.
+This example is a copy of the code section of the **introduction**
+chapter of the pwb tutorial included in [PWB samples][pwb_samples].
+It is an example of a minimal viable pwb application.
 
-1. Enable the builtin  
-   ```bash
-   enable pwb
-   ```
+~~~bash
+#!/usr/bin/env bash
 
-2. Create a line-printing function (array data source example)
-   ```bash
-   print_line()
-   {
-      local -i index="$1"
-      local data_source="$2"
-      local -i chars_limit="$3"
+# Step 1: establish data source
+declare -a DIR_FILES=( * )
 
-      local -n lp_array="$data_source"
-      local line="${lp_array[$index]}"
+# Step 2: implement line print function
+print_line()
+{
+    # retrieve data
+    local -i index="$1"
+    local -n pl_dsource="$2"
+    local line="${pl_dsource[$index]}"
 
-      printf "%-*s" "$chars_limit" "${line:0:$chars_limit}"
-   }
-   ```
+    # print data
+    local -i chars_limit="$3"
+    printf "%-*s" "$chars_limit" "${line:0:$chars_limit}"
+}
 
-3. Collect content lines
-   ```bash
-   declare -a files=( * )
-   declare -i file_count="{#files[*]}"
-   ```
+# Step 3: Enable the builtin
+enable pwb
 
-4. Declare the `pwb` handle
-   ```bash
-   declare phandle
-   pwb declare phandle files "$file_count" print_line
-   ```
+# Step 4: Prepare the pwb handle
+pwb declare PHANDLE DIR_FILES "${#DIR_FILES[*]}" print_line
 
-5. Initiate the interaction
-   ```bash
-   pwb init
-   pwb start phandle
-   pwb restore
-   ```
+# Step 5: Start the interaction
+pwb start PHANDLE
+~~~
+
+The tutorial is accessed by running the `./pwb_tutorial` script
+in the [pwb_samples][pwb_samples] project.  The tutorial will
+require [pwb][pwb_project] to be installed for the early chapters,
+the [ate][ate_project] will be required for more advanced chapters.
 
 ### Additional Installation
 
