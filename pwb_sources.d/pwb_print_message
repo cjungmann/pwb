@@ -66,19 +66,24 @@ pwb_print_message()
     # print top line
     local scratch
     printf -v scratch "%s%*s%s" "$PSM_CHAR_UL" "$maxlen" $' ' "$PSM_CHAR_UR"
+    # Convert spaces to horizontal lines
     printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
 
     # print contents
     for line in "${psm_lines[@]}"; do
         printf "%s" "$lf_position"
-        printf "${PSM_CHAR_VERT}%s" "$line"
+        printf "$PSM_CHAR_VERT"
+        pwb limit_print "$maxlen" "$line"
         printf "%s" "$right_border"
     done
-    printf "%s" "$lf_position"
 
+    # Move to bottom line
+    printf "%s" "$lf_position"
     # print bottom line
     printf -v scratch "%s%*s%s" "$PSM_CHAR_LL" "$maxlen" $' ' "$PSM_CHAR_LR"
     printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
+    # Push the cursor up and out of the way:
+    printf $'\e[1;1H'
 
     if [ -n "$dims_name" ]; then
         local -n psm_dims="$dims_name"
