@@ -126,6 +126,7 @@ PWB_RESULT initialize_kclass(KCLASS *kclass, KDATA *kdata)
 
 const char *default_keymap[] = {
    "q",       "0",  // quit
+   "\003",    "0",  // Control-C
    "\033OB",  "1",  // focus down
    "\033OA",  "2",  // focus up
    "\033[6~", "3",  // focus page down
