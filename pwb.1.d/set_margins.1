@@ -1,0 +1,73 @@
+.so fork.tmac
+.SS SET_MARGINS ACTION
+.PP
+Use the
+.B set_margins
+action to leave buffer areas around the main content area.
+.PP
+.pt_set_margins
+.PP
+The
+.B set_margins
+action must be applied to a
+.BR "pwb handle" ,
+so it must follow the
+.B "pwb declare"
+action.
+.PP
+The argument order is unusual, but follows the model for the
+CSS box model declaration.
+The rule is the margins are defined in clockwise order, starting
+with the top.  Undefined margins will use the value from the margin
+on its opposite side.
+Only the first argument is required,
+and additional arguments are interpreted like this:
+.RS
+.TS
+tab(|);
+l lx.
+one argument|T{
+number used for all four margins
+T}
+
+two arguments|T{
+first argument is
+.BR top " and " bottom ,
+.br
+second argument is
+.BR left " and " right .
+T}
+
+three arguments|T{
+first argument is
+.BR top ,
+.br
+second argument is
+.BR left " and " right ,
+.br
+third argument is
+.BR bottom .
+T}
+
+four arguments|T{
+arguments apply in
+.BR top ", " right ", " bottom ",  then " left " order."
+T}
+.TE
+.RE
+.PP
+Another way to look at it is:
+.PP
+.EX
+.B pwb set_margins \c
+.I PHANDLE all_sides
+.br
+.B pwb set_margins \c
+.I PHANDLE top_and_bottom right_and_left
+.br
+.B pwb set_margins \c
+.I PHANDLE top right_and_left bottom
+.br
+.B pwb set_margins \c
+.I PHANDLE top right bottom left
+.EE
