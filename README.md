@@ -114,7 +114,7 @@ print_line()
 
     # print data
     local -i chars_limit="$3"
-    printf "%-*s" "$chars_limit" "${line:0:$chars_limit}"
+    printf "%s" "${line:0:$chars_limit}"
 }
 
 # Step 3: Enable the builtin
