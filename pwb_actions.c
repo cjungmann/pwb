@@ -375,10 +375,8 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
          __attribute__((unused))
          WORD_LIST *wl_length = &wl_ptr[3];
 
-         // Kinda kludgy, but easier to just switch here if requesting
-         // no-hilite version than adding parameters to pwb_initialize_handle:
          if (use_non_hilite_print)
-            pwbh->dparms.printer = pwb_raw_line_printer;
+            pwbh->disable_hiliting = true;
 
          SHELL_VAR *sv = NULL;
          if (variable_context == 0)

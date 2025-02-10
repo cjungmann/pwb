@@ -183,7 +183,7 @@ int pwb_line_printer(int row_index,
    pwbh_print_set_row_index(ph, row_index);
    pwbh_print_set_focus(ph, focus);
 
-   if (focus)
+   if (focus && !ph->disable_hiliting)
       start_standout_mode();
 
    int result = pwb_execute_command(ph->printer_wl);
@@ -224,24 +224,6 @@ int pwb_line_printer(int row_index,
    }
 
    return result;
-}
-
-/**
- * @brief Alternate non-hilighting printer function for DPARMS
- */
-int pwb_raw_line_printer(int row_index,
-                         int focus,
-                         int length,
-                         void *data_source,
-                         void *data_extra)
-{
-   PWBH *ph = (PWBH*)data_extra;
-
-   // update WORD_LIST values:
-   pwbh_print_set_row_index(ph, row_index);
-   pwbh_print_set_focus(ph, focus);
-
-   return pwb_execute_command(ph->printer_wl);
 }
 
 /**

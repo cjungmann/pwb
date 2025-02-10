@@ -31,6 +31,8 @@ struct pwb_handle {
 
    DPARMS dparms;
 
+   bool disable_hiliting;
+
    // script callback function names to be shared
    // with the printer function
    const char *print_func_line;
@@ -85,12 +87,6 @@ PWBH * pwb_initialize_handle(char *buffer,
                              const char *right_printer_name);
 
 // The following functions are found in pwbh_support.c
-int pwb_raw_line_printer(int row_index,
-                     int focus,
-                     int length,
-                     void *data_source,
-                     void *data_extra);
-
 int pwb_line_printer(int row_index,
                      int focus,
                      int length,
