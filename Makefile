@@ -12,6 +12,13 @@ SRC = .
 LIB_FLAGS =
 LIB_MODULES =
 
+ifndef LIB_FLAGS
+ifndef LIB_MODULES
+$(error "Run 'configure' to setup libraries")
+exit
+endif
+endif
+
 CFLAGS = -Wall -Werror -std=c99 -pedantic -ggdb
 LFLAGS =
 LDFLAGS = -lm $(LIB_FLAGS)
@@ -37,11 +44,6 @@ PPATH=$(PREFIX)/bin/pwb_sources
 all: $(TARGET)
 
 $(TARGET) : $(MODULES)
-ifndef LIB_FLAGS
-ifndef LIB_MODULES
-	$(error "Run 'configure' to setup libraries")
-endif
-endif
 	$(CC) $(LFLAGS) -o $@ $(MODULES) $(LIB_MODULES) $(LDFLAGS)
 
 *.c: $(HEADERS)
