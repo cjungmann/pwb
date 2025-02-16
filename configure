@@ -256,9 +256,7 @@ if confirm_prerequisites; then
     # installing as static libraries under this project if the library
     # is not installed globally:
     setup_cjungmann_libs MAKEFILE_SED_ARGS
-fi
-
-if [ "$TOTAL_ERRORS" -eq 0 ]; then
+elif [ "$TOTAL_ERRORS" -eq 0 ]; then
     sed -i "${MAKEFILE_SED_ARGS[@]}" Makefile
 else
     echo "Please correct the errors and rerun ./configure."
