@@ -15,7 +15,6 @@ LIB_MODULES =
 ifndef LIB_FLAGS
 ifndef LIB_MODULES
 $(error "Run 'configure' to setup libraries")
-exit
 endif
 endif
 
