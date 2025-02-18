@@ -121,7 +121,7 @@ confirm_prerequisites()
     if [ "$TOTAL_ERRORS" -gt 0 ]; then
         echo
         echo "Use your package manager to install the following packages:"
-        printf $'   \e[32;1m%s\e[39;22m\n'"${PACKAGES_REQUIRED[*]}"
+        printf $'   \e[32;1m%s\e[39;22m\n' "${PACKAGES_REQUIRED[*]}"
         echo ""
         echo "Hint: copy the green list to paste into your install command."
         echo
@@ -167,10 +167,8 @@ add_if_static_library_available()
     local libname="$1"
     local libdir="libs/lib${libname}"
     local libfile="$libdir/lib${libname}.a"
-    echo "Checking for lib path '$libdir'"
     if [ -d "$libdir" ]; then
         if [ -f "$libfile" ]; then
-            echo "Found the $libname static library!, Adding."
             LIB_MODULES_ARRAY+=( "$libfile" )
             INCFLAGS_ARRAY+=( "-I${libdir}" )
             return 0
@@ -205,9 +203,9 @@ setup_cjungmann_libs()
         confirm_library "$lib"
     done
 
-    local flags_str="s|LIB_FLAGS =.*|LIB_FLAGS = ${LIB_FLAGS_ARRAY[*]}|"
-    local mods_str="s|LIB_MODULES =.*|LIB_MODULES = ${LIB_MODULES_ARRAY[*]}|"
-    local incflags_str="s|INCFLAGS =.*|INCFLAGS = ${INCFLAGS_ARRAY[*]}|"
+    local flags_str="s|^LIB_FLAGS =.*|LIB_FLAGS = ${LIB_FLAGS_ARRAY[*]}|"
+    local mods_str="s|^LIB_MODULES =.*|LIB_MODULES = ${LIB_MODULES_ARRAY[*]}|"
+    local incflags_str="s|^INCFLAGS =.*|INCFLAGS = ${INCFLAGS_ARRAY[*]}|"
 
     flags_str="${flags_str// /\\ }"
     mods_str="${mods_str// /\\ }"
@@ -276,6 +274,11 @@ if confirm_prerequisites && man_test; then
     # installing as static libraries under this project if the library
     # is not installed globally:
     setup_cjungmann_libs MAKEFILE_SED_ARGS
+
+    if [ "${#MAKEFILE_SET_ARGS[*]}" -gt 0 ]; then
+        echo "Updating Makefile with library includes."
+        sed -i "${MAKEFILE_SED_ARGS[@]}" Makefile
+    fi
 else
     echo "Please correct the errors and rerun ./configure."
 fi
