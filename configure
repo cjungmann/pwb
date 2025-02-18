@@ -290,9 +290,11 @@ if confirm_prerequisites && man_test; then
     # is not installed globally:
     setup_cjungmann_libs MAKEFILE_SED_ARGS
 
-    if [ "${#MAKEFILE_SET_ARGS[*]}" -gt 0 ]; then
-        echo "Updating Makefile with library includes."
+    if [ "${#MAKEFILE_SED_ARGS[*]}" -gt 0 ]; then
+        echo "Updating the Makefile."
         sed -i "${MAKEFILE_SED_ARGS[@]}" Makefile
+    else
+        echo "Nothing to do for Makefile."
     fi
 else
     echo "Please correct the errors and rerun ./configure."
