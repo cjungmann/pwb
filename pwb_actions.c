@@ -281,18 +281,18 @@ PWB_RESULT pwb_action_declare(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_FAILURE;
 
-   static const char *handle_name = NULL;
-   static const char *data_source = NULL;
-   static int data_count = -1;
-   static const char *print_func = NULL;
-   static const char *exec_func = NULL;
-   static const char *extra_data = NULL;
-   static const char *use_non_hilite_print = NULL;
-   static const char *head_print_func = NULL;
-   static const char *foot_print_func = NULL;
-   static const char *left_print_func = NULL;
-   static const char *right_print_func = NULL;
-   static AE_ITEM items[] = {
+   const char *handle_name = NULL;
+   const char *data_source = NULL;
+   int data_count = -1;
+   const char *print_func = NULL;
+   const char *exec_func = NULL;
+   const char *extra_data = NULL;
+   const char *use_non_hilite_print = NULL;
+   const char *head_print_func = NULL;
+   const char *foot_print_func = NULL;
+   const char *left_print_func = NULL;
+   const char *right_print_func = NULL;
+   AE_ITEM items[] = {
       { &handle_name, "handle_name", '\0', AET_ARGUMENT,
       "name of new handle" },
 
@@ -438,16 +438,16 @@ PWB_RESULT pwb_action_trigger(PWBH * handle, ACLONE *args)
    PWB_RESULT result = PWB_FAILURE;
    WORD_LIST *word_list = handle->exec_wl;
 
-   static unsigned int keymap_index = -1;
-   static const char *keystroke = NULL;
-   static AE_ITEM items[] = {
+   unsigned int keymap_index = -1;
+   const char *keystroke = NULL;
+   AE_ITEM items[] = {
       { (const char **)&keymap_index, "keymap_index", '\0', AET_ARGUMENT,
         "keymap action index", NULL, pwb_argeater_unsigned_int_setter },
       { &keystroke, "keystroke", '\0', AET_ARGUMENT,
         "optional keystroke string" }
    };
 
-   static AE_MAP map = INIT_MAP(items);
+   AE_MAP map = INIT_MAP(items);
    if (argeater_process(args, &map))
    {
       // Last action in array calls the exec function.  Don't proceed
@@ -492,11 +492,11 @@ PWB_RESULT pwb_action_set_margins(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_SUCCESS;
 
-   static int top = -1;
-   static int right = -1;
-   static int bottom = -1;
-   static int left = -1;
-   static AE_ITEM items[] = {
+   int top = -1;
+   int right = -1;
+   int bottom = -1;
+   int left = -1;
+   AE_ITEM items[] = {
       { (const char **)&top, "top_margin", '\0', AET_ARGUMENT,
         "value of left margin", NULL, pwb_argeater_int_setter },
 
@@ -510,7 +510,7 @@ PWB_RESULT pwb_action_set_margins(PWBH *handle, ACLONE *args)
         "value of left margin", NULL, pwb_argeater_int_setter }
    };
 
-   static AE_MAP map = INIT_MAP(items);
+   AE_MAP map = INIT_MAP(items);
    if (argeater_process(args, &map))
    {
       if (!pager_set_margins(&handle->dparms, top, right, bottom, left))
@@ -535,12 +535,12 @@ PWB_RESULT pwb_action_plot_line(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_FAILURE;
 
-   static int row = -1;
-   static AE_ITEM items[] = {
+   int row = -1;
+   AE_ITEM items[] = {
       { (const char **)&row, "data_row", '\0', AET_ARGUMENT,
         "index of row to replot", NULL, pwb_argeater_int_setter }
    };
-   static AE_MAP map = INIT_MAP(items);
+   AE_MAP map = INIT_MAP(items);
 
    if (argeater_process(args, &map))
    {

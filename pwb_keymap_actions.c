@@ -14,9 +14,9 @@
 PWB_RESULT pwb_action_declare_keymap(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_FAILURE;
-   static const char *keymap_handle_name = NULL;
-   static const char *array_name = NULL;
-   static AE_ITEM items[] = {
+   const char *keymap_handle_name = NULL;
+   const char *array_name = NULL;
+   AE_ITEM items[] = {
       { &keymap_handle_name, "name", '\0', AET_ARGUMENT,
         "name of new keymap handle" },
 
@@ -24,7 +24,7 @@ PWB_RESULT pwb_action_declare_keymap(PWBH *handle, ACLONE *args)
         "array containing keymap values", NULL,
         argeater_array_name_setter }
    };
-   static AE_MAP map = INIT_MAP(items);
+   AE_MAP map = INIT_MAP(items);
    if (argeater_process(args, &map))
    {
       if (keymap_handle_name && array_name)
