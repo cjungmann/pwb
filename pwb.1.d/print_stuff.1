@@ -10,6 +10,31 @@ to interpret the CSI sequences, and can thus be confused by
 cursor-moving CSI sequences.
 Please refrain from including these types of CSI sequences in strings
 that will be processed by these actions.
+.TP
+.B IMPORTANT NOTE ON \(dq--\(dq
+Argument processing assumes any string beginning with a
+.RB \(dq - \(dq
+is an option.
+To ensure a string with a leading
+.RB \(dq - \(dq
+is
+.I not
+treated as an option, include a
+.RB \(dq -- \(dq
+argument before the string argument (but after the optional
+.BI "-v " variable_name
+argument) to signal all following arguments are strings.
+.IP
+Here are some examples of safe invocations of
+.BR "pwb measure_string" " and " "pwb limit_print" :
+.IP
+.RS 11
+.EX
+pwb measure_string -- \(dq\(Dostr\(dq
+pwb measure_string -v varname -- \(dq\(Dostr\(dq
+pwb limit_string 12 -- \(dq\(Dostr\(dq
+.EE
+.RE
 .SS MEASURE_STRING
 .PP
 Strings that include escaped CSI codes will print shorter than the
@@ -27,6 +52,9 @@ option.
 .TP
 .BI -v " variable_name"
 Optional name of variable to which the result will be reported.
+.TP
+.B --
+Optional value signalling that remaining arguments are not options.
 .TP
 .I string
 The string to be measured.
@@ -46,6 +74,9 @@ within a constrained number of screen columns.
 .TP
 .I length
 The maximum number of screen characters to be printed.
+.TP
+.B --
+Optional value signalling that remaining arguments are not options.
 .TP
 .I string
 The string to be printed.
