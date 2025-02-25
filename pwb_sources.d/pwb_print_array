@@ -79,7 +79,7 @@ pwb_print_array()
         local line
 
         for line in "${ml_lines[@]:0:$ml_lines_limit}"; do
-            pwb measure_string -v curlen "$line"
+            pwb measure_string -v curlen -- "$line"
             ml_lens_array+=( "$curlen" )
             (( ml_maxlen = (curlen > ml_maxlen ? curlen : ml_maxlen) ))
         done
@@ -159,8 +159,7 @@ pwb_print_array()
                            "$plotlen"       \
                            "$left"
 
-                    pwb limit_print "$maxlen" "$line"
-
+                    pwb limit_print -- "$maxlen" "$line"
                 done
 
                 # Erase extra lines, if necessary
