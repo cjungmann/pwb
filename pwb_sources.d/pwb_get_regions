@@ -67,45 +67,46 @@ pwb_get_regions()
         local -n gv_aarray="$assoc_array_name"
         gv_aarray=()
 
-        pwb get_dimensions "$handle_name"
+        local -A pgr_A
+        pwb get_dimensions "$handle_name" -A pgr_A
         pwb_exit_on_error
 
         # Screen dimensions
-        gv_aarray[SC_LINES]="${PWB_ASSOC[screen_lines]}"
-        gv_aarray[SC_WIDE]="${PWB_ASSOC[screen_cols]}"
+        gv_aarray[SC_LINES]="${pgr_A[screen_lines]}"
+        gv_aarray[SC_WIDE]="${pgr_A[screen_cols]}"
 
         # Content region:
-        gv_aarray[CO_TOP]=$(( PWB_ASSOC[margin_top] + 1 ))
-        gv_aarray[CO_LEFT]=$(( PWB_ASSOC[margin_left] + 1 ))
-        gv_aarray[CO_WIDE]=$(( PWB_ASSOC[screen_cols] \
-                                        - PWB_ASSOC[margin_left] \
-                                        - PWB_ASSOC[margin_right] ))
-        gv_aarray[CO_LINES]=$(( PWB_ASSOC[screen_lines] \
-                                         - PWB_ASSOC[margin_top] \
-                                         - PWB_ASSOC[margin_bottom] ))
+        gv_aarray[CO_TOP]=$(( pgr_A[margin_top] + 1 ))
+        gv_aarray[CO_LEFT]=$(( pgr_A[margin_left] + 1 ))
+        gv_aarray[CO_WIDE]=$(( pgr_A[screen_cols] \
+                                        - pgr_A[margin_left] \
+                                        - pgr_A[margin_right] ))
+        gv_aarray[CO_LINES]=$(( pgr_A[screen_lines] \
+                                         - pgr_A[margin_top] \
+                                         - pgr_A[margin_bottom] ))
         # Top Margin region:
         gv_aarray[TM_LEFT]="${gv_aarray[CO_LEFT]}"
         gv_aarray[TM_WIDE]="${gv_aarray[CO_WIDE]}"
         gv_aarray[TM_TOP]="1"
-        gv_aarray[TM_LINES]="${PWB_ASSOC[margin_top]}"
+        gv_aarray[TM_LINES]="${pgr_A[margin_top]}"
 
         # Bottom Margin region
         gv_aarray[BM_LEFT]="${gv_aarray[CO_LEFT]}"
         gv_aarray[BM_WIDE]="${gv_aarray[CO_WIDE]}"
-        gv_aarray[BM_TOP]=$(( PWB_ASSOC[screen_lines] - PWB_ASSOC[margin_bottom] + 1 ))
-        gv_aarray[BM_LINES]="${PWB_ASSOC[margin_bottom]}"
+        gv_aarray[BM_TOP]=$(( pgr_A[screen_lines] - pgr_A[margin_bottom] + 1 ))
+        gv_aarray[BM_LINES]="${pgr_A[margin_bottom]}"
 
         # Left Margin region:
         gv_aarray[LM_TOP]="${gv_aarray[CO_TOP]}"
         gv_aarray[LM_LINES]="${gv_aarray[CO_LINES]}"
         gv_aarray[LM_LEFT]=1
-        gv_aarray[LM_WIDE]="${PWB_ASSOC[margin_left]}"
+        gv_aarray[LM_WIDE]="${pgr_A[margin_left]}"
 
         # Right Margin region:
         gv_aarray[RM_TOP]="${gv_aarray[CO_TOP]}"
         gv_aarray[RM_LINES]="${gv_aarray[CO_LINES]}"
-        gv_aarray[RM_LEFT]=$(( PWB_ASSOC[screen_cols] - PWB_ASSOC[margin_right] + 1 ))
-        gv_aarray[RM_WIDE]=$(( PWB_ASSOC[margin_right] ))
+        gv_aarray[RM_LEFT]=$(( pgr_A[screen_cols] - pgr_A[margin_right] + 1 ))
+        gv_aarray[RM_WIDE]=$(( pgr_A[margin_right] ))
     }
 
     local handle_name assoc_array_name
