@@ -157,7 +157,7 @@ declare PHANDLE
 pwb declare PHANDLE bogus 100 print_line -e exec_func
 pwb_exit_on_error
 
-pwb set_margins PHANDLE 5 45 10 0
+pwb set_margins PHANDLE 5 20 10
 pwb_exit_on_error
 
 declare -A REGION_DIMS
