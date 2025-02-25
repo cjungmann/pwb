@@ -1,0 +1,315 @@
+#!/usr/bin/env bash
+
+# This script uses `pwb` for presenting a set of scripts that
+# demonstrate various concepts in developing applications with the
+# tool.
+
+source <( pwb_sources \
+              pwb_exit_on_error \
+              pwb_get_regions   \
+              pwb_print_array   \
+              pwb_conduct_dialog \
+              pwb_print_message \
+              pwb_erase_dims    \
+        )
+
+pwb_scripts_browser()
+{
+    ##########################
+    ###   Exec Delegates   ###
+    ##########################
+
+    run_man()
+    {
+        local TERMCAP_ti=""
+        local TERMCAP_te=""
+        printf $'\e[2J'
+
+        local path="${1}.7"
+        if [ -f "$path" ]; then
+            man -l "$path"
+        else
+            show_message "Man page file '$path' not found'"
+        fi
+
+        printf $'\e[2J'
+        TERMCAP_te="$OLD_te"
+        TERMCAP_ti="$OLD_ti"
+    }
+
+    run_view()
+    {
+        local TERMCAP_ti=""
+        local TERMCAP_te=""
+        printf $'\e[2J'
+
+        local path="$1"
+        less "$path"
+
+        printf $'\e[2J'
+        TERMCAP_te="$OLD_te"
+        TERMCAP_ti="$OLD_ti"
+    }
+
+    run_script()
+    {
+        local path="$1"
+        "$path"
+    }
+
+    show_help()
+    {
+        local phandle="$1"
+        local -a lines=(
+            "Use arrow keys to navigate."
+            ""
+            $'\e[32;1mENTER\e[39;22m to run the script'
+            $'\e[32;1mm\e[39;22m     to view script man page'
+            $'\e[32;1mv\e[39;22m     to view script source code'
+            ""
+            $'\e[32;1m?\e[39;22m     for this help display'
+            $'\e[32;1mq\e[39;22m     to quit'
+        )
+
+        pwb_conduct_dialog lines "$phandle"
+    }
+
+    #####################
+    ###   Utilities   ###
+    #####################
+
+    # Shortcut allowing permitting calls without an array:
+    show_message()
+    {
+        local lines=( "$@" )
+        pwb_conduct_dialog lines PSB_HANDLE
+    }
+
+    # Make an arg list to pass directly to pwb_print_array
+    # for printing in a margin.
+    get_region_args()
+    {
+        local -n gra_array="$1"
+        local -n gra_assoc="$2"
+        local reg="$3"
+
+        gra_array=(
+            -t "${gra_assoc[${reg}_TOP]}"
+            -l "${gra_assoc[${reg}_LEFT]}"
+            -w "${gra_assoc[${reg}_WIDE]}"
+            -c "${gra_assoc[${reg}_LINES]}"
+        )
+    }
+
+    # Somewhat self-indulgent implementation with a loop
+    # indirectly calling line processing functions, the
+    # reference to which changes according to the state
+    # of the text extraction.
+    get_file_doc()
+    {
+        local -n gfd_array="$1"
+        local path="$2"
+
+        local cur_func
+
+        find_doc()
+        {
+            if [[ "$REPLY" == "## BEGIN_DOC" ]]; then
+                cur_func=save_line;
+            fi
+            return 0
+        }
+
+        save_line()
+        {
+            if [[ "$REPLY" =~ ^\#\#([[:space:]](.*)?)? ]]; then
+                if [ "${#BASH_REMATCH[@]}" -eq 1 ]; then
+                    gfd_array+=( "" )
+                elif [[ "${BASH_REMATCH[2]}" == END_DOC ]]; then
+                    return 1
+                else
+                    gfd_array+=( "${BASH_REMATCH[2]}" )
+                fi
+
+                return 0
+            fi
+
+            return 1
+        }
+
+        cur_func=find_doc
+
+        while read -r; do
+            if ! $cur_func; then
+                break
+            fi
+        done < "$path"
+    }
+
+    get_max_len()
+    {
+        local -n gml_max_len="$1"
+        local -n gml_array="$2"
+        local -i cur_len
+
+        gml_max_len=0
+        for line in "${gml_array[@]}"; do
+            cur_len="${#line}"
+            (( gml_max_len = ( cur_len > gml_max_len ? cur_len : gml_max_len ) ))
+        done
+    }
+
+    #########################
+    ###   PWB CALLBACKS   ###
+    #########################
+
+    print_line()
+    {
+        local -i index="$1"
+        local -n pl_array="$2"
+        local -i chars_limit="$3"
+
+        printf "%-*.*s" "$chars_limit" "$chars_limit" "${pl_array[$index]}"
+    }
+
+    print_right()
+    {
+        local -i index="$1"
+        local -n pl_array="$2"
+
+        local script="${pl_array[$index]}"
+        local spath="${PSB_PATH}/$script"
+
+        local -a pr_lines
+        get_file_doc pr_lines "$spath"
+
+        local -a args
+        get_region_args args PSB_REGIONS RM
+
+        # pwb_print_array "${args[@]}" -jl args
+        pwb_print_array -jl "${args[@]}" pr_lines
+    }
+
+    print_top()
+    {
+        local title="${6:-Script Browser}"
+        local -a pt_lines=(
+            ""
+            "$title"
+            $'Press \e[32;1m?\e[39;22m for help, \e[32;1mq\e[39;22m to quit.'
+        )
+
+        local -a args=(
+            -t 1
+            -l 1
+            -w "${PSB_REGIONS[SC_WIDE]}"
+            -c "${PSB_REGIONS[TM_LINES]}"
+        )
+
+        pwb_print_array -jc "${args[@]}" pt_lines
+    }
+
+    exec_line()
+    {
+        local keyp="$1"
+        local -i index="$2"
+        local -n el_array="$3"
+        local el_pwb_name="$4"
+
+        local base="${el_array[$index]}"
+        local base_path="${PSB_PATH}/${base}"
+
+        case "$keyp" in
+            'm' ) run_man "$base_path" ;;
+            'v' ) run_view "$base_path" ;;
+            $'\cm' ) run_script "$base_path" ;;
+            '?' ) show_help ;;
+        esac
+
+        printf $'\e[2J'
+        pwb print_all "$el_pwb_name"
+    }
+
+    ##########################
+    ###   Prep Functions   ###
+    ##########################
+
+    # Content area should be just large enough to contain the script
+    # names, most of the remaining space to be distributed to the
+    # right margin for the script docs.
+    prepare_margins()
+    {
+        local phandle="$1"
+        local arr_name="$2"
+        local -i max_len
+        get_max_len max_len "$arr_name"
+
+        local -i left_margin=2
+
+        pwb get_dimensions
+        local -a margins=(
+            # Top margin:
+            5
+            # right margin:
+            $(( PWB_ASSOC[screen_cols] - max_len - left_margin - 2 ))
+            # bottom
+            2
+            # left
+            "$left_margin"
+        )
+
+        pwb set_margins "$phandle" "${margins[@]}"
+    }
+
+    prepare_keymap()
+    {
+        local km_name="$1"
+        local phandle="$2"
+        local -a keymap=(
+            '?'    7
+            $'\cm' 7
+            'm'    7
+            'v'    7
+        )
+
+        pwb declare_keymap "$km_name" keymap
+        pwb_exit_on_error
+    }
+
+    ############################
+    ###   EXECUTION BEGINS   ###
+    ############################
+
+    # Save original "cup mode" values to prevent
+    # nesting of initializations:
+    local OLD_ti="$TERMCAP_ti"
+    local OLD_te="$TERMCAP_te"
+
+    local -n SCRIPTS_LIST="$1"
+    local PSB_PATH="$2"
+
+    local -a pargs=(
+        SCRIPTS_LIST
+        "${#SCRIPTS_LIST[@]}"
+        print_line
+        -r print_right
+        -t print_top
+        -e exec_line
+    )
+
+    local PSB_PHANDLE
+    pwb declare PSB_PHANDLE "${pargs[@]}"
+
+    local PSB_KEYMAP
+    prepare_keymap PSB_KEYMAP PSB_HANDLE
+
+    # Establish margins, then make global regions array
+    prepare_margins PSB_PHANDLE "$1"
+    local -A PSB_REGIONS
+    pwb_get_regions PSB_REGIONS PSB_PHANDLE
+
+    print_top
+
+    pwb start PSB_PHANDLE -a PSB_KEYMAP
+}
+
