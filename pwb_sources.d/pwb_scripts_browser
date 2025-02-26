@@ -5,12 +5,13 @@
 # tool.
 
 source <( pwb_sources \
-              pwb_exit_on_error \
-              pwb_get_regions   \
-              pwb_print_array   \
+              pwb_read_args      \
+              pwb_exit_on_error  \
+              pwb_get_regions    \
+              pwb_print_array    \
               pwb_conduct_dialog \
-              pwb_print_message \
-              pwb_erase_dims    \
+              pwb_print_message  \
+              pwb_erase_dims     \
         )
 
 pwb_scripts_browser()
@@ -19,7 +20,7 @@ pwb_scripts_browser()
     ###   Exec Delegates   ###
     ##########################
 
-    run_man()
+    default_show_man()
     {
         local TERMCAP_ti=""
         local TERMCAP_te=""
@@ -37,7 +38,7 @@ pwb_scripts_browser()
         TERMCAP_ti="$OLD_ti"
     }
 
-    run_view()
+    default_show_source()
     {
         local TERMCAP_ti=""
         local TERMCAP_te=""
@@ -51,27 +52,48 @@ pwb_scripts_browser()
         TERMCAP_ti="$OLD_ti"
     }
 
-    run_script()
+    default_run_script()
     {
         local path="$1"
         "$path"
     }
 
-    show_help()
+    default_show_help()
     {
-        local phandle="$1"
+        local path="$1"
         local -a lines=(
             "Use arrow keys to navigate."
             ""
-            $'\e[32;1mENTER\e[39;22m to run the script'
-            $'\e[32;1mm\e[39;22m     to view script man page'
-            $'\e[32;1mv\e[39;22m     to view script source code'
-            ""
-            $'\e[32;1m?\e[39;22m     for this help display'
-            $'\e[32;1mq\e[39;22m     to quit'
         )
+        dsh_add_line()
+        {
+            printf -v tline $'\e[32;1m%-5s\e[39;22m %s' "$1" "$2"
+            lines+=( "$tline" )
+        }
 
-        pwb_conduct_dialog lines "$phandle"
+        local -a bindarr
+        local -n bkey=bindarr[0]
+        local -n bfunc=bindarr[1]
+        local -n bdesc=bindarr[2]
+
+        for el in "${PSB_KEYBINDINGS[@]}"; do
+            case "${#bindarr[*]}" in
+                0) bindarr+=( "$el" ) ;;
+                1) bindarr+=( "$el" ) ;;
+                2) bindarr+=( "$el" )
+                   if [[ "$bkey" == $'\cm' ]]; then
+                       bkey="ENTER"
+                   fi
+                   dsh_add_line "$bkey" "$bdesc"
+                   bindarr=()
+                   ;;
+                esac
+        done
+
+        dsh_add_line "q" "Exit"
+
+        pwb_print_message lines
+        read -sn1
     }
 
     #####################
@@ -219,6 +241,39 @@ pwb_scripts_browser()
         local base="${el_array[$index]}"
         local base_path="${PSB_PATH}/${base}"
 
+        local -a bindarr
+        local -n bkey=bindarr[0]
+        local -n bfunc=bindarr[1]
+        local -n bdesc=bindarr[2]
+
+        for el in "${PSB_KEYBINDINGS[@]}"; do
+            case "${#bindarr[*]}" in
+                0) bindarr+=( "$el" ) ;;
+                1) bindarr+=( "$el" ) ;;
+                2)
+                    if [[ "$keyp" == "${bindarr[0]}" ]]; then
+                        "$bfunc" "$base_path" "$el_pwb_name"
+                        break
+                    fi
+                    bindarr=()
+                    ;;
+                esac
+        done
+
+        printf $'\e[2J'
+        pwb print_all "$el_pwb_name"
+    }
+
+    old_exec_line()
+    {
+        local keyp="$1"
+        local -i index="$2"
+        local -n el_array="$3"
+        local el_pwb_name="$4"
+
+        local base="${el_array[$index]}"
+        local base_path="${PSB_PATH}/${base}"
+
         case "$keyp" in
             'm' ) run_man "$base_path" ;;
             'v' ) run_view "$base_path" ;;
@@ -263,17 +318,47 @@ pwb_scripts_browser()
 
     prepare_keymap()
     {
-        local km_name="$1"
-        local phandle="$2"
-        local -a keymap=(
-            '?'    7
-            $'\cm' 7
-            'm'    7
-            'v'    7
-        )
+        local  new_keymap_name="$1"
+        local -a bindarr
+        local -n bkey=bindarr[0]
+        local -n bfunc=bindarr[1]
+        local -n bdesc=bindarr[2]
 
-        pwb declare_keymap "$km_name" keymap
+        local -a pk_keymap=()
+
+        for el in "${PSB_KEYBINDINGS[@]}"; do
+            case "${#bindarr[*]}" in
+                0) bindarr+=( "$el" ) ;;
+                1) bindarr+=( "$el" ) ;;
+                2) bindarr+=( "$el" )
+                   pk_keymap+=( "$bkey" 7 )
+                   bindarr=()
+                   ;;
+                esac
+        done
+
+        pwb declare_keymap "$new_keymap_name" pk_keymap
         pwb_exit_on_error
+    }
+
+    start_browser()
+    {
+        local -n sb_args="$1"
+        local scripts_list_name="$2"
+
+        local PSB_PHANDLE
+        pwb declare PSB_PHANDLE "${pargs[@]}"
+        pwb_exit_on_error
+
+        local loc_keymap
+        prepare_keymap loc_keymap
+
+        # Establish margins, then make global regions array
+        prepare_margins PSB_PHANDLE "$scripts_list_name"
+        local -A PSB_REGIONS
+        pwb_get_regions PSB_REGIONS PSB_PHANDLE
+
+        pwb start PSB_PHANDLE -a loc_keymap
     }
 
     ############################
@@ -285,31 +370,51 @@ pwb_scripts_browser()
     local OLD_ti="$TERMCAP_ti"
     local OLD_te="$TERMCAP_te"
 
-    local -n SCRIPTS_LIST="$1"
-    local PSB_PATH="$2"
-
-    local -a pargs=(
-        SCRIPTS_LIST
-        "${#SCRIPTS_LIST[@]}"
-        print_line
-        -r print_right
-        -t print_top
-        -e exec_line
+    local -a PSB_DEFAULT_KEYS_ARRAY=(
+        $'\cm' default_run_script    "Run the script"
+        '?'    default_show_help     "Show help page"
+        'm'    default_show_man      "Show man page"
+        's'    default_show_source   "Show script source"
     )
 
-    local PSB_PHANDLE
-    pwb declare PSB_PHANDLE "${pargs[@]}"
+    #######################################
+    ###   Prepare to Accept Arguments   ###
+    #######################################
+    local scripts_list scripts_path custom_keys_array
 
-    local PSB_KEYMAP
-    prepare_keymap PSB_KEYMAP PSB_HANDLE
+    local -a cmd_args=( "$@" )
+    local -a arg_names=( scripts_list scripts_path )
+    local -a opts_list=(
+        k+ custom_keys_array
+    )
 
-    # Establish margins, then make global regions array
-    prepare_margins PSB_PHANDLE "$1"
-    local -A PSB_REGIONS
-    pwb_get_regions PSB_REGIONS PSB_PHANDLE
+    local psb_keybind_name="PSB_DEFAULT_KEYS_ARRAY"
 
-    print_top
+    if pwb_read_args cmd_args arg_names opts_list; then
 
-    pwb start PSB_PHANDLE -a PSB_KEYMAP
+        if [ -n "$custom_keys_array" ]; then
+            psb_keybind_name="$custom_keys_array"
+        fi
+
+        # Establish Keybindsings array for declare_keymap, exec_line, show_help.
+        local -n PSB_KEYBINDINGS="$psb_keybind_name"
+
+        local PSB_PATH="$scripts_path"
+
+        # Need working array to get its length
+        local -n psb_list="$scripts_list"
+
+        local -a pargs=(
+            "$scripts_list"
+            "${#psb_list[@]}"
+            print_line
+            -r print_right
+            -t print_top
+            -e exec_line
+        )
+
+        start_browser pargs psb_list
+    fi
+
 }
 
