@@ -7,7 +7,7 @@
 ## error.
 ## END_DOC
 
-source <( pwb_sources pwb_print_message pwb_noop )
+source <( pwb_sources pwb_print_message )
 
 pwb_exit_on_error()
 {
