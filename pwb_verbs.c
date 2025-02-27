@@ -100,16 +100,6 @@ PWB_VERB verbs [] = {
      "pwb print_all handle_name",
      pwb_action_plot_screen },
 
-   { "erase_head",
-     "Erase head area, line in top margin area",
-     "pwb erase_head handle_name",
-     pwb_action_erase_head },
-
-   { "erase_foot",
-     "Erase foot area, line in bottom margin area",
-     "pwb erase_foot handle_name",
-     pwb_action_erase_foot },
-
    { "get_data_source",
      "Get the name of the data source",
      "pwb get_data_source handle_name [-v varname]",
