@@ -1,12 +1,17 @@
-#!/usr/bin/env bash
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
 
-# This script uses `pwb` for presenting a set of scripts that
-# demonstrate various concepts in developing applications with the
-# tool.
+## BEGIN_DOC
+## This script uses `pwb` for presenting a set of scripts that
+## demonstrate various concepts in developing applications with the
+## tool.
+## END_DOC
 
 source <( pwb_sources \
               pwb_read_args      \
               pwb_exit_on_error  \
+              pwb_get_margins    \
               pwb_get_regions    \
               pwb_print_array    \
               pwb_conduct_dialog \
@@ -22,6 +27,11 @@ pwb_scripts_browser()
 
     default_show_man()
     {
+        local -a saved_margins
+        pwb_get_margins saved_margins PSB_PHANDLE
+        pwb set_margins PSB_PHANDLE 0
+        pwb_exit_on_error
+
         local TERMCAP_ti=""
         local TERMCAP_te=""
         printf $'\e[2J'
@@ -36,6 +46,8 @@ pwb_scripts_browser()
         printf $'\e[2J'
         TERMCAP_te="$OLD_te"
         TERMCAP_ti="$OLD_ti"
+
+        pwb set_margins PSB_PHANDLE "${saved_margins[@]}"
     }
 
     default_show_source()

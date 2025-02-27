@@ -1,0 +1,37 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+## BEGIN_DOC
+## Get current margin values to allow restoring the
+## margins after a 'pwb restore' and 'pwb init'
+## sequence used to turn over control of the screen
+## to another program.
+## END_DOC
+
+source <( pwb_sources pwb_read_args pwb_exit_on_error )
+
+pwb_get_margins()
+{
+    local array_name handle_name
+    local -a cmd_args=( "$@" )
+    local -a name_array=( array_name handle_name )
+
+    if pwb_read_args cmd_args name_array ""; then
+        local -n psm_array="$array_name"
+
+        local -A PA
+        pwb get_dimensions "$handle_name" -A PA
+        pwb_exit_on_error
+
+        psm_array=(
+            "${PA[margin_top]}"
+            "${PA[margin_right]}"
+            "${PA[margin_bottom]}"
+            "${PA[margin_left]}"
+        )
+        return 0
+    fi
+
+    return 1
+}
