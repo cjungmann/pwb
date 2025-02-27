@@ -10,82 +10,45 @@
 #> pwb_read_args args_array_name [var_names_array_name] [opts_list_name]
 #> see test_read_args script for examples
 
+source <( pwb_sources pwb_get_synopsis )
+
 pwb_read_args()
 {
     show_usage()
     {
-        fit_the_print()
-        {
-            local tline="$1"
-            pwb measure_string curlen "$tline"
-            if (( curlen + curpos < maxlen )); then
-                printf "%s" "$tline"
-            else
-                printf $'\n\e[%dC%s' "$indent" "$tline"
-            fi
-        }
-
         local fname="$1"
-        local -n su_arg_names="$2"
-        local -n su_opts_list="$3"
+        local name_args="$2"
+        local name_opts="$3"
 
-        local -i indent=$(( 2 + "${#fname}" ))
-        local -i maxlen=80
+        local -a su_lines
+        pwb_get_synopsis su_lines "$name_args" "$name_opts"
 
-        local col_bold="${LESS_TERMCAP_md}"
-        if [ -z "$col_bold" ]; then col_bold=$'\e[34;1m'; fi
-        local col_ital="${LESS_TERMCAP_us}"
-        if [ -z "$col_ital" ]; then col_ital=$'\e[32;1m'; fi
-        local col_none=$'\e[m'
-
+        local -i maxcol=70
         printf "\nUSAGE for %s:\n" "$fname"
-        printf "  %s" "$fname"
+        printf -v curline "  %s" "$fname"
 
-        local -i count_flags=0
-        local -i curlen curpos="$indent"
-        local tline
-        local trigger name
-        for el in "${su_opts_list[@]}"; do
-            if [ -z "$trigger" ]; then
-                trigger="$el"
+        local -i line_len part_len
+
+        pwb measure_string -v line_len "$curline"
+        local indent
+        printf -v indent "%*s" "$line_len" " "
+
+        local line
+        for line in "${su_lines[@]}"; do
+            pwb measure_string -v line_len "$curline"
+            pwb measure_string -v part_len "$line"
+
+            if (( (line_len + 1 + part_len) < maxcol )); then
+                curline="$curline $line"
             else
-                if [ "${#trigger}" -gt 1 ]; then
-                    printf -v tline \
-                           " ${col_bold}-%s${col_none} ${col_ital}%s${col_none}" \
-                           "${trigger:0:1}" "$el"
-                else
-                    # Flags need further info, count 'em to show the extra later:
-                    (( ++count_flags ))
-                    printf -v tline " ${col_bold}-%s${col_none}" "${trigger:0:1}"
-                fi
-
-                fit_the_print "$tline"
-                trigger=""
+                printf "%s\n" "$curline"
+                curline="$indent $line"
             fi
         done
 
-        for arg in "${su_arg_names[@]}"; do
-            printf -v tline " ${col_ital}%s${col_none}" "$arg"
-            fit_the_print "$tline"
-        done
-
-        if (( count_flags > 0 )); then
-            printf "Flag variables:\n"
-            for el in "${su_opts_list[@]}"; do
-                if [ -z "$trigger" ]; then
-                    trigger="$el"
-                else
-                    if [ "${#trigger}" -eq 1 ]; then
-                        printf "  ${col_bold}%-s${col_none} ${col_ital}%s${col_none}\n" \
-                               "$trigger" "$el"
-                    fi
-                    trigger=""
-                fi
-            done
+        if [ -n "$curline" ]; then
+            printf "%s\n" "$curline"
         fi
-
-        # Set off from following prompt
-        echo
     }
 
     # Value returned in variable named in $1 indicates how to continue:
