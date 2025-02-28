@@ -1,0 +1,39 @@
+.TH pwb_erase_dims 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_erase_dims
+\- script source plotting spaces to a region of the screen.
+.SH DESCRIPTION
+.PP
+This source function plots spaces over a rectangular region of
+the screen.  It is designed to work with
+.BR pwb_print_array ,
+which can fill an array with the coordinates needed by
+.B pwb_erase_dims
+to erase the message.
+.SH SYNOPSIS
+enable pwb
+.br
+source <( pwb_sources pwb_erase_dims )
+
+.B pwb_erase_dims
+.I array_name
+.SH OPTIONS
+.TP
+.I  array_name
+is the name of an array with 4 elements, consisting of
+(in the following order):
+.TS
+tab(|);
+lb l.
+top|line at top of region
+left|leftmost column to be overwritten
+rows|number of lines to overwrite
+wide|number of columns per line to overwrite
+.TE
+.SH SEE ALSO
+.PP
+See
+.B pwb_print_message
+for an example using
+.BR pwb_erase_dims .

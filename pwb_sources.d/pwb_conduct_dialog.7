@@ -2,18 +2,30 @@
 .mso gproto.tmac
 .SH NAME
 .B pwb_conduct_dialog
-\- script source for interaction that displays, waits, and erases a dialog.
+\- script source for an interaction that displays, waits, and erases a dialog.
 .SH DESCRIPTION
 .PP
 The sourced function
 .B pwb_conduct_dialog
 displays the contents of an array of strings in a box in the center of
-the screen and waits for a response.  When it gets an acceptable response,
+the screen (using
+.BR pwb_print_message )
+and waits for a response.  When it gets an acceptable response,
 it erases the box and returns.
 .PP
 A border will be drawn around the text.  Its width will contain the longest
 string in the array, and will contain as many screen lines as text elements
 in the array.
+.PP
+.B Note: 
+this source function can be used before
+.B pwb
+is started if the
+.I pwb_handle
+argument is omitted.
+It does require that
+.B pwb
+is enabled.
 .PP
 .BR Warning ,
 It is up to the developer to ensure the contents will fit on the
@@ -22,6 +34,8 @@ screen.
 neither checks if the text fits nor truncates lines that are too long.
 
 .SH SYNOPSIS
+enable pwb
+.br
 source <( pwb_sources pwb_conduct_dialog )
 
 .B pwb_conduct_dialog
@@ -63,7 +77,6 @@ demo_dialog()
    local pname=\(dq\(Do1\(dq
 
    declare -a dd_lines=(
-      \(dqFirst line of message.\(dq
       \(Do\(aqLines can contain \(rse[32;1mforeground\(rse[39;22m,\(aq
       \(Do\(aq\(rse[42mbackground\(rse[49m colors.\(aq
       \(dq\(dq
@@ -86,3 +99,10 @@ demo_dialog()
    # esac
 }
 .EE
+.SH SEE ALSO
+.PP
+Look at
+.BR pwb_print_array " and " pwb_print_message
+for other array-printing
+.B pwb
+sources.

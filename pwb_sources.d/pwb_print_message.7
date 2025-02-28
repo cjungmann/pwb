@@ -1,0 +1,99 @@
+.TH pwb_print_message 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_print_message
+\- script source for printing printing a bordered message from an array of text.
+.SH DESCRIPTION
+.PP
+The sourced function
+.B pwb_print_message
+displays the contents of an array of strings in a box in the center of
+the screen.
+.PP
+A border will be drawn around the text.  Its width will contain the longest
+string in the array, and will contain as many screen lines as text elements
+in the array.
+.PP
+.B Note:
+this function, and its companion,
+.BR pwb_erase_dims ,
+only need
+.B pwb
+to have been enabled.  No
+.B pwb
+instance is required.
+An app can use
+.B pwb_print_message
+to display messages before
+.B pwb
+starts or to report problems if
+.B pwb
+stops working.
+.PP
+.BR Warning ,
+It is up to the developer to ensure the contents will fit on the
+screen.
+.B pwb_print_message
+neither checks if the text fits nor truncates lines that are too long.
+.SH SYNOPSIS
+enable pwb
+.br
+source <( pwb_sources pwb_conduct_dialog )
+
+.B pwb_conduct_dialog
+.cli_prototype @array_name \
+   ?!-a:erase_dimensions
+.SH OPTIONS
+.TP
+.I array_name
+of the array containing the lines to be displayed.
+.TP
+.BI "-a " erase_dimensions
+optional, should be the name of a declared array variable.  If this name
+is provided,
+.B pwb_print_message
+will fill the array with coordinates that will allow
+.B pwb_erase_dims
+to overwrite the message with spaces.
+.IP
+Please note that
+.B pwb_erase_dims
+cannot recover what had been displayed under the message.
+Use
+.B pwb print_all
+to reprint the full page, minding margins if necessary.
+.SH EXAMPLE
+.PP
+.EX
+demo_message()
+{
+   local -a dm_lines=(
+      \(Do\(aqLines can contain \(rse[32;1mforeground\(rse[39;22m,\(aq
+      \(Do\(aq\(rse[42mbackground\(rse[49m colors.\(aq
+      \(dq\(dq
+      \(Do\(aqPress \(rse[32;1mENTER\(rse[39;22m to continue.\(aq
+   )
+
+   local -a dm_dims
+   pwb_print_message dm_lines -a dm_dims
+
+   declare keyp
+   while [[ \(dq\(Dokeyp\(dq != \(Do\(aq\(rscm\(aq ]]; do
+      pwb get_keystroke -v keyp
+   done
+
+   pwb_erase_dims dm_dims
+}
+.EE
+.SH SEE ALSO
+.PP
+Look at
+.B pwb_erase_dims
+for erasing the message.
+.PP
+Look at
+.BR pwb_print_array " and " pwb_conduct_dialog
+for other array-printing
+.B pwb
+sources.
+

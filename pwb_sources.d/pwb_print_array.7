@@ -20,6 +20,10 @@ callback function, and the full-fill guarantee ensure that
 any existing content in the region will be erased.
 .SH SYNOPSIS
 .PP
+enable pwb
+.br
+source <( pwb_sources pwb_print_array )
+
 .B pwb_print_array
 .cli_prototype @array_name \
    !-t:top_line    \
@@ -93,3 +97,10 @@ print_top()
 }
 
 .EE
+.SH SEE ALSO
+.PP
+Look at
+.BR pwb_conduct_dialog " and " pwb_print_message
+for other array-printing
+.B pwb
+sources.
