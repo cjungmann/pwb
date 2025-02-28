@@ -42,7 +42,7 @@ pwb_conduct_dialog()
 
     local -a emptya=()
 
-    # Parse args, retourn if calling for usage info only
+    # Parse args, return if calling for usage info only
     if ! pwb_read_args cmd_args names_array opts_list; then
         return 0
     fi
