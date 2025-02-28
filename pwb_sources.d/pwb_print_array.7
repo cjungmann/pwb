@@ -1,0 +1,95 @@
+.TH pwb_print_array 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_print_array
+\- safely displays array contents to a region
+.SH DESCRIPTION
+.PP
+Given an array whose elements constitute text lines to be
+displayed, the
+.B pwb_print_array
+source script will print the elements within region defined
+by options
+.BR -t ", " -l ", " -w ", and " -c .
+Each line printed will exactly fill the width of the region
+and all lines in the region will be filled with content or
+blank lines to ensure the entire region is filled.
+.PP
+The function is designed to work as part of a margin
+callback function, and the full-fill guarantee ensure that
+any existing content in the region will be erased.
+.SH SYNOPSIS
+.PP
+.B pwb_print_array
+.cli_prototype @array_name \
+   !-t:top_line    \
+   !-l:left_column \
+   !-w:wide_count  \
+   !-c:line_count  \
+   ?!-j:c|l|r
+.SH OPTIONS
+.TP
+.I array_name
+name of the array whose contents are to be printed.
+.TP
+.BI "-t " top_line
+describes the top line of the region to be printed.
+.TP
+.BI "-l " left_column
+describes the left column of the region to be printed.
+.TP
+.BI "-w " wide_count
+describes the number of characters to print on each line.
+.TP
+.BI "-c " line_count
+describes the number of lines in the region.
+.TP
+.BI "-j " justification
+.BR l ", " r ", or " c
+for
+.BR l "eft-justified, " r "ight-justified, or " c "entered."
+The default is centered.
+.SH NOTES
+.PP
+The
+.B pwb_print_array
+function is designed to be used with the information provided by
+source script
+.BR pwb_get_regions .
+.B pwb_get_regions
+uses
+.B pwb
+action
+.B get_dimensions
+to inform calculations of the parameters needed to print each
+region using
+.BR pwb_print_array .
+.SH EXAMPLE
+.PP
+.EX
+
+enable pwb
+sources <(pwb_sources pwb_print_array pwb_get_regions)
+
+print_top()
+{
+   local -i index=\(dq\(Do1\(dq
+   local -n pt_array=\(dq\(Do2\(dq
+   local pwb_handle=\(dq\(Do5\(dq
+
+   local -a pt_lines=(
+      \(dqMy App\(dq
+      \(dqRecord number \(Doindex\(dq
+   )
+
+   local -A MAA
+   pwb_get_regions MAA \(dq\Dopwb_handle\(dq
+
+   pwb_print_array pt_lines  \(rs
+       -t \(dq\(Do{MAA[TM_TOP]}\(dq   \(rs
+       -l \(dq\(Do{MAA[TM_LEFT]}\(dq  \(rs
+       -w \(dq\(Do{MAA[TM_WIDE]}\(dq  \(rs
+       -t \(dq\(Do{MAA[TM_LINES]}\(dq
+}
+
+.EE

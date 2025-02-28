@@ -1,0 +1,88 @@
+.TH pwb_conduct_dialog 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_conduct_dialog
+\- script source for interaction that displays, waits, and erases a dialog.
+.SH DESCRIPTION
+.PP
+The sourced function
+.B pwb_conduct_dialog
+displays the contents of an array of strings in a box in the center of
+the screen and waits for a response.  When it gets an acceptable response,
+it erases the box and returns.
+.PP
+A border will be drawn around the text.  Its width will contain the longest
+string in the array, and will contain as many screen lines as text elements
+in the array.
+.PP
+.BR Warning ,
+It is up to the developer to ensure the contents will fit on the
+screen.
+.B pwb_conduct_dialog
+neither checks if the text fits nor truncates lines that are too long.
+
+.SH SYNOPSIS
+source <( pwb_sources pwb_conduct_dialog )
+
+.B pwb_conduct_dialog
+.cli_prototype @array_name \
+   ?@pwb_handle      \
+   ?!-a:keys_allowed \
+   ?!-r:keyp_return
+.SH OPTIONS
+.TP
+.I array_name
+is required, and should contain lines of text that will be displayed,
+one screen line for each array element.
+The text elements can contain CSI color codes, which are ignored when
+calculating their length.
+.TP
+.I pwb_handle
+is optional.  If it's included, it will be used to replot the screen
+to fill in the hole left when the message is erased.
+.TP
+.BI "-a " keys_allowed
+optional array of keystroke strings that can terminate the dialog.
+If this option is omitted, any key will terminate the dialog.
+.TP
+.BI "-r " keyp_return
+optional variable name argument.  If included, it will, upon return
+from the function,  contain the the keystroke the terminated the dialog.
+.SH EXAMPLE
+.PP
+.EX
+
+demo_dialog()
+{
+   # Exit with warning on error
+   if [ -z \(dq\(Do1\(dq ]; then
+      read -n1 -p \(dqPWB handle name required.\(dq
+      exit 1
+   fi
+
+   local pname=\(dq\(Do1\(dq
+
+   declare -a dd_lines=(
+      \(dqFirst line of message.\(dq
+      \(Do\(aqLines can contain \(rse[32;1mforeground\(rse[39;22m,\(aq
+      \(Do\(aq\(rse[42mbackground\(rse[49m colors.\(aq
+      \(dq\(dq
+      \(Do\(aqPress \(rse[32;1mENTER\(rse[39;22m or \(rse[32;1mESC\(rse[39;22m to continue.\(aq
+   )
+
+   declare -a allowed_keys=(
+      \(Do\(aq\(rscm\(aq  # control-m / ENTER key
+      \(Do\(aq\(rse\(aq   # ESC key
+   )
+
+   declare keyp
+
+   pwb_conduct_dialog dd_lines \(dq\(Dopname\(dq -a allowed_keys -r keyp
+
+   # The exit-trigger keystroke is in \(Dokeyp:
+   # case \(dq\(Dokeyp\(dq in
+   #   \(Do\(aq\(rscm\(aq ) process_enter ;;
+   #   \(Do\(aq\(rse\(aq  ) process_esc ;;
+   # esac
+}
+.EE
