@@ -1,0 +1,105 @@
+.TH pwb_get_margins 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_get_margins
+\- set array with values for
+.BR "pwb set_margins" .
+.SH SYNOPSIS
+.PP
+enable pwb
+source <( pwb_sources pwb_get_margins )
+
+.B pwb_get_margins
+.cli_prototype @array_name @handle_name
+.SH DESCRIPTION
+.PP
+This is a convenience function for collecting margin values in
+the order needed by
+.BR "pwb set_margins" .
+.PP
+When a
+.B pwb
+application sets top and or bottom margins,
+.B pwb
+will set the terminal's scrolling region.
+The margins must be cleared before starting another TUI
+application, especially if returning to the
+.B pwb
+application when the other TUI application ends.
+.PP
+.B pwb_get_margins
+saves the margin arguments to make it easier to restore the
+previous margins when returning from the external TUI app.
+.SH EXAMPLE
+.PP
+.EX
+\(sh!/usr/bin/env bash
+enable pwb
+source <( pwb_sources pwb_get_margins pwb_print_array )
+
+print_line()
+{
+   local -n pl_data=\(dq\(Do2\(dq
+   printf \(dq%-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Do{pl_data[\(Do1]}\(dq
+}
+
+print_top()
+{
+   local -n pt_data=\(dq\(Do2\(dq
+   local file_name=\(dq\(Do{pt_data[\(Do1]}\(dq
+
+   declare -a lines=(
+      \(dqPWB_GET_MARGINS Demo\(dq
+      \(Do\(aqPress \(rse[32;1mENTER\(rse[39;22m to view\(aq
+      \(dq\(Dofile_name\(dq
+      \(Do\(aqPress \(rse[32;1mq\(rse[39;22m to quit.\(aq
+   )
+
+   pwb_print_array -t 1 -l 1 -w \(dq\(Do3\(dq -c 4 lines
+}
+
+exec_line()
+{
+   local -n el_data=\(dq\(Do3\(dq
+   local file_name=\(dq\(Do{el_data[\(Do2]}\(dq
+   if [[ \(dq\(Do1\(dq == \(Do\(aq\(rscm\(aq ]]; then
+      \fB\(sh Use featured function, pwb_get_margins:\fR
+      local -a saved_margins
+      pwb_get_margins saved_margins PHANDLE
+
+      \(sh Clear margins and launch subordinate app
+      pwb set_margins PHANDLE 0
+      less \(dq\(Dofile_name\(dq
+
+      \(sh On return, clear screen, restore margins, print everything
+      printf \(Do\(aq\(rse[2J\(aq
+      pwb set_margins PHANDLE \(dq\(Do{saved_margins[@]}\(dq
+      pwb print_all PHANDLE
+   fi
+}
+
+\(sh Collect file names for data
+declare -a darray=( * )
+
+declare -a decargs=(
+   darray
+   \(dq\(Do{\(shdarray[@]}\(dq
+   print_line
+   -e exec_line
+   -t print_top
+)
+pwb declare PHANDLE \(dq\(Do{decargs[@]}\(dq
+pwb_exit_on_error
+
+declare KEYMAP
+declare -a keymap=( \(Do\(aq\(rscm\(aq  7 )
+pwb declare_keymap KEYMAP keymap
+
+pwb set_margins PHANDLE 5
+
+pwb init
+pwb start PHANDLE -a KEYMAP
+printf \(Do\(aq\(rse[2J\(aq
+pwb restore
+
+.EE

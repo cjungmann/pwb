@@ -1,0 +1,105 @@
+.TH pwb_get_regions 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_get_regions
+\- script source calculates coordinates for margins and content.
+.SH SYNOPSIS
+.PP
+source <( pwb_sources pwb_get_regions )
+
+.B pwb_get_regions
+.cli_prototype @assoc_array_name @handle_name
+.SH DESCRIPTION
+.PP
+The
+.B pwb_get_regions
+function is a convenience function that calculates per-region
+coordinates from the information provided by
+.BR "pwb get_dimensions" .
+.PP
+The function writes to a Bash associative array, and the keys
+have prefixes that indicate which region is being reported:
+.TS
+tab(|);
+lb lb
+l l.
+Prefix|Region
+BM_|Bottom Margin
+CO_|Content Area
+LM_|Left Margin
+RM_|Right Margin
+SC_|Screen
+TM_|Top Margin
+.TE
+.PP
+Each region will have four values, corresponding to the arguments
+of the
+.B pwb_print_array
+function.
+The following example shows the keys for the top margin:
+.TS
+tab(|);
+lb lb
+l l.
+Key|Printing coordinate
+TM_TOP|Top margin, first line
+TM_LEFT|Top margin, first column
+TM_WIDE|Top margin, characters wide
+TM_LINES|Top margin, lines to print
+.TE
+.PP
+.BR NOTE :
+The keys of the screen set only include SC_WIDE and SC_LINES.
+Top left of the screen is 1, 1.
+.SH EXAMPLE
+.EX
+\(sh!/usr/bin/env bash
+enable pwb
+source <( pwb_sources pwb_get_regions pwb_print_array pwb_conduct_dialog )
+
+print_line()
+{
+   local -n pl_data=\(dq\(Do2\(dq
+   printf \(dq%-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Do{pl_data[\(Do1]}\(dq
+}
+
+print_top()
+{
+   local -i index=\(dq\(Do1\(dq
+   local -a lines=(
+      \(dqDemo Program\(dq
+      \(dqIndex \(Doindex\(dq
+   )
+
+   pwb_print_array lines \(rs
+         -t \(dq\(Do{REGIONS[TM_TOP]}\(dq   \(rs
+         -l \(dq\(Do{REGIONS[TM_LEFT]}\(dq  \(rs
+         -w \(dq\(Do{REGIONS[TM_WIDE]}\(dq  \(rs
+         -c \(dq\(Do{REGIONS[TM_LINES]}\(dq
+}
+
+display_regions()
+{
+   local -a lines
+   for key in \(dq\(Do{!REGIONS[@]}\(dq; do
+      lines+=( \(dq\(Dokey: \(Do{REGIONS[\(Dokey]}\(dq )
+   done
+   pwb_conduct_dialog lines
+}
+
+declare -a darray=( * )
+pwb declare PHANDLE darray \(dq\(Do{\(shdarray[@]}\(dq print_line -t print_top
+
+pwb set_margins PHANDLE 5
+
+declare -A REGIONS
+pwb_get_regions REGIONS PHANDLE
+
+
+
+pwb init
+pwb start PHANDLE
+pwb restore
+
+.EE
+
