@@ -1,0 +1,59 @@
+.TH pwb_exit_on_error 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_exit_on_error
+\- script source prints helpful debugging message and exits the app.
+.SH DESCRIPTION
+.PP
+The design intention of
+.B pwb
+is that there will be a helpful error message left in variable
+.B PWB_ERROR
+any time an error condition is recognized.
+When
+.B pwb_exit_on_error
+detects a non-zero exit code, it displays the
+.B PWB_ERROR
+message and the name and line number of the script where the
+error occurred.
+.PP
+A carefully coded script should be able to avoid all
+.BR pwb -generated
+errors.
+.B pwb_exit_on_error
+is the second line of defense against errors, providing a
+hard-to-miss explanation of the error.  The developer can heed the
+explanation to prevent the error from occurring again.
+.PP
+The call to
+.B pwb_exit_on_error
+should immediately follow the
+.B pwb
+call.  Otherwise the reported line number will be inaccurate and the
+exit code might be disturbed by another function.
+.SS IT ALWAYS EXITS
+.PP
+As predicted by the name,
+.B pwb_exit_on_error
+exits the application immediately after the error report.
+.SH EXAMPLE
+.PP
+.EX
+\(sh!/usr/bin/env bash
+
+enable pwb
+source <( pwb_sources pwb_exit_on_error )
+
+print_line()
+{
+   local -n pl_data=\(dq\(Do2\(dq
+   printf \(dq%-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Do{pl_data[\(Do1]}\(dq
+}
+
+declare -a darray=( * )
+pwb declare PHANDLE darray \(dq\(Do{\(shdarray[@]}\(dq print_line
+pwb_exit_on_error
+
+pwb start PHANDLE
+pwb_exit_on_error
+.EE

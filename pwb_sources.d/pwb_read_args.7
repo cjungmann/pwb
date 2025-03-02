@@ -1,0 +1,98 @@
+.TH pwb_read_args 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_read_args
+\- script source for processing arguments according to Posix conventions.
+.SH DESCRIPTION
+.PP
+This source function processes the arguments submitted to a
+function, providing Posix argument-handling conformance and a
+rudimentary usage display.
+.SH SYNOPSIS
+enable pwb
+.br
+sources <( pwb_sources pwb_read_args )
+
+.B pwb_read_args
+.cli_prototype @command_args_array ?@arg_names_array ?@opts_list_array
+.SH OPTIONS
+.TP
+.I command_args_array
+a named array containing the arguments passed to the hosting function.
+.TP
+.I arg_names_array
+the name of an array containing the variable names to be set by
+positional function arguments.  This argument must be provided,
+but it can be an empty string if there are no positional arguments.
+.TP
+.I opts_list_array
+is a list of option entries, each entry consisting of a pair of
+elements, each pair consisting of a
+.BR letter " and a " name .
+.RS 7
+.TP
+.B letter
+The letter part of the pair always starts with the character that
+follows the dash on the command line.  If there is one character,
+the option will take no arguments and the target variable will be
+set to 1.  If the letter is followed by another character, I'm using
+a plus \(lq+\(rq, the named variable will be set with the value of
+the argument following the option.
+.TP
+.B name
+is the name of the variable to be set when the option is matched
+.RE
+.IP
+Look at the
+.B EXAMPLE
+below to see how the
+.I opts_list_array
+is constructed.
+.SH NOTES
+.PP
+.B pwb_read_args
+operates in one of two modes, the default argument parsing mode, and
+a usage generation mode.
+.B pwb_read_args
+will run in argument parsing mode unless a variable,
+.B READ_ARGS_SHOW_USAGE
+is set.
+.PP
+When
+.B READ_ARGS_SHOW_USAGE
+is set, the function will generate a usage message using the
+variable name and the name part of the
+.I opts_list_array
+entries.
+.SH EXAMPLE
+.PP
+.EX
+source <( pwb_sources pwb_read_args pwb_conduct_dialog )
+pwb_function()
+{
+   local file_name user_name user_title=\(dqintern\(dq
+   local -i flag_one
+
+
+   local -a cmd_args=( \(dq\(Do@\(dq )
+   local -a arg_names=( file_name user_name )
+   local -a opts_list=(
+      f   flag_one
+      t+  user_title
+   )
+
+   if \fBpwb_read_args\fR cmd_args arg_names opts_list; then
+      local -a pf_lines=(
+         \(dqfile_name:  \(Dofile_name\(dq
+         \(dquser_name:  \(Douser_name\(dq
+         \(dquser_title: \(Douser_title\(dq
+      )
+
+      if [ \(dq\(Doflag_one\(dq -eq 0 ]; then
+         pf_lines+=( \(dqflag off\(dq )
+      else
+         pf_lines+=( \(dqflag on\(dq )
+      fix
+   fi
+}
+.EE
