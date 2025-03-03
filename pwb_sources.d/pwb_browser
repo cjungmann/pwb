@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+
+populate_files()
+{
+    local -n pf_files="$1"
+    local path="$2"
+
+    local fname
+    for fname in $path/* ; do
+        if [[ "$fname" =~ ^.*/pwb_[^.]+$ ]]; then
+            fname="${fname##*/}"
+            if [[ "$fname" != "pwb_browser" ]]; then
+                pf_files+=( "$fname" )
+            fi
+        fi
+    done
+}
+
+show_args()
+{
+    local path="$1"
+    local func="${1##*/}"
+
+    local -a sa_lines
+
+    source "$path"
+    declare -i READ_ARGS_SHOW_USAGE=1
+    while read -r; do
+        if [ "${#REPLY}" -eq 0 ]; then
+            if [ "${#sa_lines[*]}" -eq 0 ]; then
+                continue
+            fi
+        fi
+
+        sa_lines+=( "$REPLY" )
+    done < <( "$func" )
+
+    if [ "${#sa_lines[*]}" -eq 0 ]; then
+        sa_lines+=( "Function $func defined no arguments." )
+    fi
+
+    # Clear flag or pwb_conduct_dialog will display its usage info:
+    unset READ_ARGS_SHOW_USAGE
+
+    pwb_conduct_dialog sa_lines
+}
+
+
+declare -a KEYBINDS=(
+    $'\cm' default_show_source   "Show the script"
+    '?'    default_show_help     "Show help page"
+    'm'    default_show_man      "Show man page"
+    'a'    show_args             "Show args usage"
+)
+
+
+enable pwb
+source <( pwb_sources pwb_scripts_browser )
+
+declare dir="/usr/local/lib/pwb_sources"
+
+declare -a slist
+populate_files slist "$dir"
+
+exit_trap() { pwb restore; }
+trap exit_trap EXIT SIGINT SIGABRT
+
+pwb init
+
+pwb_scripts_browser slist "$dir" -k KEYBINDS
+
