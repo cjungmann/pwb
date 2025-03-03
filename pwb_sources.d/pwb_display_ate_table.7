@@ -1,0 +1,58 @@
+.TH pwb_display_ate_table 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_display_ate_table
+\- print formatted contents of ate table.
+.SH SYNOPSIS
+enable pwb
+enable ate
+source <( pwb_sources pwb_display_ate_table )
+
+.B pwb_display_ate_table
+.I table_name
+.SH DESCRIPTION
+.PP
+This script function makes it easy to browse
+.B ate
+tables,
+a quick-and-dirty display to help design and debug applications
+dependent on them.
+.SH EXAMPLE
+.PP
+.B pwb_display_ate_table
+does all the
+.B pwb
+work, so all that's necessary to use it is to have a populated
+.B ate
+table.
+.PP
+.EX
+\(sh!/usr/bin/env bash
+
+enable ate
+enable pwb
+source <( pwb_sources pwb_display_ate_table )
+
+fill_table()
+{
+   local table_name=\(dq\(Do1\(dq
+   ate get_array_name \(dq\(Dotable_name\(dq
+   local -n ft_array=\(dq\(DoATE_VALUE\(dq
+
+   local -a files=( * )
+   while IFS=\(dq|\(dq read -r -a raw_row; do
+      ft_array+=( \(dq\(Do{raw_row[@]}\(dq )
+   done < <( stat -c \(dq%n|%s|%U|%x\(dq \(dq\(Do{files[@]}\(dq )
+
+   ate index_rows \(dq\(Dotable_name\(dq
+}
+
+declare ATABLE
+ate declare ATABLE 4
+fill_table ATABLE
+
+pwb init
+pwb_display_ate_table ATABLE
+pwb restore
+.EE
+
