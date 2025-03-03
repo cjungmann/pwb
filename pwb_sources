@@ -48,18 +48,6 @@ An example of using the final form in a script:
 EOF
     }
 
-list_sources()
-{
-    local -a sources=( "${PREFIX}/lib/${APP_PREFIX}_sources/"* )
-    local OIFS="$IFS"
-    local IFS='/'
-    for func in "${sources[@]}"; do
-        local -a parts=( $func )
-        echo "${parts[@]: -1}"
-    done
-    IFS="$OIFS"
-}
-
 return_source_name()
 {
     if ! function_loaded "$1"; then
@@ -109,18 +97,17 @@ show_func_doc()
     done
 }
 
+declare SOURCES_PATH="${PREFIX}/lib/${APP_PREFIX}_sources"
 
 if [ "$#" -eq 0 ]; then
-    list_sources
+    "${SOURCES_PATH}/pwb_browser"
 elif [[ "$1" == "help" ]]; then
     if [ "$#" -eq 1 ]; then
         show_usage
     else
         declare func="$2"
-        declare prefix="${func%%_*}"
-        declare path="${PREFIX}/lib/${prefix}_sources/$func"
+        declare path="${SOURCES_PATH}/$func"
         if [ -f "$path" ]; then
-            enable "$prefix"
             source "$path"
             declare READ_ARGS_SHOW_USAGE=1
             "$func"
