@@ -258,6 +258,11 @@ pwb_scripts_browser()
         local -n bfunc=bindarr[1]
         local -n bdesc=bindarr[2]
 
+        local -a saved_margins
+        pwb_get_margins saved_margins "$el_pwb_name"
+        pwb set_margins "$el_pwb_name" 0
+        printf $'\e[2J'
+
         for el in "${PSB_KEYBINDINGS[@]}"; do
             case "${#bindarr[*]}" in
                 0) bindarr+=( "$el" ) ;;
@@ -273,27 +278,7 @@ pwb_scripts_browser()
         done
 
         printf $'\e[2J'
-        pwb print_all "$el_pwb_name"
-    }
-
-    old_exec_line()
-    {
-        local keyp="$1"
-        local -i index="$2"
-        local -n el_array="$3"
-        local el_pwb_name="$4"
-
-        local base="${el_array[$index]}"
-        local base_path="${PSB_PATH}/${base}"
-
-        case "$keyp" in
-            'm' ) run_man "$base_path" ;;
-            'v' ) run_view "$base_path" ;;
-            $'\cm' ) run_script "$base_path" ;;
-            '?' ) show_help ;;
-        esac
-
-        printf $'\e[2J'
+        pwb set_margins "$el_pwb_name" "${saved_margins[@]}"
         pwb print_all "$el_pwb_name"
     }
 
@@ -427,6 +412,5 @@ pwb_scripts_browser()
 
         start_browser pargs psb_list
     fi
-
 }
 
