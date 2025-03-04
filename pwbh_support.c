@@ -110,7 +110,7 @@ bool pwbh_position_to_left(PWBH *pwbh)
    if (left_chars > 0)
    {
       int top = dparms->margin_top;
-      ti_set_cursor_position(top, 1);
+      ti_set_cursor_position(top, 0);
       return true;
    }
 
