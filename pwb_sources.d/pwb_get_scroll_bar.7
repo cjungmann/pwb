@@ -1,0 +1,135 @@
+.TH pwb_get_scroll_bar 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_get_scroll_bar
+\- get an array of characters for use in plotting a scroll bar.
+.BR "pwb get_scroll_var" .
+.SH SYNOPSIS
+.PP
+enable pwb
+source <( pwb_sources pwb_get_scroll_bar )
+
+.B pwb_get_scroll_bar
+.cli_prototype @array_name !-c:chars_count !-s:sum_rows !-t:top_row !-v:visible_rows
+.SH DESCRIPTION
+.PP
+This function gives you a set of characters to be plotted
+either horizonally or vertically.
+See
+.B EXAMPLE
+below.
+.SH OPTIONS
+.TP
+.I array_name
+is the name of the array to which the characters will be written.
+.TP
+.BI "-c " chars_count
+is the number of characters with which to fill the array.
+This would be the lines over which the scroll bar extends in a
+vertical scroll bar, or character wide for a horizontal scroll
+bar.
+.TP
+.BI "-s " sum_rows
+is the number of rows in the data source.
+.TP
+.BI "-t " top_row
+is the index of the data source row being displayed on the first
+content line on the screen.
+.TP
+.BI "-v " visible_rows
+is the number of rows that can be seen in the content area.
+.SH EXAMPLE
+.PP
+
+.PP
+.EX
+\(sh!/usr/bin/env bash
+
+enable pwb
+source <( pwb_sources pwb_get_scroll_bar )
+
+print_line()
+{
+   local -n pl_data=\(dq\(Do2\(dq
+   printf \(dq%-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Do{pl_data[\(Do1]}\(dq
+}
+
+print_left()
+{
+   pwb get_dimensions PHANDLE
+   local -a sb_args=(
+      -c \(dq\(Do{PWB_ASSOC[pager_lines]}\(dq
+      -s \(dq\(Do{PWB_ASSOC[data_rows]}\(dq
+      -t \(dq\(Do{PWB_ASSOC[row_top]}\(dq
+      -v \(dq\(Do{PWB_ASSOC[pager_lines]}\(dq
+   )
+   local -a sb_chars
+   pwb_get_scroll_bar sb_chars \(dq\(Do{sb_args[@]}\(dq
+
+   local newline=\(dq\(dq
+   for char in \(dq\(Do{sb_chars[@]}\(dq; do
+      printf \(dq%s%s\(dq \(dq\(Donewline\(dq \(dq\(Dochar\(dq
+      newline=$\(aq\(rse[1D\(rse[1B\(aq
+   done
+}
+
+print_right()
+{
+   pwb get_dimensions PHANDLE
+   local -a sb_args=(
+      -c \(dq\(Do{PWB_ASSOC[pager_lines]}\(dq
+      -s \(dq\(Do{PWB_ASSOC[data_rows]}\(dq
+      -t \(dq\(Do{PWB_ASSOC[row_top]}\(dq
+      -v \(dq\(Do{PWB_ASSOC[pager_lines]}\(dq
+   )
+   local -a sb_chars
+   pwb_get_scroll_bar sb_chars \(dq\(Do{sb_args[@]}\(dq
+
+   local -i column=\(Do(( PWB_ASSOC[screen_cols] - PWB_ASSOC[margin_right] + 1 ))
+
+   local newline=\(dq\(dq
+   for char in \(dq\(Do{sb_chars[@]}\(dq; do
+      printf \(dq%s%s\(dq \(dq\(Donewline\(dq \(dq\(Dochar\(dq
+      printf -v newline \(Do\(aq\(rse[1B\(rse[%dG\(aq \(dq$column\(dq
+   done
+}
+
+print_bottom()
+{
+   declare -A DIMS
+   pwb get_dimensions PHANDLE -A DIMS
+
+   local -i width=$(( DIMS[screen_cols] - DIMS[margin_left] - DIMS[margin_right] ))
+
+   local -a sb_args=(
+      -c \(dq\(Dowidth\(dq
+      -s \(dq\(Do{DIMS[data_rows]}\(dq
+      -t \(dq\(Do{DIMS[row_top]}\(dq
+      -v \(dq\(Do{DIMS[pager_lines]}\(dq
+   )
+   local -a sb_chars
+   pwb_get_scroll_bar sb_chars \(dq\(Do{sb_args[@]}\(dq
+
+   local IFS=\(dq\(dq
+   printf \(dq%s\(dq \(dq\(Do{sb_chars[*]}\(dq
+}
+
+declare -a darray=( /usr/bin/*  )
+
+declare -a dargs=(
+   darray
+   \(dq\(Do{#darray[@]}\(dq
+   print_line
+   -l print_left
+   -r print_right
+   -b print_bottom
+)
+
+pwb declare PHANDLE \(dq\(Do{dargs[@]}\(dq
+
+pwb set_margins PHANDLE 1
+
+pwb init
+pwb start PHANDLE
+pwb restore
+.EE
