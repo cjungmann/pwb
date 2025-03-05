@@ -10,7 +10,7 @@ enable pwb
 source <( pwb_sources pwb_get_scroll_bar )
 
 .B pwb_get_scroll_bar
-.cli_prototype @array_name !-c:chars_count !-s:sum_rows !-t:top_row !-v:visible_rows
+.cli_prototype @array_name !-s:sum_rows !-t:top_row !-v:visible_rows !-c:chars_count
 .SH DESCRIPTION
 .PP
 This function gives you a set of characters to be plotted
@@ -23,24 +23,29 @@ below.
 .I array_name
 is the name of the array to which the characters will be written.
 .TP
-.BI "-c " chars_count
-is the number of characters with which to fill the array.
-This would be the lines over which the scroll bar extends in a
-vertical scroll bar, or character wide for a horizontal scroll
-bar.
-.TP
 .BI "-s " sum_rows
-is the number of rows in the data source.
+data source detail, total number of rows in the data source.
 .TP
 .BI "-t " top_row
-is the index of the data source row being displayed on the first
-content line on the screen.
+data source detail, index of the top row on display.
 .TP
 .BI "-v " visible_rows
-is the number of rows that can be seen in the content area.
+screen detail, the number of lines in the content area.
+.TP
+.BI "-c " chars_count
+is the number of characters with which to fill the array.
+For vertical scroll bars, this value would be the same as the
+.B -v
+value.
+For horizontal scroll bars, this value would be the width,
+in characters, over which the scroll bar should span.
 .SH EXAMPLE
 .PP
-
+A scroll bar can reside on any side, but different sides
+present unique requirements.
+.PP
+The notes following the example discuss the differences between
+the three scroll bar printing strategies.
 .PP
 .EX
 \(sh!/usr/bin/env bash
@@ -133,3 +138,25 @@ pwb init
 pwb start PHANDLE
 pwb restore
 .EE
+.PP
+The cursor placement is only correct for the first character,
+after that, the margin printing function must ensure the correct
+position of the cursor for follow-on lines.
+.PP
+In
+.BR print_left ,
+it's easy to print a character, then move back 1 down 1 for the
+next.
+The
+.B print_right
+function avoids the risk of writing past the right screen edge
+by calculating the column to print at and resets the cursor
+accordingly.
+.PP
+The
+.B bottom_print
+horizontal scroll bar differs from the left and right scroll
+bars in how the
+.BI "-c " chars_count
+option is calculated (width if content area), and how the
+contents are printed (all at once on a single line).
