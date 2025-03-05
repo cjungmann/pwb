@@ -3,6 +3,13 @@
 .SH NAME
 .B pwb_erase_dims
 \- script source plotting spaces to a region of the screen.
+.SH SYNOPSIS
+enable pwb
+.br
+source <( pwb_sources pwb_erase_dims )
+
+.B pwb_erase_dims
+.I array_name
 .SH DESCRIPTION
 .PP
 This source function plots spaces over a rectangular region of
@@ -11,13 +18,6 @@ the screen.  It is designed to work with
 which can fill an array with the coordinates needed by
 .B pwb_erase_dims
 to erase the message.
-.SH SYNOPSIS
-enable pwb
-.br
-source <( pwb_sources pwb_erase_dims )
-
-.B pwb_erase_dims
-.I array_name
 .SH OPTIONS
 .TP
 .I  array_name
