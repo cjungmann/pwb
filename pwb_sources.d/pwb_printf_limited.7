@@ -1,0 +1,138 @@
+.TH pwb_printf_limited 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_printf_limited
+\- prints CSI-decorated strings to output-limited space.
+.SH SYNOPSIS
+enable pwb
+.br
+source <( pwb_sources pwb_printf_limited )
+
+.B pwb_printf_limited
+.cli_prototype @char_count @format ?@args...
+.SH DESCRIPTION
+.PP
+Convenient function that combines
+.BR pwb " action " limit_print
+with the familiar
+.B printf
+syntax to provide a single statement solution for
+parameterized output.
+.PP
+Through the
+.BR pwb " action " limit_print ,
+output containing CSI-decorations can be safely printed to
+a limited space.
+.PP
+.BR Unfortunately ,
+it only measures the completed string.
+It generates the string using the
+.B printf
+command, which uses a simple character count to
+format conversion specifiers in the format string.
+Invisible CSI characters processed by the format conversion
+will be counted, skewing the output.
+.SH OPTIONS
+.TP
+.I char_count
+an integer describing the limit of visible characters to print.
+.TP
+.I format
+.B printf
+format string directing the formatted output.
+.TP
+.RI [ args... ]
+are values that match conversion specifiers in the
+.I format
+string.
+.SH EXAMPLE
+.PP
+This example is a variable on what was done in
+.BR pwb_sources::pwb_display_ate_table.
+It uses a Bash array data source instead of an
+.B ate
+table, and explicitly prints the line using CSI strings to
+colorize the columns.
+.PP
+.EX
+\(sh!/usr/bin/env bash
+enable pwb
+source <( pwb_sources pwb_printf_limited )
+
+\(sh Use SOH control character for string delimiter
+declare DELIM=\(Do\(aq\(rsca\(aq
+
+fill_table()
+{
+   local -n ft_array=\(dq\(Do1\(dq
+
+   local -a files=( * )
+   while IFS=\(dq|\(dq read -r; do
+      ft_array+=( \(dq\(DoREPLY\(dq )
+   done < <( stat -c \(dq%n\(Do{DELIM}%s\(Do{DELIM}%U\(Do{DELIM}%x\(dq \(dq\(Do{files[@]}\(dq )
+}
+
+construct_format()
+{
+   local array_name=\(dq\(Do1\(dq
+   local -n cf_array=\(dq\(Do2\(dq
+
+   local -i max_file=0
+   local -i max_size=0
+   local -i max_user=0
+   local -i max_date=0
+   local -i cur_len
+
+   local -a row
+   for raw in \(dq\(Do{cf_array[@]}\(dq; do
+      IFS=\(dq\(DoDELIM\(dq read -r -a row <<< \(dq\(Doraw\(dq
+      cur_len=\(dq\(Do{\(shrow[0]}\(dq
+      (( max_file = cur_len > max_file ? cur_len : max_file ))
+      cur_len=\(dq\(Do{\(shrow[1]}\(dq
+      (( max_size = cur_len > max_size ? cur_len : max_size ))
+      cur_len=\(dq\(Do{\(shrow[2]}\(dq
+      (( max_user = cur_len > max_user ? cur_len : max_user ))
+      cur_len=\(dq\(Do{\(shrow[3]}\(dq
+      (( max_date = cur_len > max_date ? cur_len : max_date ))
+   done
+
+   local -a fparts=(
+      \(Do\(aq%%-%ds\(aq
+      \(Do\(aq\(rse[32;1m%%-%ds\(rse[39;22m\(aq
+      \(Do\(aq%%-%ds\(aq
+      \(Do\(aq\(rse[32;1m%%-%ds\(rse[39;22m\(aq
+   )
+
+   local IFS=\(Do\(aq \(aq
+
+   printf -v \(dq\(Doarray_name\(dq \(dq\(Do{fparts[*]}\(dq \(rs
+      \(dq\(Domax_file\(dq \(dq\(Domax_size\(dq \(dq\(Domax_user\(dq \(dq\(Domax_date\(dq
+}
+
+print_line()
+{
+   local -n pl_array=\(dq\(Do2\(dq
+   IFS=\(dq\(DoDELIM\(dq read -r -a row <<< \(dq\(Do{pl_array[\(Do1]}\(dq
+   pwb_printf_limited \(dq\(Do3\(dq \(dq\(DoFORMAT\(dq \(dq\(Do{row[@]}\(dq
+}
+
+declare -a ATABLE
+fill_table ATABLE
+
+declare FORMAT
+construct_format FORMAT ATABLE
+
+declare PHANDLE
+pwb declare PHANDLE ATABLE \(dq\(Do{\(shATABLE[*]}\(dq print_line
+
+pwb init
+
+pwb start PHANDLE
+
+pwb restore
+.EE
+.SH SEE ALSO
+.PP
+.BR pwb(1) :: limit_print
+.B printf(3)
+
