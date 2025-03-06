@@ -1,0 +1,60 @@
+.TH pwb_sources 1 2025-03-05
+.mso gproto.tmac
+.SH NAME
+.B pwb_sources
+\- tool for learning about and using canned
+.b pwb
+solutions
+.SH SYNOPSIS
+.PP
+.B pwb_sources
+.br
+.B pwb_sources
+.RI [ "function_name ..." ]
+.PP
+.EX
+enable pwb
+source <( pwb_sources pwb_exit_on_error )
+.EE
+.SH DESCRIPTION
+.PP
+The Bash scipt
+.B pwb_sources
+is a simple Bash script that runs in one of two modes,
+.BR "discovery mode " and " source mode" .
+.SS DISCOVERY MODE
+.B Discovery mode
+is an interactive mode that runs when
+.B pwb_sources
+is called without any arguments.
+.PP
+It show the list of available source functions on the left,
+with a brief summary of the selected function on the right.
+.PP
+Navigation is done with arrow keys, and other active keys
+are
+.TP
+.RB \(lq ? \(rq
+for a help display
+.TP
+.RB \(lq q \(rq
+to exit the interactive mode
+.TP
+.RB \(lq a \(rq
+to show a simple synopsis
+.TP
+.RB \(lq m \(rq
+to show a man page with usage details and code for an example script.
+.TP
+.RB \(lq s \(rq
+to view the function's source code
+
+
+
+
+.SS SOURCE MODE
+.PP
+This mode generates a short code fragment that checks for, and
+includes if missing, a list of source functions.
+The code fragment will be placed in the Bash source file on
+the first pass of the interpreter.
