@@ -58,6 +58,7 @@ install:
 	mkdir --mode=755 -p $(PREFIX)/share/man/man7
 	soelim -r $(TARGET_ROOT).1 | gzip -c - > $(PREFIX)/share/man/man1/$(TARGET_ROOT).1.gz
 	soelim -r $(TARGET_ROOT).7 | gzip -c - > $(PREFIX)/share/man/man7/$(TARGET_ROOT).7.gz
+	soelim -r $(BUILTIN)_sources.1 | gzip -c - > $(PREFIX)/share/man/man1/$(BUILTIN)_sources.1.gz
 # install SOURCER and sources
 	rm -f $(PREFIX)/bin/$(SOURCER)
 	sed -e s^#PREFIX#^$(PREFIX)^ -e s^#BUILTIN#^$(BUILTIN)^ $(SOURCER) > $(PREFIX)/bin/$(SOURCER)
@@ -71,6 +72,7 @@ install:
 
 uninstall:
 	rm -f $(PREFIX)/lib/bash/$(TARGET)
+	rm -f $(PREFIX)/share/man/man1/$(BUILTIN)_sources.1.gz
 	rm -f $(PREFIX)/share/man/man1/$(TARGET_ROOT).1.gz
 	rm -f $(PREFIX)/share/man/man7/$(TARGET_ROOT).7.gz
 # uninstall SOURCER stuff:
