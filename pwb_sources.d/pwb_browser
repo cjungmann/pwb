@@ -47,10 +47,10 @@ show_args()
 
 
 declare -a KEYBINDS=(
-    $'\cm' default_show_source   "Show the script"
-    '?'    default_show_help     "Show help page"
-    'm'    default_show_man      "Show man page"
-    'a'    show_args             "Show args usage"
+    '?' default_show_help     "Show help page"
+    'a' show_args             "Show args usage"
+    'm' default_show_man      "Show man page"
+    's' default_show_source   "Show the script"
 )
 
 
