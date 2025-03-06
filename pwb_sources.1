@@ -11,18 +11,13 @@ solutions
 .br
 .B pwb_sources
 .RI [ "function_name ..." ]
-.PP
-.EX
-enable pwb
-source <( pwb_sources pwb_exit_on_error )
-.EE
 .SH DESCRIPTION
 .PP
 The Bash scipt
 .B pwb_sources
 is a simple Bash script that runs in one of two modes,
 .BR "discovery mode " and " source mode" .
-.SS DISCOVERY MODE
+.SH DISCOVERY MODE
 .B Discovery mode
 is an interactive mode that runs when
 .B pwb_sources
@@ -49,12 +44,17 @@ to show a man page with usage details and code for an example script.
 .RB \(lq s \(rq
 to view the function's source code
 
-
-
-
-.SS SOURCE MODE
+.SH SOURCE MODE
 .PP
 This mode generates a short code fragment that checks for, and
 includes if missing, a list of source functions.
 The code fragment will be placed in the Bash source file on
 the first pass of the interpreter.
+.SH EXAMPLE
+.PP
+.EX
+\(sh!/usr/bin/env bash
+
+enable pwb
+source <( pwb_sources pwb_exit_on_error pwb_print_array )
+.EE
