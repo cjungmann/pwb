@@ -26,7 +26,10 @@ pwb_edit_line()
         return 1
     }
 
-    local return_name exit_key_name exit_array_name
+    local -a exkeys=( $'\e' $'\cm' )
+
+    local return_name exit_key_name
+    local exit_array_name="exkeys"
     local -i char_limit=80
 
     local -a func_args=( "$@" )
@@ -40,15 +43,15 @@ pwb_edit_line()
         return 0
     fi
 
+    # Take measue from copy in case $return_name refers to an array element:
     local -n psle_line="$return_name"
     local -n psle_exit_key="$exit_key_name"
-    local exit_array_name="$exit_array_name"
 
-    local -i curlen="${#psle_line}"
+    local tline="$psle_line"
+    local -i curlen="${#tline}"
 
     psle_exit_key=""
     local keyp=""
-    local -a exkeys=( $'\e' $'\cm' )
 
     pwb get_keystroke -v keyp
     if [ -n "$keyp" ]; then
