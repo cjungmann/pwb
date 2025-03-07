@@ -162,7 +162,6 @@ test_varied_options()
         printf $'Variable "\e[34;1m%s\e[m" is set to "\e[34;1m%s\e[m"\n' \
                "$name" "$tvar"
     done
-       
 }
 
 
@@ -193,6 +192,8 @@ test_full_set()
         optC optD
     )
 
+    local -a eargs=()
+
     # Copy arguments to create a named array argument:
     local -a func_args=( "$@" )
 
@@ -202,7 +203,8 @@ test_full_set()
     pwb_read_args \
         func_args \
         args_names\
-        opts_list
+        opts_list \
+        eargs
 
     ### Report: arguments and results ###
 
@@ -215,6 +217,12 @@ test_full_set()
         printf $'Variable \e[34;1m%s\e[m is set to "\e[34;1m%s\e[m"\n' \
                "$var" "$tvar"
     done
+
+    if [ "${#eargs[*]}" -ne 0 ]; then
+        echo
+        echo "Extra args passed are:"
+        echo "${eargs[*]}"
+    fi
 }
 
 test_single_char()
@@ -232,7 +240,7 @@ test_single_char()
 # test_single_char -jl
 
 test_full_set -bacOpt four one two three
-test_full_set -t"Calling a title" -a four -- -j three one two
+test_full_set -t"Calling a title" four -a five six seven -b -- -j three one two extra1 extra2 extra3
 
 
 # test_varied_options -a one -b two -c three -d -e
