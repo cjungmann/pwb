@@ -7,7 +7,7 @@
 ## assigning values, and self-documents for usage display.
 ## 
 ## END_DOC
-#> pwb_read_args args_array_name [var_names_array_name] [opts_list_name]
+#> pwb_read_args args_array_name [pra_var_names_array_name] [opts_list_name]
 #> see test_read_args script for examples
 
 source <( pwb_sources pwb_get_synopsis )
@@ -70,7 +70,7 @@ pwb_read_args()
             opt_variable=""
 
             # check rows in options list for match to progress_letter
-            for opt_el in "${pa_opts_list[@]}"; do
+            for opt_el in "${pra_opts_list[@]}"; do
                 if [ -z "$opt_token" ]; then
                     opt_token="$opt_el"
                     continue
@@ -86,12 +86,12 @@ pwb_read_args()
                     # option_progress letter
                     option_progress="${option_progress:1}"
 
-                    local -n tvar="$opt_variable"
+                    local -n pra_tvar="$opt_variable"
                     if [ "${#opt_token}" -gt 1 ]; then
                         # option takes a value
                         if [ "${#option_progress}" -gt 0 ]; then
                             # if letter follow, they are the value
-                            tvar="$option_progress"
+                            pra_tvar="$option_progress"
                             return 0
                         else
                             # No following letters, return the variable name
@@ -102,7 +102,7 @@ pwb_read_args()
                         fi
                     else
                         # Option is a flag, just set it and return
-                        tvar=1
+                        pra_tvar=1
                         # Bypass failed with deep continue
                         continue 2
                     fi
@@ -121,16 +121,16 @@ pwb_read_args()
 
     parse_args()
     {
-        local -n pa_command_args="$1"
-        local -n pa_arg_names="$2"
-        local -n pa_opts_list="$3"
-        local -n pa_leftovers="$4"
+        local -n pra_command_args="$1"
+        local -n pra_arg_names="$2"
+        local -n pra_opts_list="$3"
+        local -n pra_leftovers="$4"
 
-        local -i opts_count="${#pa_opts_list[@]}"
+        local -i opts_count="${#pra_opts_list[@]}"
         # Minimally validate opts array contents
         if (( opts_count % 2 != 0 )); then
             echo "Invalid array of opt args (must be paired ($opts_count))"
-            read -n1 -p "opts are ${pa_opts_list[*]}"
+            read -n1 -p "opts are ${pra_opts_list[*]}"
             # Do not tolerate arguments mistakes committed by script function caller
             exit 1
         fi
@@ -141,34 +141,34 @@ pwb_read_args()
         still_processing_options() { [ "$option_parsing" -eq 1 ]; }
 
         local -i args_index=0
-        local -i args_count="${#pa_arg_names[@]}"
-        local var_name
+        local -i args_count="${#pra_arg_names[@]}"
+        local pra_var_name
         local -i clas_index=0
 
-        for arg in "${pa_command_args[@]}"; do
+        for arg in "${pra_command_args[@]}"; do
             # If previous pass identified an option that sets a value,
-            # set the value and clear the var_name variable.
-            if [ -n "$var_name" ]; then
-                local -n tvar="$var_name"
-                tvar="$arg"
-                var_name=""
+            # set the value and clear the pra_var_name variable.
+            if [ -n "$pra_var_name" ]; then
+                local -n pra_tvar="$pra_var_name"
+                pra_tvar="$arg"
+                pra_var_name=""
             else
                 if still_processing_options && [[ "$arg" =~ ^-. ]]; then
                     if [[ "$arg" == "--" ]]; then
                         option_parsing=0
                     else
-                        # if 'var_name' is set on return, var_name is the variable
+                        # if 'pra_var_name' is set on return, pra_var_name is the variable
                         # to set with the value of the next CL argument
-                        get_option_entries var_name "$arg"
+                        get_option_entries pra_var_name "$arg"
                     fi
                     # not an option, set next positional argument
                 elif (( args_index < args_count )); then
-                    var_name="${pa_arg_names[$(( args_index++ ))]}"
-                    local -n tvar="$var_name"
-                    tvar="$arg"
-                    var_name=""
+                    pra_var_name="${pra_arg_names[$(( args_index++ ))]}"
+                    local -n pra_tvar="$pra_var_name"
+                    pra_tvar="$arg"
+                    pra_var_name=""
                 else
-                    pa_leftovers+=( "$arg" )
+                    pra_leftovers+=( "$arg" )
                 fi
             fi
         done
