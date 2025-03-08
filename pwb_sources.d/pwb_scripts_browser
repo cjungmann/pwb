@@ -261,7 +261,6 @@ pwb_scripts_browser()
         local -a saved_margins
         pwb_get_margins saved_margins "$el_pwb_name"
         pwb set_margins "$el_pwb_name" 0
-        printf $'\e[2J'
 
         for el in "${PSB_KEYBINDINGS[@]}"; do
             case "${#bindarr[*]}" in
