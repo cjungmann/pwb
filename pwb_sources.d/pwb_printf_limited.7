@@ -9,7 +9,7 @@ enable pwb
 source <( pwb_sources pwb_printf_limited )
 
 .B pwb_printf_limited
-.cli_prototype @char_count @format ?@args...
+.cli_prototype ?!-v:var_name @char_count @format ?@args...
 .SH DESCRIPTION
 .PP
 Convenient function that combines
@@ -33,6 +33,10 @@ format conversion specifiers in the format string.
 Invisible CSI characters processed by the format conversion
 will be counted, skewing the output.
 .SH OPTIONS
+.TP
+.BI "-v " var_name
+if used, the output will be written to variable
+.IR var_name .
 .TP
 .I char_count
 an integer describing the limit of visible characters to print.
