@@ -96,7 +96,7 @@ get_name()
 
     local -a dlg_dims
     while :; do
-        dlg_lines[1]=\(Do( pwb_printf_limited \(dq\(Do{printf_args[@]}\(dq )
+        pwb_printf_limited -v dlg_lines[1] \(dq\(Do{printf_args[@]}\(dq
         pwb_print_message dlg_lines -a dlg_dims
 
         \fB\(sh pwb_edit_line instance next line:\fR
