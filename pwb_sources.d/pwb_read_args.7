@@ -14,7 +14,7 @@ enable pwb
 sources <( pwb_sources pwb_read_args )
 
 .B pwb_read_args
-.cli_prototype @command_args_array ?@arg_names_array ?@opts_list_array
+.cli_prototype @command_args_array ?@arg_names_array ?@opts_list_array ?@extra_args_return
 .SH OPTIONS
 .TP
 .I command_args_array
@@ -48,6 +48,10 @@ Look at the
 below to see how the
 .I opts_list_array
 is constructed.
+.TP
+.I extra_args_return
+if this name is provided, any unused arguments will be copied to
+the array for further processing.
 .SH NOTES
 .PP
 .B pwb_read_args
