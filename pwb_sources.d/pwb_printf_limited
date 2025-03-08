@@ -9,23 +9,29 @@
 ## This function uses `pwb` action 'limit_print'.
 ## END_DOC
 
-source <( pwb_sources pwb_read_args pwb_noop )
+source <( pwb_sources pwb_read_args )
 
 
 pwb_printf_limited()
 {
-    # Contrived pwb_read_args call for usage message generation
-    if [ -n "$READ_ARGS_SHOW_USAGE" ]; then
-        source $( pwb_sources pwb_read_args )
-        local -a usage_names=( char_limit format "args..." )
-        pwb_read_args "" usage_names ""
-        return 0
-    fi
+    local -i char_limit
+    local format_string
 
-    local -i char_limit="$1"
-    local format="$2"
-    local -a args=( "${@:3}" )
-    # shellcheck disable=SC2059
-    printf -v ppll_temp "$format" "${args[@]}"
-    pwb limit_print "$char_limit" "$ppll_temp"
+    local -a cmd_args=( "$@" )
+    local -a arg_names=( char_limit format_string )
+    local -a opts_list=(
+        v+ var_name
+    )
+    local -a leftover_args
+
+    if pwb_read_args cmd_args arg_names opts_list leftover_args; then
+        # shellcheck disable=SC2059
+        printf -v ppll_temp "$format" "${leftover_args[@]}"
+        if [ -n "$var_name" ]; then
+            local -n ppl_var="$var_name"
+            ppl_var=$( pwb limit_print "$char_limit" "$ppll_temp" )
+        else
+            pwb limit_print "$char_limit" "$ppll_temp"
+        fi
+    fi
 }
