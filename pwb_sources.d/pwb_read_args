@@ -186,6 +186,9 @@ pwb_read_args()
 
     # Show usage and return if environment var is set:
     if [ -n "$READ_ARGS_SHOW_USAGE" ]; then
+        # Prevent recursion when pwb_get_synopsis call pwb_read_args
+        unset READ_ARGS_SHOW_USAGE
+
         local funcname="${FUNCNAME[@]: -2:1}"
 
         # Using FUNCNAME[0]} to protect against renaming this script:
