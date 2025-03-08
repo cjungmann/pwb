@@ -12,53 +12,67 @@
 
 pwb_get_synopsis()
 {
-    local -a pgs_empty_arr
-    local -n pgs_array="$1"
-    local -n pgs_arg_names="${2:-pgs_empty_arr}"
-    local -n pgs_opts_list="${3:-pgs_empty_arr}"
+    get_synopsis_lines()
+    {
+        local -a pgs_empty_arr
+        local -n pgs_array="$1"
+        local -n pgs_arg_names="${2:-pgs_empty_arr}"
+        local -n pgs_opts_list="${3:-pgs_empty_arr}"
 
-    local col_bold="${LESS_TERMCAP_md}"
-    if [ -z "$col_bold" ]; then col_bold=$'\e[34;1m'; fi
-    local col_ital="${LESS_TERMCAP_us}"
-    if [ -z "$col_ital" ]; then col_ital=$'\e[32;1m'; fi
-    local col_none=$'\e[39;22m'
+        local col_bold="${LESS_TERMCAP_md}"
+        if [ -z "$col_bold" ]; then col_bold=$'\e[34;1m'; fi
+        local col_ital="${LESS_TERMCAP_us}"
+        if [ -z "$col_ital" ]; then col_ital=$'\e[32;1m'; fi
+        local col_none=$'\e[39;22m'
 
-    local tline
-    local optname
-    local -i flag_options=0
-    for el in "${pgs_opts_list[@]}"; do
-        if [ -z "$optname" ]; then
-            optname="$el"
-        else
-            tline="${col_bold}-${optname:0:1}${col_none}"
-            if [ "${#optname}" -gt 1 ]; then
-                tline="${tline} ${col_ital}${el}${col_none}"
-            else
-                (( ++flag_options ))
-            fi
-            pgs_array+=( "$tline" )
-            optname=""
-        fi
-    done
-
-    for el in "${pgs_arg_names[@]}"; do
-        pgs_array+=( "${col_ital}${el}${col_none}" )
-    done
-
-    if (( flag_options > 0 )); then
-        pgs_array+=( $'\nFlag options' )
-
+        local tline
+        local optname
+        local -i flag_options=0
         for el in "${pgs_opts_list[@]}"; do
             if [ -z "$optname" ]; then
                 optname="$el"
             else
-                tline="${col_bold}-${optname}${col_none}"
-                if [ "${#optname}" -eq 1 ]; then
-                    tline="${tline} sets ${col_ital}${el}${col_none}"
-                    pgs_array+=( "$tline" )
+                tline="${col_bold}-${optname:0:1}${col_none}"
+                if [ "${#optname}" -gt 1 ]; then
+                    tline="${tline} ${col_ital}${el}${col_none}"
+                else
+                    (( ++flag_options ))
                 fi
+                pgs_array+=( "$tline" )
                 optname=""
             fi
         done
+
+        for el in "${pgs_arg_names[@]}"; do
+            pgs_array+=( "${col_ital}${el}${col_none}" )
+        done
+
+        if (( flag_options > 0 )); then
+            pgs_array+=( $'\nFlag options' )
+
+            for el in "${pgs_opts_list[@]}"; do
+                if [ -z "$optname" ]; then
+                    optname="$el"
+                else
+                    tline="${col_bold}-${optname}${col_none}"
+                    if [ "${#optname}" -eq 1 ]; then
+                        tline="${tline} sets ${col_ital}${el}${col_none}"
+                        pgs_array+=( "$tline" )
+                    fi
+                    optname=""
+                fi
+            done
+        fi
+    }
+
+    local return_array
+    local arg_names
+    local opts_list
+    local extra_args_return
+
+    local -a rpgs_cmd_args=( "$@" )
+    local -a rpgs_arg_names=( return_array arg_names opts_list extra_args_return )
+    if pwb_read_args rpgs_cmd_args rpgs_arg_names; then
+        get_synopsis_lines "$return_array" "$arg_names" "$opts_list" "$extra_args_return"
     fi
 }
