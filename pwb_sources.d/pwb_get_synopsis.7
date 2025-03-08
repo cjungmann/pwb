@@ -1,0 +1,59 @@
+.TH pwb_get_synopsis 7
+.mso gproto.tmac
+.SH NAME
+.PP
+.B pwb_get_synopsis
+\- returns arguments information for source functions that use
+.BR pwb_read_args .
+.SH SYNOPSIS
+.PP
+enable pwb
+.br
+source <( pwb_sources pwb_get_synopsis )
+
+.B pwb_synopsis
+.cli_prototype @return_array ?@arg_names_array ?@opts_list_array ?@extra_args_return
+.SH DESCRIPTION
+.PP
+This source function is called by
+.B pwb_read_args
+to build a synopsis-like function prototypes.
+.B pwb_get_synopsis
+returns an array of strings representing the arguments and options used by
+source functions, which are then formatted by
+.B pwb_read_args
+to fit in the available space.
+.SH OPTIONS
+.PP
+The options for
+.BR pwb_get_synopsis " are the same as those for " pwb_read_args ,
+but are used here to generate usage information.
+.PP
+The first argument is required, and the rest are optional.  However,
+there would be nothing to report if neither argument 2
+.RI ( arg_names_array )
+nor argument 3
+.RI ( opts_list_array )
+contained elements.
+.TP
+.I return_array
+this required argument is the array to which the arguments and option
+prototypes are returned.
+.TP
+.I arg_names_array
+an optional array of variable names  positional arguments
+.BR pwb_read_args .
+.TP
+.I opts_list_array
+an optional array with paired elements representing the option
+letter and the variable affected by the option.
+.TP
+.I extra_args_return
+an optional array in which rguments not used by
+.B pwb_read_args
+ are collected and returned to the calling function for further
+ processing.
+.SH SEE ALSO
+.PP
+.BR pwb_read_args ,
+documentation and source code.
