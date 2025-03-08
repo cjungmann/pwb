@@ -65,14 +65,21 @@ pwb_get_synopsis()
         fi
     }
 
-    local return_array
-    local arg_names
-    local opts_list
-    local extra_args_return
+    local pgs_return_array
+    local pgs_arg_names
+    local pgs_opts_list
+    local pgs_extra_args_return
 
     local -a rpgs_cmd_args=( "$@" )
-    local -a rpgs_arg_names=( return_array arg_names opts_list extra_args_return )
+    local -a rpgs_arg_names=( pgs_return_array \
+                                  pgs_arg_names \
+                                  pgs_opts_list \
+                                  pgs_extra_args_return )
+
     if pwb_read_args rpgs_cmd_args rpgs_arg_names; then
-        get_synopsis_lines "$return_array" "$arg_names" "$opts_list" "$extra_args_return"
+        get_synopsis_lines "$pgs_return_array" \
+                           "$pgs_arg_names"    \
+                           "$pgs_opts_list"    \
+                           "$pgs_extra_args_return"
     fi
 }
