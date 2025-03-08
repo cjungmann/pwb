@@ -189,7 +189,7 @@ pwb_read_args()
         # Prevent recursion when pwb_get_synopsis call pwb_read_args
         unset READ_ARGS_SHOW_USAGE
 
-        local funcname="${FUNCNAME[@]: -2:1}"
+        local funcname="${FUNCNAME[@]:1:1}"
 
         # Using FUNCNAME[0]} to protect against renaming this script:
         if [[ "$funcname" == "${FUNCNAME[0]}" ]]; then
