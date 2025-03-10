@@ -178,18 +178,22 @@ pwb_read_args()
     ###   EXECUTION BEGINS HERE   ###
     #################################
 
-    local -a empty_array=()
-    local command_args_array="${1:-empty_array}"
-    local arg_names_array="${2:-empty_array}"
-    local opts_list_array="${3:-empty_array}"
-    local leftovers_array="${4:-empty_array}"
+    local -a pra_empty_array=()
+    local command_args_array="${1:-pra_empty_array}"
+    local arg_names_array="${2:-pra_empty_array}"
+    local opts_list_array="${3:-pra_empty_array}"
+    local leftovers_array="${4:-pra_empty_array}"
 
     # Show usage and return if environment var is set:
     if [ -n "$READ_ARGS_SHOW_USAGE" ]; then
         # Prevent recursion when pwb_get_synopsis call pwb_read_args
         unset READ_ARGS_SHOW_USAGE
 
+        # Get name of function that called this one (pwb_read_args):
         local funcname="${FUNCNAME[@]:1:1}"
+        if [[ "$funcname" == "show_args" ]]; then
+            funcname="${FUNCNAME[@]:0:1}"
+        fi
 
         # Using FUNCNAME[0]} to protect against renaming this script:
         if [[ "$funcname" == "${FUNCNAME[0]}" ]]; then
@@ -199,7 +203,7 @@ pwb_read_args()
                 opts_list_array
                 leftovers_array
             )
-            show_usage "$funcname" arg_names empty_array
+            show_usage "$funcname" arg_names pwa_empty_array
         else
             show_usage "$funcname" "$arg_names_array" "$opts_list_array"
         fi
