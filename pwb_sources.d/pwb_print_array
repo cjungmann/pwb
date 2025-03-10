@@ -7,9 +7,7 @@
 ## Justifies output (center, left, or right) according to -j option.
 ## END_DOC
 
-source <( pwb_sources \
-              pwb_read_args \
-              pwb_noop )
+source <( pwb_sources pwb_read_args )
 
 pwb_print_array()
 {
@@ -95,9 +93,9 @@ pwb_print_array()
     local -i top_line=1 line_count=0 left_start=1 wide_count=-1
     local -i maxlen plotlen
 
-    local -a cmd_args=( "$@" )
-    local -a arg_names=( array_name )
-    local -a opts_list=(
+    local -a ppa_cmd_args=( "$@" )
+    local -a ppa_arg_names=( array_name )
+    local -a ppa_opts_list=(
         t+ top_line
         c+ line_count
         l+ left_start
@@ -105,13 +103,12 @@ pwb_print_array()
         j+ justified
     )
 
-    pwb get_dimensions
-    local -i screen_width="${PWB_ASSOC[screen_cols]}"
-
-    local -a len_array
-
-    if pwb_read_args cmd_args arg_names opts_list; then
+    if pwb_read_args ppa_cmd_args ppa_arg_names ppa_opts_list; then
         if confirm_arguments; then
+
+            pwb get_dimensions
+            pwb_exit_on_error
+            local -i screen_width="${PWB_ASSOC[screen_cols]}"
 
             # Calculate boundaries of designated plotting region
             # limit is right of screen if no wide_count value given
@@ -121,6 +118,8 @@ pwb_print_array()
             (( plotlen = ( wide_count + left_start <= screen_width \
                                       ? wide_count                 \
                                       : screen_width - left_start + 1 ) ))
+
+            local -a len_array
 
             # Don't print if no room to print
             if [ "$plotlen" -gt 0 ]; then
