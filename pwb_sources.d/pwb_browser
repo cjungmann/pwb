@@ -62,7 +62,7 @@ declare dir="/usr/local/lib/pwb_sources"
 declare -a slist
 populate_files slist "$dir"
 
-exit_trap() { pwb restore; }
+exit_trap() { printf $'\n\e[2J'; pwb restore; }
 trap exit_trap EXIT SIGINT SIGABRT
 
 pwb init
