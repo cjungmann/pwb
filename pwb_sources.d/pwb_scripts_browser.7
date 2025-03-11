@@ -1,0 +1,87 @@
+.TH pwb_scripts_browser 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_scripts_browser
+\- user interface for exploring a set of Bash scripts.
+.BR "pwb set_margins" .
+.SH SYNOPSIS
+.PP
+enable pwb
+.br
+source <( pwb_sources pwb_scripts_browser )
+
+.B pwb_scripts_browser
+.cli_prototype ?!-k:custom_keys_array @scripts_list @scripts_path
+.SH DESCRIPTION
+.PP
+This source function is used by the
+.B pwb
+tutorial and by
+.B pwb_sources
+via the
+.B pwb_browser
+source function.
+.PP
+The user selects a script from the left of the screen and
+can access script-defined information about the script via
+activated keys.
+.SH OPTIONS
+.TP
+.BI "-k " custom_keys_array
+is an array of element triplets consisting of the
+active keystroke string, the function to call when the keystroke
+is detected, and an identification string.
+.TP
+.I scripts_list
+the name of an array of scripts (file name only) from which the
+user will select.
+.TP
+.I scripts_path
+is the path containing the scripts in
+.IR scripts_list .
+.IP
+It is assumed that all scripts in the list reside in the
+.I scripts_path
+directory.
+Use symlinks to scripts that reside elsewhere.
+.SH EXAMPLE
+.EX
+\(sh!/usr/bin/env bash
+
+\(sh Sample custom keybinding for \(aqn\(aq
+show_script_name()
+{
+   local path=\(dq\(Do1\(dq
+   local script=\(dq\(Do{1##*/}\(dq
+
+   local - ssn_lines
+   printf -v ssn_lines[0] \(Do\(aqPath to script \(rse[32;1m%s\(rse[39;22m\(aq \(dq\(Doscript\(dq
+   printf -v ssn_lines[1] \(dq\(Dopath\(dq
+
+   pwb_print_message ssn_lines
+
+   \(sh Pause for key before returning (and erasing).
+   read -n1
+}
+
+enable pwb
+source <( pwb_sources pwb_scripts_browser pwb_print_message )
+
+declare spath=\(dq/usr/local/lib/pwb_sources\(dq
+declare -a scripts
+for fpath in \(dq\(Do{spath}\(dq/*; do
+    scripts+=( \(dq\(Do{fpath\(sh\(sh*/}\(dq )
+done
+
+\(sh Array with triple-element array entries
+declare -a KEYBINDS=(
+   \(aq?\(aq default_show_help     \(dqShow help Page\(dq
+   \(aqs\(aq default_show_source   \(dqShow source code\(dq
+   \(aqn\(aq show_script_name      \(dqShow script name\(dq
+)
+
+pwb init
+pwb_scripts_browser scripts \(dq\(Dospath\(dq -k KEYBINDS
+pwb restore
+.EE
+
