@@ -187,6 +187,7 @@ PWB_RESULT perform_verb(WORD_LIST *wl)
    PWB_VERB *verb = NULL;
    PWBH *handle = NULL;
    ACLONE *argclones = NULL;
+   int handle_waived = 0;
 
    while (wl)
    {
@@ -202,6 +203,8 @@ PWB_RESULT perform_verb(WORD_LIST *wl)
 
          if ((*verb_waives_handle)(verb))
          {
+            // Set flag in case no remaining arguments
+            handle_waived = 1;
             // Ignore missing handle: collect remaining arguments and run verb
             argclones = CLONE_WORD_LIST(wl->next);
             break;
@@ -239,8 +242,14 @@ PWB_RESULT perform_verb(WORD_LIST *wl)
       wl = wl->next;
    }
 
-  // run_action:
-   result = (*verb->action)(handle, argclones);
+   if (!handle && !handle_waived)
+   {
+      result = PWB_MISSING_HANDLE_NAME;
+      (*error_sink)("Missing handle name.");
+   }
+   else
+      // run_action:
+      result = (*verb->action)(handle, argclones);
 
   take_leave:
    return result;
