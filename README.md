@@ -29,9 +29,9 @@ that trigger actions on a selected item.
 - **Library**
   I'm experimenting with an interface for including Bash script
   fragments of `pwb` solutions and utilities into new Bash scripts.
-  The library interface provides a list of available scriptlets,
-  basic usage info about each scriptlet, and a system for managing
-  includes without duplicates.
+  The library interface provides a list of available source
+  functions, basic usage info about each source function, and a
+  system for managing includes without duplicates.
 
 - **Tutorial**
   A companion repository, [pwb_samples][pwb_samples], contains
@@ -134,10 +134,26 @@ the [ate][ate_project] will be required for more advanced chapters.
 
 ### Additional Installation
 
-The [ate project][ate_project] was developed to be a high-performance
-`pwb` data source using Bash variables.  Most of the [pwb_samples][pwb_samples]
-scripts use both `pwb` and `ate`, so I recommend installing the [ate project][ate_project]
-as well.
+The [ate project][ate_project] was my first serious effort at
+developing a useful Bash builtin that uses an API to maintain a
+state between calls.  It was created to provide fast direct access
+to Bash array elements for `pwb` projects that might handle a very
+large collection of items.
+
+#### Rethinking ATE
+
+Some samples in [pwb_samples][pwb_samples] use `ate`, but I'm weeding
+out `ate` usage for the tutorial for now.  It turns out that when
+making a huge list (over 1 million files) of files using `find /`,
+using `ate` tables was only imperceptively faster than simply
+accessing Bash array elements by index.  I was surprised by the speed
+of indexed access because Bash array elements are simple linked lists
+whose performance should degrade as the array size increases.
+
+For now, `ate` will **not** be covered or needed for the tutorial.
+I will continue using vanilla Bash arrays for increasingly complicated
+apps until I find where performance degrades to a point where the
+benefit of `ate` is more apparent.
 
 
 
