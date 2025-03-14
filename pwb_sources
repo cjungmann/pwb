@@ -25,16 +25,11 @@ show_usage()
 USAGE:
    $sname [help] [source_name ...]
 
-The first three calls return information:
-
 Display this usage message:
    $sname help
 
-Display a list of all available sources:
+Display a browsable list of all available sources:
    $sname
-
-Display usage message for source ${APP_PREFIX}_exit_on_error
-   $sname help ${APP_PREFIX}_exit_on_error
 
 The final format returns a code fragment that will load and
 of the listed sources that haven't already been loaded:
