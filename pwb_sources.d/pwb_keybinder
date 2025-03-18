@@ -1,0 +1,170 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+## BEGIN_DOC
+## This script includes three utilties using a
+## keybindings array to:
+## - make a keymap
+## - display a help message
+## - execute the keybinging
+## END_DOC
+
+source <( pwb_sources pwb_read_args pwb_print_message pwb_exit_on_error )
+
+pwb_keybinder()
+{
+    pk_add_help_line()
+    {
+        local -n pkahl_lines="$1"
+        # $2: keystroke string
+        # $3  label
+        printf -v tline $'\e[32;1m%-5s\e[39;22m %s' "$2" "$3"
+        pkahl_lines+=( "$tline" )
+    }
+
+    pk_prepare_keymap()
+    {
+        local pkpk_new_keymap_name="$1"
+        local -n pkpk_keybindings="$2"
+
+        local -a bindarr
+        local -n bkey=bindarr[0]
+        local -n bfunc=bindarr[1]
+        local -n bdesc=bindarr[2]
+        local -a pkpk_keymap
+
+        for el in "${pkpk_keybindings[@]}"; do
+            case "${#bindarr[*]}" in
+                0) bindarr+=( "$el" ) ;;
+                1) bindarr+=( "$el" ) ;;
+                2) bindarr+=( "$el" )
+                   pkpk_keymap+=( "$bkey" 7 )
+                   bindarr=()
+                   ;;
+            esac
+        done
+
+        pwb declare_keymap "$pkpk_new_keymap_name" pkpk_keymap
+        pwb_exit_on_error
+    }
+
+    pk_get_help_array()
+    {
+        local pkgha_lines_name="$1"
+        local -n pkgha_keybindings="$2"
+
+        local -a bindarr
+        local -n bkey=bindarr[0]
+        local -n bfunc=bindarr[1]
+        local -n bdesc=bindarr[2]
+
+        for el in "${pkgha_keybindings[@]}"; do
+            case "${#bindarr[*]}" in
+                0) bindarr+=( "$el" ) ;;
+                1) bindarr+=( "$el" ) ;;
+                2) bindarr+=( "$el" )
+                   if [[ "$bkey" == $'\cm' ]]; then
+                       bkey="ENTER"
+                   fi
+                   pk_add_help_line "$pkgha_lines_name" "$bkey" "$bdesc"
+                   bindarr=()
+                   ;;
+                esac
+        done
+    }
+
+    pk_show_help()
+    {
+        local -n pksh_keybindings="$1"
+
+        local -a pksh_lines=()
+        pk_get_help_array pksh_lines "$1"
+
+        # dsh_add_line()
+        # {
+        #     printf -v tline $'\e[32;1m%-5s\e[39;22m %s' "$1" "$2"
+        #     pksh_lines+=( "$tline" )
+        # }
+
+        # local -a bindarr
+        # local -n bkey=bindarr[0]
+        # local -n bfunc=bindarr[1]
+        # local -n bdesc=bindarr[2]
+
+        # for el in "${pksh_keybindings[@]}"; do
+        #     case "${#bindarr[*]}" in
+        #         0) bindarr+=( "$el" ) ;;
+        #         1) bindarr+=( "$el" ) ;;
+        #         2) bindarr+=( "$el" )
+        #            if [[ "$bkey" == $'\cm' ]]; then
+        #                bkey="ENTER"
+        #            fi
+        #            dsh_add_line "$bkey" "$bdesc"
+        #            bindarr=()
+        #            ;;
+        #         esac
+        # done
+
+        pk_add_help_line pksh_lines "q" "Exit"
+
+        pwb_print_message pksh_lines
+        read -sn1
+    }
+
+    pk_get_function()
+    {
+        local -n pkgf_func="$1"
+        local -n pkgf_keybindings="$2"
+        local pkgf_keyp="$3"
+
+        local -a bindarr
+        local -n bkey=bindarr[0]
+        local -n bfunc=bindarr[1]
+        local -n bdesc=bindarr[2]
+
+        for el in "${pkgf_keybindings[@]}"; do
+            case "${#bindarr[*]}" in
+                0) bindarr+=( "$el" ) ;;
+                1) bindarr+=( "$el" ) ;;
+                2) bindarr+=( "$el" )
+                   if [[ "$bkey" == "$pkgf_keyp" ]]; then
+                       pkgf_func="$bfunc"
+                       return 0
+                   fi
+                   bindarr=()
+                   ;;
+            esac
+        done
+
+        return 1
+    }
+
+    pk_warn_unrecognized()
+    {
+        local func_name="$1"
+
+        local -a lines=( "Unrecognized Keybinder Function" )
+        printf -v lines[1] $'\e[31;1m%s\e[39;22m' "$func_name"
+        pwb_print_message lines
+        read -n1
+    }
+
+    local subfunction keybindings
+    local output_variable keypress
+    local -a cmd_args=( "$@" )
+    local -a arg_names=( subfunction keybindings )
+    local -a opts_list=(
+        v+ output_variable
+        k+ keypress
+    )
+
+    if pwb_read_args cmd_args arg_names opts_list; then
+        case "$subfunction" in
+            help) pk_show_help "$keybindings" ;;
+            prep) pk_prepare_keymap "$output_variable" "$keybindings" ;;
+            func) pk_get_function "$output_variable" "$keybindings" "$keypress" ;;
+            * ) pk_warn_unrecognized "$subfunction"
+        esac
+    fi
+}
