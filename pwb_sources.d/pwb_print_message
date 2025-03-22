@@ -35,16 +35,18 @@ pwb_print_message()
         return 0
     fi
 
-    local -n psm_lines="$lines_name"
+    local -n ppm_lines="$lines_name"
 
     # From submitted lines, get count and maximum length
     local -i curlen maxlen=0
     local -i count=0
-    for line in "${psm_lines[@]}"; do
-        pwb measure_string -v curlen "$line"
+
+    for ppm_line in "${ppm_lines[@]}"; do
+        pwb measure_string -v curlen "$ppm_line"
         (( maxlen = curlen>maxlen ? curlen : maxlen ))
         (( ++count ))
     done
+
 
     # Get screen dimensions
     pwb get_dimensions
@@ -70,10 +72,10 @@ pwb_print_message()
     printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
 
     # print contents
-    for line in "${psm_lines[@]}"; do
+    for ppm_line in "${ppm_lines[@]}"; do
         printf "%s" "$lf_position"
         printf "$PSM_CHAR_VERT"
-        pwb limit_print "$maxlen" "$line"
+        pwb limit_print "$maxlen" "$ppm_line"
         printf "%s" "$right_border"
     done
 
