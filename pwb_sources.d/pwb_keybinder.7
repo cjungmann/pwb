@@ -1,0 +1,137 @@
+.TH pwb_keybinder 7
+.mso gproto.tmac
+.SH NAME
+.B pwb_keybinder
+\- Process array to create KEYMAP, Help page, and execute page
+.SH SYNOPSIS
+.PP
+.B pwb_keybinder
+.cli_prototype @action @binddef_array ?!-v:keybinding_array
+.SH DESCRIPTION
+.PP
+This is a code-saving that can handle
+.BR keymap ", " help-page ", and " " function retrieval"
+tasks when provided with an appropriate array of keybinding
+information.
+.PP
+
+.SH OPTIONS
+.TP
+.B action
+determines how the keybinding information will be used.
+The allowed values are
+.BR help ", " hlines ", " prep ", and " func .
+.RS 8
+.TP
+.B help
+Generates a help message from the keybinding array.  It will
+add a
+.B q
+for help line and wait for a user response.
+.TP
+.B hlines
+Returns an array of lines that can be used with
+.BR pwb_print_message " or " pwb_conduct_dialog .
+This version does not include the
+.B q
+option.  It must be added for it to be included in the message.
+.IP
+Look at the example, function
+.BR show_custom_help .
+.TP
+.B prep
+Using the keybinding array, this action will create a keymap that
+can be used with
+.BR "pwb start" .
+.TP
+.B func
+Will search for a matching key in the keybinding array.  If the
+keystroke is matched, the name of the associated function will be
+returned, and the
+.B pwb_keybinder
+function will return 0 (true).
+.RE
+
+
+
+.SH EXAMPLE
+.PP
+.EX
+\(sh!/usr/bin/env bash
+show_help()
+{
+   \fBpwb_keybinder\fR help KEYBINDINGS
+}
+
+show_custom_help()
+{
+   local -a sh_lines
+   \fBpwb_keybinder\fR hlines KEYBINDINGS -v sh_lines
+   sh_lines+=(
+      \(dq\(dq
+      \(dqPress q to quit\(dq
+      \(dqPress any key to continue\(dq
+   )
+   pwb_print_message sh_lines
+   read -n1
+}
+
+show_info()
+{
+   local si_item=\(dq\(Do1\(dq
+   local -a si_lines=(
+      \(dqInformation on \(Dosi_item\(dq
+      \(dqNothing too interesting.\(dq
+      \(dq\(dq
+      \(dqPress any key to continue\(dq
+   )
+   pwb_print_message si_lines
+   read -n1
+}
+
+print_line()
+{
+   local -n pl_dsource=\(dq\(Do2\(dq
+   local pl_line=\(dq\(Do{pl_dsource[\(Do1]}\(dq
+   printf \(dq%-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Dopl_line\(dq
+}
+
+execute_line()
+{
+   local keyp=\(dq\(Do1\(dq
+   local -n el_dsource=\(dq\(Do3\(dq
+   local item=\(dq\(Do{el_dsource[\(Do2]}\(dq
+   local phandle=\(dq\(Do4\(dq
+
+   if \fBpwb_keybinder\fR func KEYBINDINGS -v el_func -k \(dq\(Dokeyp\(dq; then
+      \(Doel_func \(dq\(Doitem\(dq
+      printf \(Do\(aq\(rse[2J\(aq
+      pwb print_all \(dq\(Dophandle\(dq
+   fi
+}
+
+enable pwb
+source <( pwb_sources pwb_keybinder pwb_print_message )
+
+\(sh Make global array for frequent and varying access:
+declare -a KEYBINDINGS=(
+   \(aq?\(aq       show_help   \(dqShow help\(dq
+   \(aqi\(aq       show_info   \(dqInspect item\(dq
+)
+
+declare KEYMAP
+\fBpwb_keybinder\fR prep KEYBINDINGS -v KEYMAP
+
+declare -a FILES=( * )
+
+declare PHANDLE
+pwb declare PHANDLE FILES \(dq\(Do{\(shFILES[*]}\(dq print_line -e execute_line
+
+pwb init
+
+\(sh Show second of two pwb_keybinder help methods
+show_custom_help
+
+pwb start PHANDLE -a KEYMAP
+pwb restore
+.EE
