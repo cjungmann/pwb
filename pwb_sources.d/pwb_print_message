@@ -47,7 +47,6 @@ pwb_print_message()
         (( ++count ))
     done
 
-
     # Get screen dimensions
     pwb get_dimensions
 
