@@ -546,7 +546,7 @@ PWB_RESULT pwb_action_plot_line(PWBH *handle, ACLONE *args)
    {
       if (row >= 0)
       {
-         // pager_plot_row() calls function 
+         // pager_plot_row() calls function
          pager_plot_row(&handle->dparms, row);
          result = ARV_CONTINUE;
       }
