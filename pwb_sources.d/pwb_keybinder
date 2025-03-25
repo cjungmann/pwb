@@ -81,31 +81,6 @@ pwb_keybinder()
         local -a pksh_lines=()
         pk_get_help_array pksh_lines "$1"
 
-        # dsh_add_line()
-        # {
-        #     printf -v tline $'\e[32;1m%-5s\e[39;22m %s' "$1" "$2"
-        #     pksh_lines+=( "$tline" )
-        # }
-
-        # local -a bindarr
-        # local -n bkey=bindarr[0]
-        # local -n bfunc=bindarr[1]
-        # local -n bdesc=bindarr[2]
-
-        # for el in "${pksh_keybindings[@]}"; do
-        #     case "${#bindarr[*]}" in
-        #         0) bindarr+=( "$el" ) ;;
-        #         1) bindarr+=( "$el" ) ;;
-        #         2) bindarr+=( "$el" )
-        #            if [[ "$bkey" == $'\cm' ]]; then
-        #                bkey="ENTER"
-        #            fi
-        #            dsh_add_line "$bkey" "$bdesc"
-        #            bindarr=()
-        #            ;;
-        #         esac
-        # done
-
         pk_add_help_line pksh_lines "q" "Exit"
 
         pwb_print_message pksh_lines
@@ -162,6 +137,7 @@ pwb_keybinder()
     if pwb_read_args cmd_args arg_names opts_list; then
         case "$subfunction" in
             help) pk_show_help "$keybindings" ;;
+            hlines) pk_get_help_array "$output_variable" "$keybindings" ;;
             prep) pk_prepare_keymap "$output_variable" "$keybindings" ;;
             func) pk_get_function "$output_variable" "$keybindings" "$keypress" ;;
             * ) pk_warn_unrecognized "$subfunction"
