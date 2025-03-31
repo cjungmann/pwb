@@ -22,6 +22,7 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
    KCLASS base_keymap = { 0 };
    KCLASS aux_keymap = { 0 };
    const char *help_flag = NULL;
+   const char *exit_keystroke = NULL;
 
    // Initialize singleton (static) base_keymap only once:
    if (default_keymap.data == NULL)
@@ -51,7 +52,11 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
 
       { (const char **)&aux_keymap, "aux", 'a', AET_VALUE_OPTION,
         "auxiliary keymap to handle keys not handled by the base keymap",
-        "AUXILIARY_KEYMAP", argeater_kclass_setter }
+        "AUXILIARY_KEYMAP", argeater_kclass_setter },
+
+      { &exit_keystroke, "exit_key" 'k', AET_VALUE_OPTION,
+        "Name of variable in which to return the keystroke that ended the interaction",
+        "EXIT_KEY" }
    };
 
    AE_MAP map = INIT_MAP(items);
@@ -94,6 +99,21 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
             const char *keys = get_keystroke(NULL, 0);
             if (keys)
                arv = pwb_run_keystroke(handle, keys, basekm, auxkm);
+         }
+
+         if ( exit_keystroke )
+         {
+            SHELL_VAR *sv = find_variable(exit_keystroke);
+            if (!sv)
+               sv = bind_variable(exit_keystroke, "", 0);
+
+            if (sv)
+            {
+               pwb_dispose_variable_value(sv);
+               sv->value = savestring(keys);
+               if (invisible_p(sv))
+                  VUNSETATTR(sv, att_invisible);
+            }
          }
       }
    }
