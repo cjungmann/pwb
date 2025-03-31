@@ -54,7 +54,7 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
         "auxiliary keymap to handle keys not handled by the base keymap",
         "AUXILIARY_KEYMAP", argeater_kclass_setter },
 
-      { &exit_keystroke, "exit_key" 'k', AET_VALUE_OPTION,
+      { &exit_keystroke, "exit_key", 'k', AET_VALUE_OPTION,
         "Name of variable in which to return the keystroke that ended the interaction",
         "EXIT_KEY" }
    };
@@ -79,6 +79,7 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
          pwbh_calc_borders(handle);
 
          ARV arv = ARV_REPLOT_DATA;
+         const char *keys;
 
          // Sort out which keymaps to use here, outside of the while look
          KCLASS *basekm = NULL;
@@ -96,7 +97,7 @@ PWB_RESULT pwb_action_start(PWBH *handle, ACLONE *args)
             if (arv == ARV_REPLOT_DATA)
                pager_plot(&handle->dparms);
 
-            const char *keys = get_keystroke(NULL, 0);
+            keys = get_keystroke(NULL, 0);
             if (keys)
                arv = pwb_run_keystroke(handle, keys, basekm, auxkm);
          }
