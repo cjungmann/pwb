@@ -61,6 +61,7 @@ print_line()
 
 print_left()
 {
+   \(sh Get scroll bar characters
    pwb get_dimensions PHANDLE
    local -a sb_args=(
       -c \(dq\(Do{PWB_ASSOC[pager_lines]}\(dq
@@ -71,6 +72,10 @@ print_left()
    local -a sb_chars
    pwb_get_scroll_bar sb_chars \(dq\(Do{sb_args[@]}\(dq
 
+   \(sh Align to appropriate column
+   printf \(Do\(aq\(rse[%sG\(aq \(Do(( PWB_ASSOC[margin_left] - 1 ))
+
+   \(sh Print the scroll bar
    local newline=\(dq\(dq
    for char in \(dq\(Do{sb_chars[@]}\(dq; do
       printf \(dq%s%s\(dq \(dq\(Donewline\(dq \(dq\(Dochar\(dq
@@ -90,12 +95,13 @@ print_right()
    local -a sb_chars
    pwb_get_scroll_bar sb_chars \(dq\(Do{sb_args[@]}\(dq
 
-   local -i column=\(Do(( PWB_ASSOC[screen_cols] - PWB_ASSOC[margin_right] + 1 ))
+   local -i column=\(Do(( PWB_ASSOC[screen_cols] - PWB_ASSOC[margin_right] + 2 ))
 
-   local newline=\(dq\(dq
+   \(sh Avoid unwanted newline: don\(aqt print too far to the right:
+   printf \(Do\(aq\(rse[%dG\(aq \(dq\(Docolumn\(dq
    for char in \(dq\(Do{sb_chars[@]}\(dq; do
-      printf \(dq%s%s\(dq \(dq\(Donewline\(dq \(dq\(Dochar\(dq
-      printf -v newline \(Do\(aq\(rse[1B\(rse[%dG\(aq \(dq$column\(dq
+      printf \(dq%s\(dq \(dq\(Dochar\(dq
+      printf \(Do\(aq\(rse[%dG\(rse[1B\(aq \(dq\(Docolumn\(dq
    done
 }
 
@@ -132,7 +138,7 @@ declare -a dargs=(
 
 pwb declare PHANDLE \(dq\(Do{dargs[@]}\(dq
 
-pwb set_margins PHANDLE 1
+pwb set_margins PHANDLE 1 8
 
 pwb init
 pwb start PHANDLE
