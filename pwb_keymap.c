@@ -1,4 +1,5 @@
 #include "pwb_keymap.h"
+#include "pwb_errors.h"
 #include <pager.h>
 #include <argeater.h>
 #include <alloca.h>
@@ -417,6 +418,25 @@ PWB_RESULT pwb_make_kdata_shell_var(const char *name,
    }
    else
       result = PWB_UNKNOWN_VARIABLE;
+
+   if (result)
+   {
+      switch(result)
+      {
+         case PWB_FAILED_KEYMAP_PARSING:
+            (*error_sink)("Failed to parse keymap array %s.", array_name);
+            break;
+         case PWB_INVALID_VARIABLE:
+            (*error_sink)("Invalid element count in array %s.", array_name);
+            break;
+         case PWB_UNKNOWN_VARIABLE:
+            (*error_sink)("'%s' is not a variable name.", array_name);
+            break;
+         default:
+            (*error_sink)("Unexpected error while creating keymap %s.", name);
+            break;
+      }
+   }
 
    return result;
 }
