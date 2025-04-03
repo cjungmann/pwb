@@ -1,0 +1,55 @@
+.so fork.tmac
+.SS START ACTION
+.PP
+The
+.B start
+action sets
+.B pwb
+in motion.
+From this point,
+.B pwb
+will call script functions to construct the screen and
+respond to user input.
+.PP
+If setting margins, be sure the margins are set before calling
+the
+.B start
+action.
+See
+.B SET_MARGINS ACTION
+below.
+.PP
+.pt_start
+.PP
+.B OPTIONS
+.RS 4
+.TP
+.I handle
+is the name of a declared
+.B pwb
+handle.
+.TP
+.BI "-t " top_row
+Integer value specifying the table index of the starting top row
+in the content area.  The default value is 0.
+.TP
+.BI "-f " focus_row
+Integer value specifying the table index of the starting focus row
+in the content area.  The default value is 0.
+.TP
+.BI "-b " base_keymap
+Use the option to specify an alternative to the builtin keymap.
+The default keymap handles navigation between rows, pages, and the
+document using arrow, page, home, and end keys, and terminates upon
+detecting the 'q' key.
+.TP
+.BI "-a " auxiliary_keymap
+Is an optional second keymap that can act on defined keystrokes
+to execute the users' wishes.
+.TP
+.BI "-k " ending_keypress
+If provided,
+.B pwb
+will set this named variable with the keystroke that terminated
+the interaction.
+.RE
