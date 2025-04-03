@@ -45,8 +45,10 @@ pwb_keybinder()
             esac
         done
 
-        pwb declare_keymap "$pkpk_new_keymap_name" pkpk_keymap
-        pwb_exit_on_error
+        if [ "${#pkpk_keymap[*]}" -gt 0 ]; then
+            pwb declare_keymap "$pkpk_new_keymap_name" pkpk_keymap
+            pwb_exit_on_error
+        fi
     }
 
     pk_get_help_array()
