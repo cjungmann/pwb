@@ -20,6 +20,7 @@ pwb_exit_on_error()
                $(( "${BASH_LINENO[0]}" - 1 )) \
                "${BASH_SOURCE[1]}" >&2
         printf -v peoe_lines[1] $'   \e[31;1m%s\e[m' "$PWB_ERROR" >&2
+        printf $'\e[H\e[2J'
         pwb_print_message peoe_lines
         read -sn1
         exit 1
