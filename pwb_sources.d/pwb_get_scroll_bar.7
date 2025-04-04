@@ -10,7 +10,7 @@ enable pwb
 source <( pwb_sources pwb_get_scroll_bar )
 
 .B pwb_get_scroll_bar
-.cli_prototype @array_name !-s:sum_rows !-t:top_row !-v:visible_rows !-c:chars_count
+.cli_prototype @array_name !-s:sum_rows !-t:top_row !-v:visible_rows ?!-c:chars_count
 .SH DESCRIPTION
 .PP
 This function gives you a set of characters to be plotted
@@ -34,9 +34,15 @@ screen detail, the number of lines in the content area.
 .TP
 .BI "-c " chars_count
 is the number of characters with which to fill the array.
+.IP
 For vertical scroll bars, this value would be the same as the
 .B -v
-value.
+value.  In fact, if the
+.B -c
+option is omitted, the value of the
+.B -v
+option will be used in its place.
+.IP
 For horizontal scroll bars, this value would be the width,
 in characters, over which the scroll bar should span.
 .SH EXAMPLE

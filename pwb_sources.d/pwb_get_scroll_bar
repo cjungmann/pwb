@@ -26,6 +26,10 @@ pwb_get_scroll_bar()
    )
 
    if pwb_read_args cmd_args name_args opts_list; then
+       if [ "$total_chars" -eq 0 ]; then
+           total_chars="$visible_rows"
+       fi
+
        local -i handle_width=$(( total_chars * visible_rows / sum_rows ))
        # handle must be at least 1 char
        (( handle_width = ( handle_width < 1 ? 1 : handle_width ) ))
