@@ -630,7 +630,7 @@ PWB_RESULT pwb_action_get_data_count(PWBH *handle, ACLONE *args)
    return result;
 }
 
-PWB_RESULT pwb_action_update_data_count(PWBH *handle, ACLONE *args)
+PWB_RESULT pwb_action_set_data_count(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_SUCCESS;
 
