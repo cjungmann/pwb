@@ -6,7 +6,7 @@
 .SH SYNOPSIS
 .PP
 .B pwb_keybinder
-.cli_prototype @action @binddef_array ?!-v:keybinding_array
+.cli_prototype @action @binddef_array ?!-v:return_value_name ?!-f:keyfunc_array
 .SH DESCRIPTION
 .PP
 This is a code-saving that can handle
@@ -17,7 +17,7 @@ information.
 
 .SH OPTIONS
 .TP
-.B action
+.I action
 determines how the keybinding information will be used.
 The allowed values are
 .BR help ", " hlines ", " prep ", and " func .
@@ -50,9 +50,125 @@ keystroke is matched, the name of the associated function will be
 returned, and the
 .B pwb_keybinder
 function will return 0 (true).
+.IP
+In most cases, use a transformed
+.I binddef_array
+to enable this action to recognize keys that were defined as key
+names instead of ANSI keystroke strings.  See
+.BI "-f " keyfunc_array
+
 .RE
-
-
+.TP
+.I binddef_array
+is an array of values, arranged in groups of three, that define
+the bindings of keys to function to label.  This array is then used
+to prepare a keymap, display a help message, or return the function
+bound to a keystroke.
+.IP
+Look in the
+.B EXAMPLE
+below for how to setup a
+.IR binddef_array ,
+including using keynames as suggested in the
+.BI "-f " keyfunc_array
+option documentation.
+.TP
+.BI "-v " return_value_name
+The name of a variable in which the action's result will be returned.
+This is optional only because the
+.B help
+action doesn't require it.  Look at the
+.I action
+option above to see what each action returns.
+.IP
+For actions that require a
+.IR return_value_name ,
+an error message will display if the name is not provided.
+.TP
+.BI "-f " keyfunc_array
+is an optional array name that, if provided, will be filled with
+an transformed
+.I binddef_array
+that replaces keynames with ANSI keystroke strings.
+.IP
+If provided, use the
+.I keyfunc_array
+with the
+.B func
+action to retrieve functions associated with the ANSI keystrokes
+instead of keynames.
+.IP
+If providing an
+.B -f
+option, use the source
+.I binddef_array
+for generating help messages and use the transformed keybinding
+array for calling the
+.B func
+action.
+.SH KEYNAMES
+.PP
+When using the
+.BI "-f " keyfunc_array
+option, the ANSI string that otherwise would be in the first
+position of a key binding set can be replaces with a long C variable
+names from the
+.B infocmp
+command can be used to identify keys to recognize for specific
+actions.
+The substitutions will be recognized by a string with the
+.I key_
+prefix.
+You can see the defined names by calling:
+.IP
+.EX
+infocmp -1L | grep key_[^=]
+.EE
+.PP
+or by using the
+.B pwb_samples
+script
+.BR pwb_termcap ,
+which also shows the description from the terminfo man page.
+.PP
+Some of the key C variable and special names are not obvious:
+.TS
+tab(|);
+l l.
+key_up|up-arrow key
+key_down|down-arrow key
+key_left|left-arrow key
+key_right|right-arrow key
+key_npage|page down key
+key_ppage|page up key
+key_escape|ESC key
+\(Do\(aq\(rscm\(aq|Enter key
+.TE
+.PP
+In some cases, a leading
+.RB \(aq s \(aq
+can indicate a shifted key.  For example,
+.B key_shome
+refers to pressing a shifted
+.B home
+key.
+Most keys do not have an
+.RB \(aq s \(aq
+variant, however.
+.SS SPECIAL CASE KEYS
+.PP
+The Escape and Enter keys are not included in the
+.B infocmp
+list, so a special case is made for them to be recognized.
+The string
+.B key_escape
+is recognized as the Escape key, and the ANSI string
+.B "\(Do\(aq\(rscm\(aq"
+is recognized as the Enter key.
+as shown in the table above.  For recognizing
+This will be displayed by
+.B pwb_keybinder help
+with the proper name.
 
 .SH EXAMPLE
 .PP
@@ -60,13 +176,13 @@ function will return 0 (true).
 \(sh!/usr/bin/env bash
 show_help()
 {
-   \fBpwb_keybinder\fR help KEYBINDINGS
+   \fBpwb_keybinder help\fR KEYBINDINGS
 }
 
 show_custom_help()
 {
    local -a sh_lines
-   \fBpwb_keybinder\fR hlines KEYBINDINGS -v sh_lines
+   \fBpwb_keybinder hlines\fR KEYBINDINGS -v sh_lines
    sh_lines+=(
       \(dq\(dq
       \(dqPress q to quit\(dq
@@ -103,11 +219,16 @@ execute_line()
    local item=\(dq\(Do{el_dsource[\(Do2]}\(dq
    local phandle=\(dq\(Do4\(dq
 
-   if \fBpwb_keybinder\fR func KEYBINDINGS -v el_func -k \(dq\(Dokeyp\(dq; then
+   local -i ecode=0
+
+   if \fBpwb_keybinder func\fR KEYFUNC -v el_func -k \(dq\(Dokeyp\(dq; then
       \(Doel_func \(dq\(Doitem\(dq
+      ecode=\(dq\(Do?\(dq
       printf \(Do\(aq\(rse[2J\(aq
       pwb print_all \(dq\(Dophandle\(dq
    fi
+
+   return \(dq\(Doecode\(dq
 }
 
 enable pwb
@@ -115,12 +236,15 @@ source <( pwb_sources pwb_keybinder pwb_print_message )
 
 \(sh Make global array for frequent and varying access:
 declare -a KEYBINDINGS=(
-   \(aq?\(aq       show_help   \(dqShow help\(dq
-   \(aqi\(aq       show_info   \(dqInspect item\(dq
+   \(dq?\(dq       show_help   \(dqShow help\(dq
+   \(dqkey_f1\(dq  show_help   \(dqShow help\(dq
+   \(dqi\(dq       show_info   \(dqInspect item\(dq
+   \(Do\(aq\(rscm\(aq    show_info   \(dqInspect item\(dq \(sh Control-M/ENTER KEY
 )
 
 declare KEYMAP
-\fBpwb_keybinder\fR prep KEYBINDINGS -v KEYMAP
+declare -a KEYFUNC
+\fBpwb_keybinder prep\fR KEYBINDINGS -v KEYMAP -f KEYFUNC
 
 declare -a FILES=( * )
 

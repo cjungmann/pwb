@@ -7,7 +7,7 @@
 ## keybindings array to:
 ## - make a keymap
 ## - display a help message
-## - execute the keybinging
+## - execute the keybinding
 ## END_DOC
 
 source <( pwb_sources pwb_read_args pwb_print_message pwb_exit_on_error )
@@ -89,7 +89,7 @@ pwb_keybinder()
     pk_get_help_array()
     {
         if pk_confirm_output "$1"; then
-            local pkgha_lines_name="$1"
+            local -n pkgha_lines="$1"
             local -n pkgha_keybindings="$2"
 
             local -a bindarr
@@ -97,6 +97,9 @@ pwb_keybinder()
             local -n bfunc=bindarr[1]
             local -n bdesc=bindarr[2]
 
+            # First through to get sizes:
+            local -i cur_len max_len=0
+            local bkeyval
             for el in "${pkgha_keybindings[@]}"; do
                 case "${#bindarr[*]}" in
                     0) bindarr+=( "$el" ) ;;
@@ -104,8 +107,33 @@ pwb_keybinder()
                     2) bindarr+=( "$el" )
                        if [[ "$bkey" == $'\cm' ]]; then
                            bkey="ENTER"
+                       elif [[ "$bkey" =~ ^key_(.*)$ ]]; then
+                           bkey="${BASH_REMATCH[1]^^*} key"
                        fi
-                       pk_add_help_line "$pkgha_lines_name" "$bkey" "$bdesc"
+                       bkeyval="$bkey"
+                       cur_len="${#bkeyval}"
+                       (( max_len = ( cur_len > max_len ? cur_len : max_len ) ))
+                       bindarr=()
+                       ;;
+                esac
+            done
+
+            local format
+            printf -v format $'\e[32;1m%%-%ds\e[39;22m %%s' "$max_len"
+
+            bindarr=()
+            for el in "${pkgha_keybindings[@]}"; do
+                case "${#bindarr[*]}" in
+                    0) bindarr+=( "$el" ) ;;
+                    1) bindarr+=( "$el" ) ;;
+                    2) bindarr+=( "$el" )
+                       if [[ "$bkey" == $'\cm' ]]; then
+                           bkey="ENTER"
+                       elif [[ "$bkey" =~ ^key_(.*)$ ]]; then
+                           bkey="${BASH_REMATCH[1]^^*} key"
+                       fi
+                       printf -v tline "$format" "$bkey" "$bdesc"
+                       pkgha_lines+=( "$tline" )
                        bindarr=()
                        ;;
                 esac
@@ -116,11 +144,12 @@ pwb_keybinder()
     pk_show_help()
     {
         local -n pksh_keybindings="$1"
-
         local -a pksh_lines=()
-        pk_get_help_array pksh_lines "$1"
 
-        pk_add_help_line pksh_lines "q" "Exit"
+        local -a pksh_duplicate=( "${pksh_keybindings[@]}" )
+        pksh_duplicate+=( 'q' "" "Exit" )
+
+        pk_get_help_array pksh_lines pksh_duplicate
 
         pwb_print_message pksh_lines
         read -sn1
@@ -178,11 +207,11 @@ pwb_keybinder()
 
     if pwb_read_args cmd_args arg_names opts_list; then
         case "$subfunction" in
-            help) pk_show_help "$keybindings_name" ;;
-            hlines) pk_get_help_array "$output_variable" "$keybindings_name" ;;
-            prep) pk_prepare_keymap "$output_variable" "$keybindings_name" "$keyfuncs_name" ;;
-            func) pk_get_function "$output_variable" "$keybindings_name" "$keypress" "$keyfuncs_name" ;;
-            * ) pk_warn_unrecognized "$subfunction"
+            help)   pk_show_help          "$keybindings_name" ;;
+            hlines) pk_get_help_array     "$output_variable" "$keybindings_name" ;;
+            prep)   pk_prepare_keymap     "$output_variable" "$keybindings_name" "$keyfuncs_name" ;;
+            func)   pk_get_function       "$output_variable" "$keybindings_name" "$keypress" "$keyfuncs_name" ;;
+            * )     pk_warn_unrecognized  "$subfunction"
         esac
     fi
 }
