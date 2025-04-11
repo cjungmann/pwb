@@ -34,9 +34,16 @@ pwb_keybinder()
 
     pk_prepare_keymap()
     {
+        local ppk_infocmp=$( infocmp -L )
+
         if pk_confirm_output "$1"; then
             local pkpk_new_keymap_name="$1"
             local -n pkpk_keybindings="$2"
+
+            # Use array if name provided, or bogus anonymous one if not:
+            local -a empty
+            local -n pkpk_keyfuncs="${3:-empty}"
+            pkpk_keyfuncs=()
 
             local -a bindarr
             local -n bkey=bindarr[0]
@@ -49,7 +56,22 @@ pwb_keybinder()
                     0) bindarr+=( "$el" ) ;;
                     1) bindarr+=( "$el" ) ;;
                     2) bindarr+=( "$el" )
+                       if [[ "${bkey:0:4}" == "key_" ]]; then
+                           if [[ "$bkey" == "key_escape" ]]; then
+                               bkey=$'\e'
+                           elif [[ "$ppk_infocmp" =~ [[:space:]]"$bkey"=([^,]+), ]]; then
+                               bkey="${BASH_REMATCH[1]}"
+                               if [[ "${bkey:0:2}" == "\\E" ]]; then
+                                   printf -v bkey $'\e%s' "${bkey:2}"
+                               fi
+                           else
+                               read -n1 -p "Unrecognized key name '$bkey'"
+                           fi
+                       fi
+
                        pkpk_keymap+=( "$bkey" 7 )
+                       # Append record for keybindings substitute
+                       pkpk_keyfuncs+=( "$bkey" "$bfunc" "" )
                        bindarr=()
                        ;;
                 esac
@@ -108,7 +130,7 @@ pwb_keybinder()
     {
         if pk_confirm_output "$1"; then
             local -n pkgf_func="$1"
-            local -n pkgf_keybindings="$2"
+            local -n pkgf_keybindings="${4:-$2}"
             local pkgf_keyp="$3"
 
             local -a bindarr
@@ -144,12 +166,13 @@ pwb_keybinder()
         read -n1
     }
 
-    local subfunction keybindings_name
+    local subfunction keybindings_name keyfuncs_name
     local output_variable keypress
     local -a cmd_args=( "$@" )
     local -a arg_names=( subfunction keybindings_name )
     local -a opts_list=(
         v+ output_variable
+        f+ keyfuncs_name
         k+ keypress
     )
 
@@ -157,8 +180,8 @@ pwb_keybinder()
         case "$subfunction" in
             help) pk_show_help "$keybindings_name" ;;
             hlines) pk_get_help_array "$output_variable" "$keybindings_name" ;;
-            prep) pk_prepare_keymap "$output_variable" "$keybindings_name" ;;
-            func) pk_get_function "$output_variable" "$keybindings_name" "$keypress" ;;
+            prep) pk_prepare_keymap "$output_variable" "$keybindings_name" "$keyfuncs_name" ;;
+            func) pk_get_function "$output_variable" "$keybindings_name" "$keypress" "$keyfuncs_name" ;;
             * ) pk_warn_unrecognized "$subfunction"
         esac
     fi
