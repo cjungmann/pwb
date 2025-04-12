@@ -115,6 +115,16 @@ PWB_VERB verbs [] = {
      "pwb update_data_count handle_name new_count",
      pwb_action_set_data_count },
 
+   { "get_top_row",
+     "Get row index of top line in content area",
+     "pwb get_top_row handle_name [-v varname]",
+     pwb_action_get_top_row },
+
+   { "get_focus_row",
+     "Get row index of focus line in content area",
+     "pwb get_focus_row handle_name [-v varname]",
+     pwb_action_get_focus_row },
+
    // Move the focus row by relative amount (+/- N) or to
    // to an absolute data-row index
    { "move",

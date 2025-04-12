@@ -87,6 +87,14 @@
 .  B pwb set_data_count
 .  cli_prototype @handle @new_count
 ..
+.de pt_get_top_row
+.  B pwb get_top_row
+.  cli_prototype @handle ?!-v:variable_name
+..
+.de pt_get_focus_row
+.  B pwb get_focus_row
+.  cli_prototype @handle ?!-v:variable_name
+..
 .de pt_trigger
 .  B pwb trigger
 .  cli_prototype @handle @key_action ?@keypress

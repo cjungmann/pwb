@@ -649,3 +649,77 @@ PWB_RESULT pwb_action_set_data_count(PWBH *handle, ACLONE *args)
    return result;
 }
 
+PWB_RESULT pwb_action_get_top_row(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_SUCCESS;
+
+   int value = handle->dparms.index_row_top;
+   // +1 for count of digits, +1 for terminating /0
+   int num_length = value==0?1:(floor(log10(value))+1) + 1;
+   char *buff = alloca(num_length);
+   snprintf(buff, num_length, "%d", value);
+
+   const char *var_name="PWB_VALUE";
+   AE_ITEM items[] = {
+      { &var_name, "var", 'v', AET_VALUE_OPTION,
+        "Alternate to 'PWB_VALUE' for reporting result" }
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      SHELL_VAR *sv = find_variable(var_name);
+      if (!sv)
+         sv = bind_variable(var_name, "", 0);
+
+      if (sv)
+      {
+         pwb_dispose_variable_value(sv);
+         sv->value = savestring(buff);
+
+         if (invisible_p(sv))
+            VUNSETATTR(sv, att_invisible);
+         result = PWB_SUCCESS;
+      }
+   }
+
+   return result;
+}
+
+PWB_RESULT pwb_action_get_focus_row(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_SUCCESS;
+
+   int value = handle->dparms.index_row_focus;
+   // +1 for count of digits, +1 for terminating /0
+   int num_length = value==0?1:(floor(log10(value))+1) + 1;
+   char *buff = alloca(num_length);
+   snprintf(buff, num_length, "%d", value);
+
+   const char *var_name="PWB_VALUE";
+   AE_ITEM items[] = {
+      { &var_name, "var", 'v', AET_VALUE_OPTION,
+        "Alternate to 'PWB_VALUE' for reporting result" }
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      SHELL_VAR *sv = find_variable(var_name);
+      if (!sv)
+         sv = bind_variable(var_name, "", 0);
+
+      if (sv)
+      {
+         pwb_dispose_variable_value(sv);
+         sv->value = savestring(buff);
+
+         if (invisible_p(sv))
+            VUNSETATTR(sv, att_invisible);
+         result = PWB_SUCCESS;
+      }
+   }
+
+   return result;
+}
+
