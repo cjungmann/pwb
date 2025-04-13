@@ -192,10 +192,8 @@ PWB_RESULT pwb_action_measure_string(PWBH *handle, ACLONE *args)
 
          // Don't attempt log10 on a zero value, but
          // make sure there's room for a '0'
-         int num_length = count==0?1:(floor(log10(count))+1);
+         int num_length = (count==0?1:(floor(log10(count))+1)) + 1;
 
-         // Room for \0 terminator
-         ++num_length;
          char *buff = xmalloc(num_length);
          if (buff)
          {
@@ -599,7 +597,7 @@ PWB_RESULT pwb_action_get_data_count(PWBH *handle, ACLONE *args)
 
    int count = handle->dparms.row_count;
    // +1 for count of digits, +1 for terminating /0
-   int num_length = count==0?1:(floor(log10(count))+1) + 1;
+   int num_length = (count==0?1:(floor(log10(count))+1)) + 1;
    char *buff = alloca(num_length);
    snprintf(buff, num_length, "%d", count);
 
@@ -655,7 +653,7 @@ PWB_RESULT pwb_action_get_top_row(PWBH *handle, ACLONE *args)
 
    int value = handle->dparms.index_row_top;
    // +1 for count of digits, +1 for terminating /0
-   int num_length = value==0?1:(floor(log10(value))+1) + 1;
+   int num_length = (value==0?1:(floor(log10(value))+1)) + 1;
    char *buff = alloca(num_length);
    snprintf(buff, num_length, "%d", value);
 
@@ -692,7 +690,7 @@ PWB_RESULT pwb_action_get_focus_row(PWBH *handle, ACLONE *args)
 
    int value = handle->dparms.index_row_focus;
    // +1 for count of digits, +1 for terminating /0
-   int num_length = value==0?1:(floor(log10(value))+1) + 1;
+   int num_length = (value==0?1:(floor(log10(value))+1)) + 1;
    char *buff = alloca(num_length);
    snprintf(buff, num_length, "%d", value);
 
