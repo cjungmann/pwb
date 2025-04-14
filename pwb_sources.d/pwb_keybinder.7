@@ -28,6 +28,12 @@ Generates a help message from the keybinding array.  It will
 add a
 .B q
 for help line and wait for a user response.
+.IP
+If the call includes a
+.BR "-v \fIreturn_value_name\fP" ,
+the keypress that terminated the dialog will be returned in that
+variable for consideration.  That usually means the script can
+execute the command if it's one of the keybindings.
 .TP
 .B hlines
 Returns an array of lines that can be used with
@@ -157,18 +163,15 @@ Most keys do not have an
 variant, however.
 .SS SPECIAL CASE KEYS
 .PP
-The Escape and Enter keys are not included in the
-.B infocmp
-list, so a special case is made for them to be recognized.
-The string
-.B key_escape
-is recognized as the Escape key, and the ANSI string
-.B "\(Do\(aq\(rscm\(aq"
-is recognized as the Enter key.
-as shown in the table above.  For recognizing
-This will be displayed by
-.B pwb_keybinder help
-with the proper name.
+The terminfo entries do not include either the Escape key or the
+main Enter key
+.RB ( key_enter
+refers to the keypad Enter key).
+.B pwb_keybinder
+will recognize these keys with variable names
+.BR key_escape " and " \(Do\(aq\(rscm\(aq
+as shown in the table, providing the appropriate ANSI value and
+label string where needed.
 
 .SH EXAMPLE
 .PP
