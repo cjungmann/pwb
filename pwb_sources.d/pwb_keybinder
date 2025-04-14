@@ -152,7 +152,12 @@ pwb_keybinder()
         pk_get_help_array pksh_lines pksh_duplicate
 
         pwb_print_message pksh_lines
-        read -sn1
+
+        if [ "$#" -gt 1 ]; then
+            pwb get_keystroke -v "$2"
+        else
+            pwb get_keystroke
+        fi
     }
 
     pk_get_function()
@@ -195,6 +200,10 @@ pwb_keybinder()
         read -n1
     }
 
+    ############################
+    ###   EXECUTION BEGINS   ###
+    ############################
+
     local subfunction keybindings_name keyfuncs_name
     local output_variable keypress
     local -a cmd_args=( "$@" )
@@ -207,11 +216,37 @@ pwb_keybinder()
 
     if pwb_read_args cmd_args arg_names opts_list; then
         case "$subfunction" in
-            help)   pk_show_help          "$keybindings_name" ;;
-            hlines) pk_get_help_array     "$output_variable" "$keybindings_name" ;;
-            prep)   pk_prepare_keymap     "$output_variable" "$keybindings_name" "$keyfuncs_name" ;;
-            func)   pk_get_function       "$output_variable" "$keybindings_name" "$keypress" "$keyfuncs_name" ;;
-            * )     pk_warn_unrecognized  "$subfunction"
+            help)
+                pk_show_help \
+                    "$keybindings_name" \
+                    "$output_variable"
+                ;;
+
+            hlines)
+                pk_get_help_array \
+                    "$output_variable" \
+                    "$keybindings_name"
+                ;;
+
+            prep)
+                pk_prepare_keymap \
+                    "$output_variable" \
+                    "$keybindings_name" \
+                    "$keyfuncs_name"
+                ;;
+
+            func)
+                pk_get_function \
+                    "$output_variable" \
+                    "$keybindings_name" \
+                    "$keypress" \
+                    "$keyfuncs_name"
+                ;;
+
+            * )
+                pk_warn_unrecognized \
+                    "$subfunction"
+                ;;
         esac
     fi
 }
