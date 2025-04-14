@@ -66,10 +66,29 @@ names instead of ANSI keystroke strings.  See
 .RE
 .TP
 .I binddef_array
-is an array of values, arranged in groups of three, that define
-the bindings of keys to function to label.  This array is then used
-to prepare a keymap, display a help message, or return the function
-bound to a keystroke.
+is an array of values, arranged in groups of three
+.RI ( key ", " function ", and " label ),
+that define a key binding.
+This array is then used to prepare a keymap, display a help message,
+or return the function bound to a keystroke.
+.IP
+The
+.I key
+value can be a single character, an ANSI string, or a key's
+C variable name as defined in
+.BR terminfo (5),
+such as
+.BR key_f1 " or " key_npage .
+.IP
+The
+.I function
+value is the name of the function that should be called when the
+associated key is pressed.
+.IP
+The
+.I label
+value is a string to use in the help display to describe the key.
+
 .IP
 Look in the
 .B EXAMPLE
@@ -112,23 +131,27 @@ for generating help messages and use the transformed keybinding
 array for calling the
 .B func
 action.
-.SH KEYNAMES
+.SH USING KEYNAMES
 .PP
-When using the
+It is a tedious and error-exposed process to look up and type in
+the ANSI strings associated with the non-character keys.  It is far
+easier to use key names.
+.PP
+However, if key names are used, it will be necessary to also use the
 .BI "-f " keyfunc_array
-option, the ANSI string that otherwise would be in the first
-position of a key binding set can be replaces with a long C variable
-names from the
+option to generate a key array with the ANSI strings that are needed
+for the
+.B func
+action.
+.PP
+Look up the key names in the
+.BR terminfo (5)
+man page or by using the
 .B infocmp
-command can be used to identify keys to recognize for specific
-actions.
-The substitutions will be recognized by a string with the
-.I key_
-prefix.
-You can see the defined names by calling:
+command.  Get the list of recognized key names with:
 .IP
 .EX
-infocmp -1L | grep key_[^=]
+infocmp -1L | grep key_[^=]+
 .EE
 .PP
 or by using the
@@ -224,7 +247,7 @@ execute_line()
 
    local -i ecode=0
 
-   if \fBpwb_keybinder func\fR KEYFUNC -v el_func -k \(dq\(Dokeyp\(dq; then
+   if \fBpwb_keybinder func\fR KEYFUNCS -v el_func -k \(dq\(Dokeyp\(dq; then
       \(Doel_func \(dq\(Doitem\(dq
       ecode=\(dq\(Do?\(dq
       printf \(Do\(aq\(rse[2J\(aq
@@ -246,8 +269,8 @@ declare -a KEYBINDINGS=(
 )
 
 declare KEYMAP
-declare -a KEYFUNC
-\fBpwb_keybinder prep\fR KEYBINDINGS -v KEYMAP -f KEYFUNC
+declare -a KEYFUNCS
+\fBpwb_keybinder prep\fR KEYBINDINGS -v KEYMAP -f KEYFUNCS
 
 declare -a FILES=( * )
 
