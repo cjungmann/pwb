@@ -11,14 +11,6 @@ From this point,
 will call script functions to construct the screen and
 respond to user input.
 .PP
-If setting margins, be sure the margins are set before calling
-the
-.B start
-action.
-See
-.B SET_MARGINS ACTION
-below.
-.PP
 .pt_start
 .PP
 .B OPTIONS
@@ -52,4 +44,29 @@ If provided,
 .B pwb
 will set this named variable with the keystroke that terminated
 the interaction.
+.RE
+.B NOTES
+.RS 4
+.TP
+.B Margins
+If setting margins, it is advised to set the margins before calling
+the
+.B start
+action.
+If the margins are changed after calling
+.BR "pwb start" ,
+follow
+.BR "pwb set_margins " with " pwb print_all"
+to align the content to the updated settings.
+See
+.B SET_MARGINS ACTION
+below.
+.TP
+.B Empty Data Source
+Calling
+.B pwb start
+with an empty data source will result in a blank screen.  The best
+practice, if an empty data source is possible, is to recognize the
+empty data and display a explanation instead of calling
+.BR "pwb start" .
 .RE
