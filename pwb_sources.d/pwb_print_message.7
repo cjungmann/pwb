@@ -3,6 +3,14 @@
 .SH NAME
 .B pwb_print_message
 \- script source for printing printing a bordered message from an array of text.
+.SH SYNOPSIS
+enable pwb
+.br
+source <( pwb_sources pwb_print_message )
+
+.B pwb_print_message
+.cli_prototype @array_name \
+   ?!-a:erase_dimensions
 .SH DESCRIPTION
 .PP
 The sourced function
@@ -35,14 +43,6 @@ It is up to the developer to ensure the contents will fit on the
 screen.
 .B pwb_print_message
 neither checks if the text fits nor truncates lines that are too long.
-.SH SYNOPSIS
-enable pwb
-.br
-source <( pwb_sources pwb_conduct_dialog )
-
-.B pwb_conduct_dialog
-.cli_prototype @array_name \
-   ?!-a:erase_dimensions
 .SH OPTIONS
 .TP
 .I array_name
