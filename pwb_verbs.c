@@ -125,6 +125,11 @@ PWB_VERB verbs [] = {
      "pwb get_focus_row handle_name [-v varname]",
      pwb_action_get_focus_row },
 
+   { "set_focus_row",
+     "Set row index of focus and/or top line in content area",
+     "pwb get_focus_row handle_name [-f focus_row] [-t top_row]",
+     pwb_action_set_focus_row },
+
    // Move the focus row by relative amount (+/- N) or to
    // to an absolute data-row index
    { "move",

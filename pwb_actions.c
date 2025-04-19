@@ -721,3 +721,38 @@ PWB_RESULT pwb_action_get_focus_row(PWBH *handle, ACLONE *args)
    return result;
 }
 
+PWB_RESULT pwb_action_set_focus_row(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_SUCCESS;
+
+   int index_focus = -1;
+   int index_top = -1;
+
+   AE_ITEM items[] = {
+      { (const char **)&index_focus, "focus", 'f', AET_ARGUMENT,
+        "index of desired focus row", NULL, pwb_argeater_int_setter },
+      { (const char **)&index_top, "top", 't', AET_ARGUMENT,
+        "index of desired top row", NULL, pwb_argeater_int_setter },
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      if ( index_focus >  handle->dparms.row_count )
+      {
+         (*error_sink)("Requested focus index %d is out of range of %d rows.",
+                       index_focus, handle->dparms.row_count );
+         result = PWB_FAILURE;
+      }
+      if ( index_top >  handle->dparms.row_count )
+      {
+         (*error_sink)("Requested top index %d is out of range of %d rows.",
+                       index_top, handle->dparms.row_count );
+         result = PWB_FAILURE;
+      }
+
+      pager_set_focus(&handle->dparms, index_focus, index_top);
+   }
+
+   return result;
+}

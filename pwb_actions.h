@@ -28,6 +28,7 @@ PWB_RESULT pwb_action_get_data_count(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_set_data_count(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_get_top_row(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_get_focus_row(PWBH *handle, ACLONE *args);
+PWB_RESULT pwb_action_set_focus_row(PWBH *handle, ACLONE *args);
 
 PWB_RESULT pwb_action_erase_head(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_erase_foot(PWBH *handle, ACLONE *args);
