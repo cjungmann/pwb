@@ -95,6 +95,10 @@
 .  B pwb get_focus_row
 .  cli_prototype @handle ?!-v:variable_name
 ..
+.de pt_set_focus_row
+.  B pwb set_focus_row
+.  cli_prototype @handle ?!-f:focus_index ?!-t:top_index
+..
 .de pt_trigger
 .  B pwb trigger
 .  cli_prototype @handle @key_action ?@keypress
