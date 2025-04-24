@@ -13,12 +13,14 @@ pwb_print_array()
 {
     confirm_array_name()
     {
-        local output
-        if output=$( declare -p "$1" 2>/dev/null ); then
-            if [[ "$output" =~ ^declare\ .a ]]; then
+        if [ "$#" -gt 0 ]; then
+            local -n can_var="$1"
+            if [ -v can_var[0] ]; then
                 return 0
             else
-                echo "Argument '$1' is not an array name"
+                echo "Argument '$1' is empty or not an array"
+                local IFS=$'\u257E'
+                read -n1 -p "callstack is '${FUNCNAME[*]}'"
             fi
         else
             echo "Missing '$1' argument"
