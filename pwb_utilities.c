@@ -1,5 +1,5 @@
-#include <string.h>
 #include "pwb_utilities.h"
+#include <string.h>
 
 /**
  * @brief Returns memory required to save a string, 0 if NULL
@@ -50,4 +50,106 @@ bool pack_string_in_block(const char **string,
    }
 
    return true;
+}
+
+bool add_var_attribute(char **ptr, char *ptr_end, int *byte_count, const char *value)
+{
+   bool retval = true;
+
+   int temp_len = strlen(value);
+
+   if (*ptr)
+   {
+      char *lptr= *ptr;
+
+      if (lptr + temp_len < ptr_end)
+      {
+         // Only add space IFS if not first attribute
+         if (*byte_count > 0)
+            *lptr++ = ' ';
+
+         memcpy(lptr, value, temp_len);
+         lptr += temp_len;
+
+         // Update source pointer
+         *ptr = lptr;
+      }
+      else
+         retval = false;
+   }
+
+   *byte_count += temp_len + ( (*byte_count > 0) ? 1 : 0 );
+
+   return retval;
+}
+
+int get_var_attributes(char *buffer, int bufflen, SHELL_VAR *sv)
+{
+   int bytes_tally = 0;
+
+   char *ptr = buffer;
+   // Reserve end-type for a '\0'
+   char *ptr_end = ptr + bufflen - 1;
+
+   if (sv)
+   {
+      const char *attr_str = "generic";
+      if (array_p(sv))
+         attr_str = "array";
+      else if (integer_p(sv))
+         attr_str = "integer";
+      else if (assoc_p(sv))
+         attr_str = "associative";
+      else if (function_p(sv))
+         attr_str = "function";
+
+      if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, attr_str))
+         goto out_of_memory;
+
+      if (exported_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "exported"))
+            goto out_of_memory;
+
+      if (local_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "local"))
+            goto out_of_memory;
+
+      if (readonly_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "readonly"))
+            goto out_of_memory;
+
+      if (uppercase_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "uppercase"))
+            goto out_of_memory;
+
+      if (lowercase_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "lowercase"))
+            goto out_of_memory;
+
+      if (capcase_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "capcase"))
+            goto out_of_memory;
+
+      if (nameref_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "nameref"))
+            goto out_of_memory;
+
+      if (trace_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "trace"))
+            goto out_of_memory;
+
+      if (invisible_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "invisible"))
+            goto out_of_memory;
+
+      if (specialvar_p(sv))
+         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "special"))
+            goto out_of_memory;
+   }
+
+  out_of_memory:
+   if (ptr && ptr <= ptr_end)
+      *ptr = '\0';
+
+   return bytes_tally + 1;
 }

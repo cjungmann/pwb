@@ -11,6 +11,7 @@
 #include "pwb_errors.h"
 #include "pwb_argeater.h"
 #include "pwb_keymap.h"
+#include "pwb_utilities.h"
 
 void print_the_word_list(WORD_LIST *wl)
 {
@@ -255,6 +256,67 @@ PWB_RESULT pwb_action_get_keystroke(PWBH *handle, ACLONE *args)
 
    return result;
 }
+
+PWB_RESULT pwb_action_audit_var(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_SUCCESS;
+
+   const char *var_name = NULL;
+   const char *var_output = "PWB_VALUE";
+   AE_ITEM items[] = {
+      { &var_name, "name", '\0', AET_ARGUMENT,
+        "name of variable whose attributes are to be revealed" },
+      { &var_output, "var", 'v', AET_VALUE_OPTION,
+        "Alternate to 'PWB_VALUE' for reporting result" }
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      SHELL_VAR *sv = find_variable(var_name);
+      if (sv)
+      {
+         SHELL_VAR *sv_out = find_variable(var_output);
+         if (!sv_out)
+            sv_out = bind_variable(var_output, "", 0);
+
+         if (sv_out)
+         {
+            // Collect and report important attributes:
+            int bufflen = get_var_attributes(NULL, 0, sv);
+            char *buff = xmalloc(bufflen);
+
+            if (bufflen == get_var_attributes(buff, bufflen, sv))
+            {
+               // Attach report to output variable:
+               pwb_dispose_variable_value(sv_out);
+               sv_out->value = buff;
+               if (invisible_p(sv_out))
+                  VUNSETATTR(sv_out, att_invisible);
+               result = PWB_SUCCESS;
+            }
+            else
+            {
+               (*error_sink)("Miscalculated memory requirements for '%s'", var_name);
+               result = PWB_FAILURE;
+            }
+         }
+         else
+         {
+            (*error_sink)("unable to secure variable '%s'", var_output);
+            result = PWB_FAILURE;
+         }
+      }
+      else
+      {
+         (*error_sink)("variable '%s' is unavailable", var_name);
+         result = PWB_FAILURE;
+      }
+   }
+
+   return result;
+}
+
 
 PWB_RESULT pwb_action_init(PWBH *handle, ACLONE *args)
 {

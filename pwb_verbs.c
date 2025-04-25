@@ -55,6 +55,11 @@ PWB_VERB verbs [] = {
      "pwb get_keystroke",
      pwb_action_get_keystroke },
 
+   { "audit_var",
+     "Return list of attributes",
+     "pwb audit_var",
+     pwb_action_audit_var },
+
    { "get_dimensions",
      "get screen, margin, and window dimensions",
      "pwb git_dimensions handle_name [associative_array_name]",
