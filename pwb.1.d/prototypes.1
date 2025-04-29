@@ -42,6 +42,10 @@
 .  B pwb get_keystroke
 .  cli_prototype ?!-v:variable_name
 ..
+.de pt_audit_var
+.  B pwb audit_var
+.  cli_prototype @variable_name ?!-a:attributes ?!-c:context
+..
 .de pt_declare_keymap
 .  B pwb declare_keymap
 .  cli_prototype @new_keymap_name @array_name

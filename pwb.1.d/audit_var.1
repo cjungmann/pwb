@@ -1,0 +1,78 @@
+.so fork.tmac
+.SS AUDIT_VAR ACTION
+.PP
+Get details about a variable for type-confirmation and debugging
+purposes.  Fast and more direct that parsing the output of
+.BR "declare -p" .
+The action returns a space-delimited string of values associated
+with the named variable, starting with the variable type and
+optionally including attributes or the context number.
+.PP
+.pt_audit_var
+.PP
+.B Arguments
+.RS 4
+.TP
+.I variable_name
+name of the variable to be audited.
+.TP
+.BI "-a " attributes
+will add attribute strings after the type name.  See
+.B Returned String
+below.
+.TP
+.BI "-c " context
+will add a context number after the type name. See
+.B Returned String
+below.
+.RE
+.PP
+.B Returned String
+.RS
+.PP
+The returned string will consist of one or more words and a number,
+separated by spaces.  Query the string directly with a regular
+expression, or turn it into an array with string-splitting.
+.IP
+.EX
+pwb audit_var BASH_ARGV -ac
+read -r -a audit_arr <<< \(dq\(Do{PWB_VALUE}\(dq
+.EE
+.PP
+The returned string will always start with the variable type.
+The reported variable types are:
+.BR generic ", " integer ", " array ", and " "associative array" .
+An associative array will be identified as simply
+.RB \(lq associative \(rq.
+If the variable cannot be found, the exit code with be 1 and the
+returned string will be 
+.RB \(lq missing \(rq.
+.PP
+Using options
+.BR -a " and " -c
+will cause additional values to follow the variable type name.
+.PP
+Option
+.BR -c 
+will return a context number immediately after the type name.
+This value indicates the scope where the variable was declared.
+Unless shadowed by a synonymous local variable, Bash variables are
+visible to inner scopes.  The ability to read the context of a
+variable may help explain unexpected values in recursive functions.
+.PP
+Option
+.B -a
+will add attribute status strings after the type name and the
+context number if used. The possible attribute status strings
+are
+.BR export ", " local ", " readonly ", " uppercase ", " lowercase ", "
+.BR capcase ", " nameref ", " trace ", "
+which are set with option flags when declaring the variable.
+Additional internal attributes
+.BR invisible ", " imported ", and " special
+are not available through other means.
+.BR Invisible ,
+in particular, may be useful.  A variable will be
+.B invisible
+if it was declared but not yet assigned a value.
+.RE
