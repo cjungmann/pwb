@@ -263,33 +263,55 @@ PWB_RESULT pwb_action_audit_var(PWBH *handle, ACLONE *args)
 
    const char *var_name = NULL;
    const char *var_output = "PWB_VALUE";
+   bool include_context = false;
+   bool include_attributes = false;
+
    AE_ITEM items[] = {
       { &var_name, "name", '\0', AET_ARGUMENT,
         "name of variable whose attributes are to be revealed" },
       { &var_output, "var", 'v', AET_VALUE_OPTION,
-        "Alternate to 'PWB_VALUE' for reporting result" }
+        "Alternate to 'PWB_VALUE' for reporting result" },
+      { (const char**)&include_attributes, "attributes", 'a', AET_FLAG_OPTION,
+        "Include variable attributes", NULL, argeater_bool_setter },
+      { (const char **)&include_context, "context", 'c', AET_FLAG_OPTION,
+        "Include variable context number", NULL, argeater_bool_setter }
    };
 
    AE_MAP map = INIT_MAP(items);
    if (argeater_process(args, &map))
    {
-      SHELL_VAR *sv = find_variable(var_name);
-      if (sv)
-      {
-         SHELL_VAR *sv_out = find_variable(var_output);
-         if (!sv_out)
-            sv_out = bind_variable(var_output, "", 0);
+      SHELL_VAR *sv_out = find_variable(var_output);
+      if (!sv_out)
+         sv_out = bind_variable(var_output, "", 0);
 
-         if (sv_out)
+      if (!sv_out)
+      {
+         (*error_sink)("unable to secure variable '%s'", var_output);
+         result = PWB_FAILURE;
+      }
+      else
+      {
+         // Remove residual value
+         pwb_dispose_variable_value(sv_out);
+
+         SHELL_VAR *sv = find_variable(var_name);
+         if (sv)
          {
             // Collect and report important attributes:
-            int bufflen = get_var_attributes(NULL, 0, sv);
+            int bufflen = get_var_parameters(NULL,
+                                             0,
+                                             sv,
+                                             include_context,
+                                             include_attributes);
             char *buff = xmalloc(bufflen);
 
-            if (bufflen == get_var_attributes(buff, bufflen, sv))
+            if (bufflen == get_var_parameters(buff,
+                                              bufflen,
+                                              sv,
+                                              include_context,
+                                              include_attributes))
             {
                // Attach report to output variable:
-               pwb_dispose_variable_value(sv_out);
                sv_out->value = buff;
                if (invisible_p(sv_out))
                   VUNSETATTR(sv_out, att_invisible);
@@ -297,20 +319,17 @@ PWB_RESULT pwb_action_audit_var(PWBH *handle, ACLONE *args)
             }
             else
             {
+               sv_out->value = savestring("error");
                (*error_sink)("Miscalculated memory requirements for '%s'", var_name);
                result = PWB_FAILURE;
             }
          }
          else
          {
-            (*error_sink)("unable to secure variable '%s'", var_output);
+            sv_out->value = savestring("error");
+            (*error_sink)("variable '%s' is unavailable", var_name);
             result = PWB_FAILURE;
          }
-      }
-      else
-      {
-         (*error_sink)("variable '%s' is unavailable", var_name);
-         result = PWB_FAILURE;
       }
    }
 
