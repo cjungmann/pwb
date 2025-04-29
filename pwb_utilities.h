@@ -11,6 +11,10 @@ bool pack_string_in_block(const char **string,
                           char *buff_limit,
                           const char *value);
 
-int get_var_attributes(char *buffer, int bufflen, SHELL_VAR *sv);
+int get_var_parameters(char *buffer,
+                       int bufflen,
+                       SHELL_VAR *sv,
+                       bool include_context,
+                       bool include_attributes);
 
 #endif
