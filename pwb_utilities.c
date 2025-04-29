@@ -1,5 +1,7 @@
 #include "pwb_utilities.h"
 #include <string.h>
+#include <math.h>    // for log10
+#include <stdio.h>   // for snprintf
 
 /**
  * @brief Returns memory required to save a string, 0 if NULL
@@ -83,13 +85,16 @@ bool add_var_attribute(char **ptr, char *ptr_end, int *byte_count, const char *v
    return retval;
 }
 
-int get_var_attributes(char *buffer, int bufflen, SHELL_VAR *sv)
+int get_var_parameters(char *buffer,
+                       int bufflen,
+                       SHELL_VAR *sv,
+                       bool include_context,
+                       bool include_attributes)
 {
    int bytes_tally = 0;
 
    char *ptr = buffer;
-   // Reserve end-type for a '\0'
-   char *ptr_end = ptr + bufflen - 1;
+   char *ptr_end = ptr + bufflen;
 
    if (sv)
    {
@@ -106,49 +111,55 @@ int get_var_attributes(char *buffer, int bufflen, SHELL_VAR *sv)
       if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, attr_str))
          goto out_of_memory;
 
-      if (exported_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "exported"))
-            goto out_of_memory;
+      if (include_context)
+      {
+         if (ptr && ptr < ptr_end)
+         {
+            // leave room for terminating '\0'.  It won't be counted,
+            // it will be later overwriten, but it allows a single
+            // digit to be printed
+            int pcount = snprintf(ptr, 1+ptr_end-ptr, " %d", sv->context);
+            ptr += pcount;
+            bytes_tally += pcount;
+         }
+         else
+            bytes_tally += 1 + ( sv->context==0?1:(floor(log10(sv->context))+1) );
+      }
 
-      if (local_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "local"))
-            goto out_of_memory;
+      struct ATT_TABLE { int flag; const char *label; };
 
-      if (readonly_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "readonly"))
-            goto out_of_memory;
+      // The 'att_' prefix flags are found in Bash source file variables.h
+      // att_table and att_count won't change after loading:
+      const static struct ATT_TABLE att_table[] = {
+         { att_exported,  "export"    },
+         { att_readonly,  "readonly"  },
+         { att_local,     "local"     },
+         { att_trace,     "trace"     },
+         { att_uppercase, "uppercase" },
+         { att_lowercase, "lowercase" },
+         { att_nameref,   "nameref"   },
+         { att_invisible, "invisible" },
+         { att_imported,  "imported"  },
+         { att_special,   "special"   }
+      };
+      static int att_count = sizeof(att_table) / sizeof(struct ATT_TABLE);
 
-      if (uppercase_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "uppercase"))
-            goto out_of_memory;
-
-      if (lowercase_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "lowercase"))
-            goto out_of_memory;
-
-      if (capcase_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "capcase"))
-            goto out_of_memory;
-
-      if (nameref_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "nameref"))
-            goto out_of_memory;
-
-      if (trace_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "trace"))
-            goto out_of_memory;
-
-      if (invisible_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "invisible"))
-            goto out_of_memory;
-
-      if (specialvar_p(sv))
-         if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, "special"))
-            goto out_of_memory;
+      if (include_attributes)
+      {
+         const struct ATT_TABLE *tptr = att_table;
+         const struct ATT_TABLE *tend = tptr + att_count;
+         while ( tptr < tend )
+         {
+            if (sv->attributes & tptr->flag)
+               if (! add_var_attribute(&ptr, ptr_end, &bytes_tally, tptr->label ))
+                  goto out_of_memory;
+            ++tptr;
+         }
+      }
    }
 
   out_of_memory:
-   if (ptr && ptr <= ptr_end)
+   if (ptr && ptr < ptr_end)
       *ptr = '\0';
 
    return bytes_tally + 1;
