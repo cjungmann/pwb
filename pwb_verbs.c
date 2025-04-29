@@ -56,7 +56,7 @@ PWB_VERB verbs [] = {
      pwb_action_get_keystroke },
 
    { "audit_var",
-     "Return list of attributes",
+     "Return information about variable",
      "pwb audit_var",
      pwb_action_audit_var },
 
