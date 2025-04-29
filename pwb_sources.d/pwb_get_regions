@@ -50,11 +50,10 @@ pwb_get_regions()
         fi
         if [ -n "$assoc_array_name" ]; then
             local pline
-            if pline=$( declare -p "$assoc_array_name" ); then
-                if [[ "$pline" =~ ^declare\ -A\ "$assoc_array_name"$ ]]; then
+            if pwb audit_var "$assoc_array_name"; then
+                if [[ "$PWB_VALUE" == "associative" ]]; then
                     good_array=1
                 fi
-
             fi
         fi
 
