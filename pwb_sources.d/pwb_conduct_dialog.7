@@ -12,7 +12,8 @@ source <( pwb_sources pwb_conduct_dialog )
 .cli_prototype @array_name \
    ?@pwb_handle      \
    ?!-a:keys_allowed \
-   ?!-r:keyp_return
+   ?!-r:keyp_return  \
+   ?!-j:l|c|r
 .SH DESCRIPTION
 .PP
 The sourced function
@@ -62,6 +63,15 @@ If this option is omitted, any key will terminate the dialog.
 .BI "-r " keyp_return
 optional variable name argument.  If included, it will, upon return
 from the function,  contain the the keystroke the terminated the dialog.
+.TP
+.BI "-j " justification
+.RB \(lq l \(rq
+for text to be printed left-justified,
+.RB \(lq c \(rq
+for centered, and
+.RB \(lq r \(rq
+for right-justified.
+The default output is left-justified.
 .SH EXAMPLE
 .PP
 .EX

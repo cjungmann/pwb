@@ -32,12 +32,14 @@ source <( pwb_sources \
 pwb_conduct_dialog()
 {
     local lines_array pwb_handle keys_allowed keyp_return
+    local justify="left"
 
     local -a cmd_args=( "$@" )
     local -a names_array=( lines_array pwb_handle )
     local -a opts_list=(
         r+ keyp_return
         a+ keys_allowed
+        j+ justify
     )
 
     local -a emptya=()
@@ -71,7 +73,7 @@ pwb_conduct_dialog()
     local -n pcd_return="${keyp_return:-keyp_return}"
 
     local -a pcd_dims
-    pwb_print_message -a pcd_dims "$lines_array"
+    pwb_print_message -a pcd_dims -j "$justify" "$lines_array"
 
     while :; do
         pwb get_keystroke -v KEYSTROKE

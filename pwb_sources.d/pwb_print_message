@@ -22,12 +22,13 @@ declare PSM_CHAR_LR=$'\u2518'
 
 pwb_print_message()
 {
-    local lines_name dims_name
+    local lines_name dims_name justify="l"
 
     local -a cmd_args=( "$@" )
     local -a names_array=( lines_name )
     local -a opts_list=(
         a+  dims_name
+        j+  justify
     )
 
     # Parse args, return if calling for usage info only
@@ -46,6 +47,33 @@ pwb_print_message()
         (( maxlen = curlen>maxlen ? curlen : maxlen ))
         (( ++count ))
     done
+
+    local lines_name="ppm_lines"
+
+    local -a just_lines
+    local jletter="${justify:0:1}"
+    if [[ "cr" =~ "$jletter" ]]; then
+        local -i indent
+        for ppm_line in "${ppm_lines[@]}"; do
+            pwb measure_string -v curlen "$ppm_line"
+            if (( curlen < maxlen )); then
+                if [[ "$jletter" == 'c' ]]; then
+                    (( indent = (maxlen + curlen) / 2 ))
+                else
+                    indent="$maxlen"
+                fi
+
+                printf -v just_lines[${#just_lines[*]}] \
+                       "%*.*s" "$indent" "$indent" "$ppm_line"
+            else
+                just_lines+=( "$ppm_line" )
+            fi
+        done
+
+        lines_name="just_lines"
+    fi
+
+    local -n use_lines="$lines_name"
 
     # Get screen dimensions
     pwb get_dimensions
@@ -71,10 +99,10 @@ pwb_print_message()
     printf "%s" "${scratch// /$PSM_CHAR_HORZ}"
 
     # print contents
-    for ppm_line in "${ppm_lines[@]}"; do
+    for print_line in "${use_lines[@]}"; do
         printf "%s" "$lf_position"
         printf "$PSM_CHAR_VERT"
-        pwb limit_print "$maxlen" "$ppm_line"
+        pwb limit_print "$maxlen" "$print_line"
         printf "%s" "$right_border"
     done
 

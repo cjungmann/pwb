@@ -10,7 +10,8 @@ source <( pwb_sources pwb_print_message )
 
 .B pwb_print_message
 .cli_prototype @array_name \
-   ?!-a:erase_dimensions
+   ?!-a:erase_dimensions   \
+   ?!-j:l|c|r
 .SH DESCRIPTION
 .PP
 The sourced function
@@ -62,6 +63,15 @@ cannot recover what had been displayed under the message.
 Use
 .B pwb print_all
 to reprint the full page, minding margins if necessary.
+.TP
+.BI "-j " justification
+.RB \(lq l \(rq
+for text to be printed left-justified,
+.RB \(lq c \(rq
+for centered, and
+.RB \(lq r \(rq
+for right-justified.
+The default output is left-justified.
 .SH EXAMPLE
 .PP
 .EX
