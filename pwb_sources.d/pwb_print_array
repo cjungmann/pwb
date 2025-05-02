@@ -160,7 +160,7 @@ pwb_print_array()
                            "$plotlen"       \
                            "$left"
 
-                    pwb limit_print -- "$maxlen" "$line"
+                    pwb limit_print -- "$curlen" "$line"
                 done
 
                 # Erase extra lines, if necessary
