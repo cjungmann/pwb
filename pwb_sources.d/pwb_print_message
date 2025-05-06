@@ -53,21 +53,20 @@ pwb_print_message()
     local -a just_lines
     local jletter="${justify:0:1}"
     if [[ "cr" =~ "$jletter" ]]; then
+        local spaces=""
         local -i indent
         for ppm_line in "${ppm_lines[@]}"; do
             pwb measure_string -v curlen "$ppm_line"
-            if (( curlen < maxlen )); then
-                if [[ "$jletter" == 'c' ]]; then
-                    (( indent = (maxlen + curlen) / 2 ))
-                else
-                    indent="$maxlen"
+            if [[ "$jletter" == "c" ]]; then
+                (( indent = (maxlen - curlen) / 2 ))
+                if (( indent % 2 )); then
+                    (( --indent ))
                 fi
-
-                printf -v just_lines[${#just_lines[*]}] \
-                       "%*.*s" "$indent" "$indent" "$ppm_line"
             else
-                just_lines+=( "$ppm_line" )
+                (( indent = (maxlen - curlen) ))
             fi
+            printf -v spaces "%*s" "$indent" ""
+            just_lines+=( "${spaces}$ppm_line" )
         done
 
         lines_name="just_lines"
