@@ -3,6 +3,16 @@
 .SH NAME
 .B pwb_conduct_dialog
 \- script source for an interaction that displays, waits, and erases a dialog.
+.SH SYNOPSIS
+enable pwb
+.br
+source <( pwb_sources pwb_conduct_dialog )
+
+.B pwb_conduct_dialog
+.cli_prototype @array_name \
+   ?@pwb_handle      \
+   ?!-a:keys_allowed \
+   ?!-r:keyp_return
 .SH DESCRIPTION
 .PP
 The sourced function
@@ -32,17 +42,6 @@ It is up to the developer to ensure the contents will fit on the
 screen.
 .B pwb_conduct_dialog
 neither checks if the text fits nor truncates lines that are too long.
-
-.SH SYNOPSIS
-enable pwb
-.br
-source <( pwb_sources pwb_conduct_dialog )
-
-.B pwb_conduct_dialog
-.cli_prototype @array_name \
-   ?@pwb_handle      \
-   ?!-a:keys_allowed \
-   ?!-r:keyp_return
 .SH OPTIONS
 .TP
 .I array_name
