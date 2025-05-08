@@ -23,6 +23,44 @@ pwb_keybinder()
         return 0
     }
 
+    pk_control_to_letter()
+    {
+        local octval
+        printf -v octval "\\%03o" $(( $2 + 64 ))
+        printf -v "$1" "%b" "$octval"
+    }
+
+    pk_get_key_name()
+    {
+        local -n pkgkn_name="$1"
+        local keystr="$2"
+
+        local -i keylen="${#keystr}"
+        if [ "$keylen" -eq 1 ]; then
+            local -i keyval
+            printf -v keyval "%d" "'$keystr"
+
+            if (( keyval < 32 )); then
+                local ctrl_letter
+                pk_control_to_letter ctrl_letter "$keyval"
+                # Tweak control character
+                case "$ctrl_letter" in
+                    M) pkgkn_name="ENTER" ;;
+                    ]) pkgkn_name="ESCAPE" ;;
+                    I) pkgkn_name="TAB" ;;
+                    H) pkgkn_name="Backspace" ;;
+                    *) pkgkn_name="Ctrl-$ctrl_letter" ;;
+                esac
+            elif (( keyval == 127 )); then
+                pkgkn_name="DEL"
+            else
+                pkgkn_name="$keystr"
+            fi
+        elif [[ "$bkey" =~ ^key_(.*)$ ]]; then
+            pkgkn_name="${BASH_REMATCH[1]^^*} key"
+        fi
+    }
+
     pk_add_help_line()
     {
         local -n pkahl_lines="$1"
@@ -99,19 +137,14 @@ pwb_keybinder()
 
             # First through to get sizes:
             local -i cur_len max_len=0
-            local bkeyval
+            local bkeyname
             for el in "${pkgha_keybindings[@]}"; do
                 case "${#bindarr[*]}" in
                     0) bindarr+=( "$el" ) ;;
                     1) bindarr+=( "$el" ) ;;
                     2) bindarr+=( "$el" )
-                       if [[ "$bkey" == $'\cm' ]]; then
-                           bkey="ENTER"
-                       elif [[ "$bkey" =~ ^key_(.*)$ ]]; then
-                           bkey="${BASH_REMATCH[1]^^*} key"
-                       fi
-                       bkeyval="$bkey"
-                       cur_len="${#bkeyval}"
+                       pk_get_key_name bkeyname "$bkey"
+                       cur_len="${#bkeyname}"
                        (( max_len = ( cur_len > max_len ? cur_len : max_len ) ))
                        bindarr=()
                        ;;
@@ -127,12 +160,8 @@ pwb_keybinder()
                     0) bindarr+=( "$el" ) ;;
                     1) bindarr+=( "$el" ) ;;
                     2) bindarr+=( "$el" )
-                       if [[ "$bkey" == $'\cm' ]]; then
-                           bkey="ENTER"
-                       elif [[ "$bkey" =~ ^key_(.*)$ ]]; then
-                           bkey="${BASH_REMATCH[1]^^*} key"
-                       fi
-                       printf -v tline "$format" "$bkey" "$bdesc"
+                       pk_get_key_name bkeyname "$bkey"
+                       printf -v tline "$format" "$bkeyname" "$bdesc"
                        pkgha_lines+=( "$tline" )
                        bindarr=()
                        ;;
