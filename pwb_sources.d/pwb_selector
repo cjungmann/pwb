@@ -1,0 +1,307 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+source <( pwb_sources pwb_read_args pwb_print_message )
+
+pwb_selector()
+{
+    crack_option()
+    {
+        local -n co_output="$1"
+        local -n co_letter="$2"
+        local co_string="$3"
+
+        local left right
+        local left="${co_string%%&*}"
+        local right="${co_string##*&}"
+
+        # Fake components if no '&' in string
+        if [[ "$left" == "$co_string" ]]; then
+            [[ "$co_string" =~ ^([[:space:]]*)(.*)$ ]]
+            left="${BASH_REMATCH[1]}"
+            right="${BASH_REMATCH[2]}"
+        fi
+
+        if [ "${#left}" -eq 0 ]; then
+            co_letter="${right:0:1}"
+            printf -v co_output '\e[%sm%c\e[39;49;22m%s' \
+                   "$PS_HILITE" "$co_letter" "${right:1}"
+        else
+            co_letter="${right:0:1}"
+            printf -v co_output '%s\e[%sm%c\e[39;49;22m%s' \
+                   "$left" "$PS_HILITE" "$co_letter" "${right:1}"
+        fi
+    }
+
+    make_empty_selections()
+    {
+        local -n mes_array="$1"
+        mes_array=()
+        for (( i=0; i<PS_OPT_COUNT; ++i )); do
+            mes_array+=( 0 )
+        done
+    }
+
+    make_maps()
+    {
+        local -n mm_labels="$1"
+        local -n mm_chars="$2"
+        local -n mm_selections="$3"
+        local -n mm_source="$4"
+
+        mm_labels=()
+        mm_chars=()
+        mm_selections=()
+
+        # Get the measure of the unaltered labels
+        local -i cur_len max_len=0
+        for el in "${mm_source[@]}"; do
+            # Measure lines, not counting about-to-be deleted '&':
+            cur_len="${#el}"
+            if [[ "$el" =~ \& ]]; then
+                (( --cur_len ))
+            fi
+            (( max_len = ( cur_len > max_len ? cur_len : max_len ) ))
+
+            # initialize the selections array here
+            mm_selections+=( 0 )
+        done
+
+        # Pad labels to uniform size and save
+        local -a temp_labels
+        for el in "${mm_source[@]}"; do
+            # Add '&' if missing
+            if ! [[ "$el" =~ \& ]]; then
+                [[ "$el" =~ ^([[:space:]]*)(.*)$ ]]
+                el="${BASH_REMATCH[1]}&${BASH_REMATCH[2]}"
+            fi
+
+            # Calculate required padding (don't count to-be-disposed '&')
+            cur_len="${#el}"
+            (( cur_len = max_len - ( cur_len-1) ))
+
+            # Add padding if necessary
+            printf -v temp_labels[${#temp_labels[*]}] \
+                   "%s%*.*s" "$el" "$cur_len" "$cur_len" " "
+        done
+
+        # Add ANSI codes to color-highlight active character:
+        for el in "${temp_labels[@]}"; do
+            local tlabel tchar
+            crack_option tlabel tchar "$el"
+            mm_labels+=( "$tlabel" )
+            mm_chars+=( "$tchar" )
+        done
+    }
+
+    char_test_lax()
+    {
+        local left="${1,,*}"
+        local right="${2,,*}"
+        [[ "$left" == "$right" ]]
+    }
+
+    char_test_strict()
+    {
+        [[ "$1" == "$2" ]]
+    }
+
+    format_line_simple()
+    {
+        local output_name="$1"
+        local -n fls_options="$2"
+        local -n fls_selections="$3"
+        local -i focus="$4"
+        local -i index="$5"
+
+        if (( focus == index )); then
+            printf -v "$output_name" $'\e[7m%s\e[27m' "${fls_options[$index]}"
+        else
+            printf -v "$output_name" $'%s' "${fls_options[$index]}"
+        fi
+    }
+
+    format_line_multi()
+    {
+        local -n flm_output="$1"
+        local -n flm_options="$2"
+        local -n flm_selections="$3"
+        local -i focus="$4"
+        local -i index="$5"
+
+        local xorspace=" "
+        if (( flm_selections[index] > 0 )); then
+            xorspace="x"
+        fi
+
+        local box
+        if (( focus == index )); then
+            printf -v box $'\e[7m[%s]\e[27m' "$xorspace"
+        else
+            printf -v box $'[%s]' "$xorspace"
+        fi
+
+        flm_output=( "${box}${flm_options[$index]}" )
+    }
+
+    print_lines()
+    {
+        local -n pl_head_lines="$1"
+        local -n pl_options="$2"
+        local -n pl_selection="$3"
+        local -i pl_focus="$4"
+
+        local -a pl_lines=(
+            "${pl_head_lines[@]}"
+        )
+
+        local -i count="${#pl_options[*]}"
+        local fline
+
+        for (( i=0; i<count; ++i )); do
+            "$PS_LINE_FORMATTER" fline "$2" "$3" "$4" "$i"
+            pl_lines+=( "$fline" )
+        done
+
+        pwb_print_message pl_lines -j"$justification"
+    }
+
+    toggle_selection()
+    {
+        local -n ts_array="$1"
+        local -i ts_index="$2"
+        (( ts_array[ts_index] = (ts_array[ts_index] + 1) % 2 ))
+    }
+
+    # $1: key press string
+    # $2: index of line with focus (may be modified)
+    # $3: map of selections (1 or 0 for on or off) (may be modified)
+    # $4: map of chars (to compare with key press string)
+    # Returns 0 (true) if action to be taken, 1 (false) if no action
+    process_key()
+    {
+        local keyp="$1"
+        local -n pk_focus="$2"
+        local -n pk_selections="$3"
+        local -i pk_count="${#pk_selections[*]}"
+
+        if [[ "$keyp" == "$PS_UP_ARROW" ]]; then
+            (( pk_focus = (pk_focus > 0 ? pk_focus-1 : pk_focus) ))
+        elif [[ "$keyp" == "$PS_DN_ARROW" ]]; then
+            (( pk_focus = (pk_focus < pk_count-1 ? pk_focus+1 : pk_focus) ))
+        else
+            local -n pk_chars="$4"
+            if [[ "$keyp" == " " ]]; then
+                toggle_selection pk_selections "$pk_focus"
+            elif [[ "$keyp" == $'\cm' ]]; then
+                if (( PS_MULTI_SELECT == 0 )); then
+                    make_empty_selections pk_selections
+                    pk_selections["$pk_focus"]=1
+                fi
+                return 0
+            else
+                local -i match_count=0 matched_index=-1
+                for (( i=0; i<pk_count; ++i )); do
+                    # +1 to start after current focus.
+                    # Current focus will be last to be considered
+                    (( index = ( pk_focus + i + 1 ) % pk_count ))
+                    local char="${pk_chars[$index]}"
+                    if "$PS_CHAR_TEST" "$keyp" "$char"; then
+                        if (( match_count == 0 )); then
+                            (( matched_index = index ))
+                        fi
+                        (( ++match_count ))
+                    fi
+                done
+
+                if (( match_count > 0 )); then
+                    if (( match_count == 1 )); then
+                        (( pk_focus = matched_index ))
+                        if (( PS_MULTI_SELECT > 0 )); then
+                            toggle_selection pk_selections "$pk_focus"
+                        else
+                            make_empty_selections pk_selections
+                            pk_selections["$pk_focus"]=1
+                            return 0
+                        fi
+                    else
+                        (( pk_focus = matched_index ))
+                        toggle_selection pk_selections "$pk_focus"
+                    fi
+                fi
+            fi
+        fi
+
+        return 1
+    }
+
+    ### BEGIN ###
+    local -a empty_array=()
+    local -a PS_HILITE="38;5;51"
+
+    local options_array handle_name
+    local head_lines="empty_array"
+    local justification="l"
+    local output_name="SELECTED"
+    local -i case_sensitive=0
+    local -i multi_select=0
+
+    local -a cmd_args=( "$@" )
+    local -a names_array=( options_array handle_name )
+    local -a opts_list=(
+        "h+" head_lines
+        "j+" justification
+        "v+" output_name
+        "c"  case_sensitive
+        "m"  multi_select
+    )
+
+    if pwb_read_args cmd_args names_array opts_list; then
+        local -a PS_LABELS
+        local -a PS_CHARS
+        local -a PS_SELECTIONS
+        local -i PS_FOCUS=0
+        local -n PS_HEAD_LINES="$head_lines"
+        local -i PS_MULTI_SELECT="$multi_select"
+
+        local PS_DN_ARROW=$'\eOB'
+        local PS_UP_ARROW=$'\eOA'
+
+        local PS_CHAR_TEST=char_test_lax
+        if [ "$case_sensitive" -ne 0 ]; then
+            PS_CHAR_TEST=char_test_strict
+        fi
+
+        local PS_LINE_FORMATTER=format_line_simple
+        if [ "$multi_select" -ne 0 ]; then
+            PS_LINE_FORMATTER=format_line_multi
+        fi
+
+        make_maps PS_LABELS PS_CHARS PS_SELECTIONS "$options_array"
+        local -i PS_OPT_COUNT="${#PS_LABELS[*]}"
+
+        local ps_keyp
+        while [[ "$ps_keyp" != $'\e' ]]; do
+            print_lines PS_HEAD_LINES PS_LABELS PS_SELECTIONS "$PS_FOCUS"
+
+            pwb get_keystroke -v ps_keyp
+            if process_key "$ps_keyp" PS_FOCUS PS_SELECTIONS PS_CHARS; then
+                local -n ps_output="$output_name"
+                ps_output=()
+                local -i index=0
+                for sel in "${PS_SELECTIONS[@]}"; do
+                    if [ "$sel" -ne 0 ]; then
+                        ps_output+=( "$index" )
+                    fi
+                    (( ++index ))
+                done
+
+                return 0
+            fi
+        done
+
+    fi
+
+    return 1
+}
