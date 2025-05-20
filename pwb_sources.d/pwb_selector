@@ -52,7 +52,6 @@ pwb_selector()
 
         mm_labels=()
         mm_chars=()
-        mm_selections=()
 
         # Get the measure of the unaltered labels
         local -i cur_len max_len=0
@@ -240,21 +239,25 @@ pwb_selector()
     local -a empty_array=()
     local -a PS_HILITE="38;5;51"
 
-    local options_array handle_name
-    local head_lines="empty_array"
-    local justification="l"
-    local output_name="SELECTED"
-    local -i case_sensitive=0
-    local -i multi_select=0
+    local ps_options_array ps_handle_name
+    local ps_head_lines="empty_array"
+    local ps_justification="l"
+    local ps_starting_selections="empty_array"
+    local ps_output_type="numbers"
+    local ps_output_name="SELECTED"
+    local -i ps_case_sensitive=0
+    local -i ps_multi_select=0
 
     local -a cmd_args=( "$@" )
-    local -a names_array=( options_array handle_name )
+    local -a names_array=( ps_options_array ps_handle_name )
     local -a opts_list=(
-        "h+" head_lines
-        "j+" justification
-        "v+" output_name
-        "c"  case_sensitive
-        "m"  multi_select
+        "c"  ps_case_sensitive
+        "m"  ps_multi_select
+        "h+" ps_head_lines
+        "j+" ps_justification
+        "s+" ps_starting_selections
+        "t+" ps_output_type
+        "v+" ps_output_name
     )
 
     if pwb_read_args cmd_args names_array opts_list; then
@@ -262,24 +265,31 @@ pwb_selector()
         local -a PS_CHARS
         local -a PS_SELECTIONS
         local -i PS_FOCUS=0
-        local -n PS_HEAD_LINES="$head_lines"
-        local -i PS_MULTI_SELECT="$multi_select"
+        local -n PS_HEAD_LINES="$ps_head_lines"
+        local -i PS_MULTI_SELECT="$ps_multi_select"
 
         local PS_DN_ARROW=$'\eOB'
         local PS_UP_ARROW=$'\eOA'
 
         local PS_CHAR_TEST=char_test_lax
-        if [ "$case_sensitive" -ne 0 ]; then
+        if [ "$ps_case_sensitive" -ne 0 ]; then
             PS_CHAR_TEST=char_test_strict
         fi
 
         local PS_LINE_FORMATTER=format_line_simple
-        if [ "$multi_select" -ne 0 ]; then
+        if [ "$ps_multi_select" -ne 0 ]; then
             PS_LINE_FORMATTER=format_line_multi
         fi
 
-        make_maps PS_LABELS PS_CHARS PS_SELECTIONS "$options_array"
+        make_maps PS_LABELS PS_CHARS PS_SELECTIONS "$ps_options_array"
         local -i PS_OPT_COUNT="${#PS_LABELS[*]}"
+
+        if [ -n "$ps_starting_selections" ]; then
+            local -n ps_starting="$ps_starting_selections"
+            if [ "${#ps_starting[*]}" -eq "${#PS_SELECTIONS[*]}" ]; then
+                PS_SELECTIONS=( "${ps_starting[@]}" )
+            fi
+        fi
 
         local ps_keyp
         while [[ "$ps_keyp" != $'\e' ]]; do
@@ -287,8 +297,18 @@ pwb_selector()
 
             pwb get_keystroke -v ps_keyp
             if process_key "$ps_keyp" PS_FOCUS PS_SELECTIONS PS_CHARS; then
-                local -n ps_output="$output_name"
-                ps_output=()
+                break
+            fi
+        done
+
+        # Only update the output if we didn't exit by ESC:
+        if [[ "$ps_keyp" != $'\e' ]]; then
+            local -n ps_output="$ps_output_name"
+            ps_output=()
+
+            if [[ "$ps_output_type" == "flags" ]]; then
+                ps_output=( "${PS_SELECTIONS[@]}" )
+            else
                 local -i index=0
                 for sel in "${PS_SELECTIONS[@]}"; do
                     if [ "$sel" -ne 0 ]; then
@@ -296,12 +316,22 @@ pwb_selector()
                     fi
                     (( ++index ))
                 done
-
-                return 0
             fi
-        done
 
+            return 0
+        fi
     fi
 
     return 1
 }
+
+
+## BEGIN_DOC
+## Presents a selection dialog for user input.
+##
+## The developer provides an array of option labels,
+## this source function will runs a dialog according
+## to the other options, and the user response will
+## be left in a result array for consideration by the
+## calling function.
+## END_DOC
