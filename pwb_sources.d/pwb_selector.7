@@ -12,6 +12,8 @@
    ?!-cm \
    ?!-h:head_lines \
    ?!-j:justification \
+   ?!-s:start_selections \
+   ?!-t:numbers|flags \
    ?!-v:output_name
 .SH DESCRIPTION
 .PP
@@ -52,6 +54,32 @@ Specify test justification as
 .IR c  " for center-, " l " for left-, and " r " for right-justified."
 Note that options will be formatted as equal-length strings that will
 format neatly for a center-justified presentation.
+.IP
+The default justification is
+.IR l ,
+left-justified.
+.TP
+.BI -s " start_selections"
+is an array of 1s and 0s, representing on and off states of the
+options.
+.TP
+.BI -t " output_type"
+Sets how the output array variable represents the result.  The default
+output type is
+.IR numbers ,
+where the array will contain the indexes of the set options.  The
+alternative output type is
+.IR flags ,
+where the array will contain a 1 or 0  for each option, 1 if the
+option is selected, 0 if not.
+.IP
+The
+.I flags
+output type can be fed back into
+.B pwb_selector
+with option
+.B -s
+.IR start_selections .
 .TP
 .BI -v " output_name"
 Returns the array of selections to the named variable,
