@@ -1,0 +1,62 @@
+.TH pwb_selector 7
+.mso gproto.tmac
+.SH NAME
+.PP
+.B pwb_selector
+\- Allow user to select one or more items from a list.
+.SH SYNOPSIS
+.PP
+.B pwb_selector
+.cli_prototype @options_array \
+   ?@handle_name \
+   ?!-cm \
+   ?!-h:head_lines \
+   ?!-j:justification \
+   ?!-v:output_name
+.SH DESCRIPTION
+.PP
+Flexible item selector, can work as single-selection with immediate
+response, or as a multi-selection list.
+.SH OPTIONS
+.TP
+.I options_array
+Is an array of option names.  Each array member will be included in
+the dialog as an option.  Every option indicate its access key by
+highlighting a letter in the label.  The highlighted character will
+be the first character unless another character is indicated by being
+prefaced with an
+ampersand
+.RB (\(lq & \(rq).
+.TP
+.I handle_name
+Optional
+.B pwb
+handle that will be used to restore the display after the dialog.
+.TP
+.B -c
+This flag enables case-sensitive processing.  The default behavior
+is for access keys to match either upper- and lower-case.
+.TP
+.B -m
+This flag enables multiple selection.  Each option will include
+a selection indicator that can be toggled with the space bar or
+by typing its access key.
+.TP
+.BI -h " head_lines"
+An array of strings what will be presented above the options
+when the dialog opens.  Note that they will follow the justification
+directive, so pad and format accordingly.
+.TP
+.BR -j " [\fIc\fR|\fIl\fR|\fIr\fR]"
+Specify test justification as
+.IR c  " for center-, " l " for left-, and " r " for right-justified."
+Note that options will be formatted as equal-length strings that will
+format neatly for a center-justified presentation.
+.TP
+.BI -v " output_name"
+Returns the array of selections to the named variable,
+.IR output_name .
+If not specified, the results of the interaction will be found in an
+array named
+.BR SELECTED .
+
