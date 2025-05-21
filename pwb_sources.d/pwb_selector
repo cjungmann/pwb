@@ -150,6 +150,7 @@ pwb_selector()
         local -n pl_options="$2"
         local -n pl_selection="$3"
         local -i pl_focus="$4"
+        local ps_justification="$5"
 
         local -a pl_lines=(
             "${pl_head_lines[@]}"
@@ -163,7 +164,7 @@ pwb_selector()
             pl_lines+=( "$fline" )
         done
 
-        pwb_print_message pl_lines -j"$justification"
+        pwb_print_message pl_lines -j"$ps_justification"
     }
 
     toggle_selection()
@@ -235,9 +236,23 @@ pwb_selector()
         return 1
     }
 
+    is_exit_key()
+    {
+        local iek_keyp="$1"
+        for tkey in "${PS_EXIT_KEYS[@]}"; do
+            if [[ "$iek_key" == "$tkey" ]]; then
+                return 0
+            fi
+        done
+
+        return 1
+    }
+
     ### BEGIN ###
     local -a empty_array=()
     local -a PS_HILITE="38;5;51"
+
+    local -a default_exit_keys=( $'\e' )
 
     local ps_options_array ps_handle_name
     local ps_head_lines="empty_array"
@@ -247,6 +262,8 @@ pwb_selector()
     local ps_output_name="SELECTED"
     local -i ps_case_sensitive=0
     local -i ps_multi_select=0
+    local ps_exit_key_list="default_exit_keys"
+    local ps_exit_key
 
     local -a cmd_args=( "$@" )
     local -a names_array=( ps_options_array ps_handle_name )
@@ -255,9 +272,11 @@ pwb_selector()
         "m"  ps_multi_select
         "h+" ps_head_lines
         "j+" ps_justification
+        "k+" ps_exit_key
         "s+" ps_starting_selections
         "t+" ps_output_type
         "v+" ps_output_name
+        "x+" ps_exit_key_list
     )
 
     if pwb_read_args cmd_args names_array opts_list; then
@@ -270,6 +289,8 @@ pwb_selector()
 
         local PS_DN_ARROW=$'\eOB'
         local PS_UP_ARROW=$'\eOA'
+
+        local -n PS_EXIT_KEYS="$ps_exit_key_list"
 
         local PS_CHAR_TEST=char_test_lax
         if [ "$ps_case_sensitive" -ne 0 ]; then
@@ -292,8 +313,13 @@ pwb_selector()
         fi
 
         local ps_keyp
-        while [[ "$ps_keyp" != $'\e' ]]; do
-            print_lines PS_HEAD_LINES PS_LABELS PS_SELECTIONS "$PS_FOCUS"
+        while ! is_exit_key "$ps_keyp"; do
+            print_lines \
+                PS_HEAD_LINES \
+                PS_LABELS     \
+                PS_SELECTIONS \
+                "$PS_FOCUS"   \
+                "$ps_justification"
 
             pwb get_keystroke -v ps_keyp
             if process_key "$ps_keyp" PS_FOCUS PS_SELECTIONS PS_CHARS; then
@@ -301,8 +327,10 @@ pwb_selector()
             fi
         done
 
-        # Only update the output if we didn't exit by ESC:
-        if [[ "$ps_keyp" != $'\e' ]]; then
+        local -i PS_EXIT_CODE=1
+
+        # Only update the output if we didn't exit by an exit key
+        if ! is_exit_key "$ps_keyp"; then
             local -n ps_output="$ps_output_name"
             ps_output=()
 
@@ -318,11 +346,16 @@ pwb_selector()
                 done
             fi
 
-            return 0
+            PS_EXIT_CODE=0
         fi
     fi
 
-    return 1
+    # Return the exit key if so requested [ -n "$ps_exit_key" ]; then
+        local -n temp_exit_key="$ps_exit_key"
+        ps_exit_key="$ps_keyp"
+    fi
+
+    return "$PS_EXIT_CODE"
 }
 
 

@@ -12,13 +12,66 @@
    ?!-cm \
    ?!-h:head_lines \
    ?!-j:justification \
+   ?!-k:exit_key \
    ?!-s:start_selections \
    ?!-t:numbers|flags \
-   ?!-v:output_name
+   ?!-v:output_name \
+   ?!-x:exit_key_array
 .SH DESCRIPTION
 .PP
 Flexible item selector, can work as single-selection with immediate
 response, or as a multi-selection list.
+.SS RUNNING THE DIALOG
+.PP
+Upon calling the function, the provided options will be parsed for
+access key values, formatted to highlight the access key and to pad
+to a common length for centered output.
+.PP
+The source function
+.B pwb_print_message
+will be used to generate a dialog from an array containing the
+.IR head_lines ,
+if provided, and the padded copies of the options.
+.PP
+The user can use the up- and down-arrows to change focus to different
+options, pressing the spacebar to toggle options in multiple-selection
+mode, or ENTER to select the focus option or to submit the flagged
+options.
+.PP
+For both single- and multiple-select modes, pressing an access key
+will put the focus on the appropriate option.  If there are more
+than one option with the same access key,
+.B pwb_selector
+will cycle through the equivalently-keyed options.
+In single-selection mode, matching a unique access key will
+immediately complete the interaction.
+For both single- and multiple-select, pressing ENTER will also
+complete the interaction.
+.SS RETURN INFORMATION
+.PP
+There are a few ways the information is returned to the calling
+process.  First, the
+.B exit code
+will indicate how the dialog finished, either with a selection
+(return value 0/true) or because of an exit key (return value
+1/false).
+.PP
+The user's choices will be found in either an array variable named
+.BR SELECTED ,
+or in the variable named with the
+.B -v
+option.
+The contents of the selection array will be the indexes of the
+selection(s) or, if the
+.B -t
+option sets it, the variable specified by the command arguments.
+.PP
+The final optional return infomation is the terminating keystroke,
+which will be found in the
+.I exit_key
+variable if the
+.B -k
+option was used.
 .SH OPTIONS
 .TP
 .I options_array
@@ -48,6 +101,12 @@ by typing its access key.
 An array of strings what will be presented above the options
 when the dialog opens.  Note that they will follow the justification
 directive, so pad and format accordingly.
+.TP
+.BI -k " exit_key"
+if used, should be the name of a variable.  The key that triggers the
+exit from the dialog will be assigned to the
+.I exit_key
+variable.
 .TP
 .BR -j " [\fIc\fR|\fIl\fR|\fIr\fR]"
 Specify test justification as
@@ -87,4 +146,8 @@ Returns the array of selections to the named variable,
 If not specified, the results of the interaction will be found in an
 array named
 .BR SELECTED .
+.TP
+.BI -x " exit_key_array"
+is an array of characters and/or keystroke strings that should be
+recognized to abort the dialog.
 
