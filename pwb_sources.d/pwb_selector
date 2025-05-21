@@ -350,7 +350,8 @@ pwb_selector()
         fi
     fi
 
-    # Return the exit key if so requested [ -n "$ps_exit_key" ]; then
+    # Return the exit key if so requested
+    if [ -n "$ps_exit_key" ]; then
         local -n temp_exit_key="$ps_exit_key"
         ps_exit_key="$ps_keyp"
     fi
