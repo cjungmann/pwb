@@ -240,11 +240,10 @@ pwb_selector()
     {
         local iek_keyp="$1"
         for tkey in "${PS_EXIT_KEYS[@]}"; do
-            if [[ "$iek_key" == "$tkey" ]]; then
+            if [[ "$iek_keyp" == "$tkey" ]]; then
                 return 0
             fi
         done
-
         return 1
     }
 
@@ -322,7 +321,10 @@ pwb_selector()
                 "$ps_justification"
 
             pwb get_keystroke -v ps_keyp
-            if process_key "$ps_keyp" PS_FOCUS PS_SELECTIONS PS_CHARS; then
+
+            if is_exit_key "$ps_keyp"; then
+                break
+            elif process_key "$ps_keyp" PS_FOCUS PS_SELECTIONS PS_CHARS; then
                 break
             fi
         done
@@ -353,7 +355,7 @@ pwb_selector()
     # Return the exit key if so requested
     if [ -n "$ps_exit_key" ]; then
         local -n temp_exit_key="$ps_exit_key"
-        ps_exit_key="$ps_keyp"
+        temp_exit_key="$ps_keyp"
     fi
 
     return "$PS_EXIT_CODE"
