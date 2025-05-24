@@ -11,8 +11,10 @@ if [[ "$APP_PREFIX" != "pwb" ]] && [[ "$APP_PREFIX" != "ate" ]]; then
     exit 1
 fi
 
-declare ATE_PATH="${PREFIX}/lib/ate_sources"
-declare PWB_PATH="${PREFIX}/lib/pwb_sources"
+# declare ATE_PATH="${PREFIX}/lib/ate_sources"
+declare PWB_PATH="${PREFIX}/share/pwb/sources"
+
+declare SOURCES_PATH="$PWB_PATH"
 
 script_exists()   { [ -f "${SOURCE_PATH}/$1" ]; }
 function_loaded() { [[ $( type -f "$1" 2>/dev/null ) == "function" ]]; }
@@ -47,7 +49,7 @@ return_source_name()
 {
     if ! function_loaded "$1"; then
         local prefix="${1%%_*}"
-        local path="${PREFIX}/lib/${prefix}_sources/$1"
+        local path="$SOURCES_PATH/$1"
         if [ -f "$path" ]; then
             echo -n "$path"
         fi
@@ -59,7 +61,7 @@ return_sources_script()
     for func in "$@"; do
         if ! function_loaded "$func"; then
             local prefix="${func%%_*}"
-            local path="${PREFIX}/lib/${prefix}_sources/$func"
+            local path="$SOURCES_PATH/$func"
             if [ -f "$path" ]; then
                 echo "if ! declare -f $func >/dev/null; then source $path; fi"
             fi
@@ -91,8 +93,6 @@ show_func_doc()
         fi
     done
 }
-
-declare SOURCES_PATH="${PREFIX}/lib/${APP_PREFIX}_sources"
 
 if [ "$#" -eq 0 ]; then
     "${SOURCES_PATH}/pwb_browser"
