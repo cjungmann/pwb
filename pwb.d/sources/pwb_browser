@@ -53,11 +53,10 @@ declare -a KEYBINDS=(
     's' default_show_source   "Show the script"
 )
 
-
 enable pwb
 source <( pwb_sources pwb_scripts_browser )
 
-declare dir="/usr/local/lib/pwb_sources"
+declare dir="#PREFIX#/share/pwb/sources"
 
 declare -a slist
 populate_files slist "$dir"
