@@ -63,13 +63,17 @@ install:
 	rm -f $(PREFIX)/bin/$(SOURCER)
 	sed -e s^#PREFIX#^$(PREFIX)^ -e s^#BUILTIN#^$(BUILTIN)^ $(SOURCER) > $(PREFIX)/bin/$(SOURCER)
 	chmod a+x $(PREFIX)/bin/$(SOURCER)
+	sed -e s^#PREFIX#^$(PREFIX)^ pwb_samples > $(PREFIX)/bin/pwb_samples
+	chmod a+x $(PREFIX)/bin/pwb_samples
 # If 'ate' installed, Change link so pwb_sources is used for ate_sources
 	@if [ -f $(PREFIX)/bin/ate_sources ]; then \
-	   echo "Replacing ate_sources link with line to pwb_sources."; \
+	   echo "Replacing ate_sources link with link to pwb_sources."; \
 	   cp -fs $(PREFIX)/bin/$(SOURCER) $(PREFIX)/bin/ate_sources; \
 	fi
-	install -D $(BUILTIN).d/ -t$(PREFIX/share/$(BUILTIN)
-	install -D $(BUILTIN)_sources.d/$(BUILTIN)_* -t$(PREFIX)/lib/$(BUILTIN)_sources
+	mkdir -p $(PREFIX)/share/$(BUILTIN)
+	cp -r $(BUILTIN).d/* $(PREFIX)/share/$(BUILTIN)
+	# Overwrite pwb_browser with directory-corrected version:
+	sed -e s^#PREFIX#^$(PREFIX)^ $(BUILTIN).d/sources/pwb_browser> $(PREFIX)/share/$(BUILTIN)/sources/pwb_browser
 
 uninstall:
 	rm -f $(PREFIX)/lib/bash/$(TARGET)
