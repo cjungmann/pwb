@@ -217,10 +217,13 @@ pwb_scripts_browser()
         local -a pr_lines
         get_file_doc pr_lines "$spath"
 
+        if [ "${#pr_lines[*]}" -eq 0 ]; then
+            pr_lines+=( "Script '$script' provided no documentation lines." )
+        fi
+
         local -a args
         get_region_args args PSB_REGIONS RM
 
-        # pwb_print_array "${args[@]}" -jl args
         pwb_print_array -jl "${args[@]}" pr_lines
     }
 
