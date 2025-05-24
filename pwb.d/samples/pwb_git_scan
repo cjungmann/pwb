@@ -1,0 +1,803 @@
+#!/usr/bin/env bash
+
+##########################
+###   DATA FUNCTIONS   ###
+##########################
+
+# Filtering works by appending an integer state tag to the end
+# if each file name.  During sort/filter, sort puts identical
+# names consecutively, and filter works by always saving the
+# record with the highest state tag when two records have the
+# same name.
+#
+# So...both for both sort/filter functions, the tag values and
+# assignments are made to give preference to the final desired
+# outcome.
+
+# Get an inventory of every file in and under the root directory
+# of the current git project, classifying them as tracked or
+# untracked.
+get_full_file_list()
+{
+    local -n gffl_return="$1"
+
+    # Get inventory of ALL files
+    local -a gffl_files
+    while read -r; do
+        gffl_files+=( "${REPLY}${DELIM}$IGNORED" )
+    done < <( find * )
+
+    # Interleave with git-registered files
+    while read -r; do
+        gffl_files+=( "${REPLY}${DELIM}$COMMITTED" )
+    done < <( git ls-files )
+
+    # Sort and filter to differentiate registered and non-registered files
+    local IFS=$'\n'
+    local -a last_row cur_row
+    while read -r; do
+        # gffl_return+=( "$REPLY" )
+        if [ "${#last_row[*]}" -eq 0 ]; then
+            IFS="$DELIM" read -r -a last_row <<< "$REPLY"
+            gffl_return+=( "$REPLY" )
+        else
+            IFS="$DELIM" read -r -a cur_row <<< "$REPLY"
+            if [[ "${cur_row[0]}" != "${last_row[0]}" ]]; then
+                gffl_return+=( "$REPLY" )
+            fi
+            last_row=( "${cur_row[@]}" )
+        fi
+    done < <( sort <<< "${gffl_files[*]}" )
+}
+
+# Make an array whose elements represent every file in and
+# under the root directory of the current git project.  Each
+# element will be a concatenated string with the file name
+# and a status flag.
+get_context_data()
+{
+    local -n gcd_return="$1"
+
+    # Get list of files, categorized as registered or not
+    local -a gcd_raw_files
+    get_full_file_list gcd_raw_files
+
+    local state=none
+    local cur_regex
+
+    # Interleave with categorized registered files (committed files
+    # will be missing, but will be included from gcd_raw_files
+    while IFS='' read -r; do
+        if [[ "$state" == none ]]; then
+            case "$REPLY" in
+                "Changes to be committed:" )
+                    state="$STAGED"
+                    cur_regex=$'^\t[^:]+:[[:space:]]{2,}([^[:space:]].*)$'
+                    ;;
+                "Changes not staged for commit:" )
+                    state="$MODIFIED"
+                    cur_regex=$'^\t[^:]+:[[:space:]]{2,}([^[:space:]].*)$'
+                    ;;
+                "Untracked files:" )
+                    state="$UNTRACKED"
+                    cur_regex=$'^\t(.*)$'
+                    ;;
+            esac
+            continue
+        elif [[ "$REPLY" =~ ^[[:space:]]*$ ]]; then
+            state=none
+        elif [[ "$REPLY" =~ $cur_regex ]]; then
+            # Add classified filename to array, which will override
+            # an existing filename by virtue of its higher-value
+            # classification
+            gcd_raw_files+=( "${BASH_REMATCH[1]}${DELIM}${state}" )
+        fi
+    done < <( git status )
+
+
+
+    # Sort and filter to have every file categorized:
+    local IFS=$'\n'
+    local -a last_row cur_row
+    while read -r; do
+        if [ "${#last_row[*]}" -eq 0 ]; then
+            IFS="$DELIM" read -r -a last_row <<< "$REPLY"
+        else
+            IFS="$DELIM" read -r -a cur_row <<< "$REPLY"
+            if [[ "${cur_row[0]}" == "${last_row[0]}" ]]; then
+                gcd_return+=( "$REPLY" )
+                last_row=()
+            else
+                IFS="$DELIM"
+                gcd_return+=( "${last_row[*]}" )
+                IFS=$'\n'
+                last_row=( "${cur_row[@]}" )
+            fi
+        fi
+    done < <( sort <<< "${gcd_raw_files[*]}" )
+}
+
+# For filtered views of the data, this function creates an array
+# with a subset of the complete list of files, consisting of entries
+# that match the global filter variable SI_FILTER.
+prepare_filtered_array()
+{
+    local -n pfa_array="$1"
+    local pfa_line
+    local -a pfa_row
+    local IFS="$DELIM"
+    for pfa_line in "${SI_DATA_COMPLETE[@]}"; do
+        read -r -a pfa_row <<< "$pfa_line"
+        if [ "${pfa_row[1]}" -eq "$SI_FILTER" ]; then
+            pfa_array+=( "$pfa_line" )
+        fi
+    done
+}
+
+get_staged_files()
+{
+    local -n gsf_files="$1"
+
+    local -a gsf_row
+    local IFS="$DELIM"
+
+    local frec
+    for frec in "${SI_DATA_COMPLETE[@]}"; do
+        read -r -a gsf_row <<< "$frec"
+        if [ "${gsf_row[1]}" -eq "$STAGED" ]; then
+            gsf_files+=( "${gsf_row[0]}" )
+        fi
+    done
+}
+
+###########################
+###   BOUND FUNCTIONS   ###
+###########################
+
+exec_help()
+{
+    local eh_keyp
+    pwb_keybinder help KBINDINGS -v eh_keyp
+
+    shift
+    exec_line "$eh_keyp" "$@"
+    local -i ecode="$?"
+    if [[ "$eh_keyp" == 'q' ]] || [ "$ecode" -ne 0 ]; then
+        return 1
+    fi
+}
+
+exec_commit_file()
+{
+    local ecf_psource="$4"
+    local -n ecf_dsource="$3"
+    local -a ecf_row
+    IFS="$DELIM" read -r -a ecf_row <<< "${ecf_dsource[$2]}"
+
+    local fname="${ecf_row[0]}"
+    local -i status="${ecf_row[1]}"
+
+    if [ "$status" -eq 2 ] || [ "$status" -eq 1 ]; then
+        if confirm_statement "Delete git-tracked file '$fname'"; then
+            local -a cur_margins
+            pwb_get_margins cur_margins "$ecf_psource"
+            pwb set_margins "$ecf_psource" 0
+
+            if git commit "$fname"; then
+                ecf_dsource[$2]="${fname}${DELIM}$COMMITTED"
+                pwb print_row "$ecf_psource" "$2"
+            else
+                read -n1 -p "Commit aborted"
+            fi
+
+            pwb set_margins "$ecf_psource" "${cur_margins[@]}"
+        fi
+    fi
+}
+
+exec_commit_staged()
+{
+    local ecs_psource="$4"
+
+    local -a ecs_message=( "Commit Staged Files" )
+
+    local -a ecs_staged
+    get_staged_files ecs_staged
+    if [ "${#ecs_staged[*]}" -eq 0 ]; then
+        ecs_message+=(
+            "There are no staged files to commit"
+            ""
+            "Press any key to continue."
+        )
+
+        pwb_conduct_dialog ecs_message "$ecs_psource" -jc
+    else
+        ecs_message+=( "Press 'y' to commit, 'Escape' to cancel." "" )
+
+        local ecs_color="${FILTER_COLORS[$STAGED]}"
+        for staged in "${ecs_staged[@]}"; do
+            printf -v tline $'\e[%sm%s\e[49;39;22m' "$ecs_color" "$staged"
+            ecs_message+=( "$tline" )
+        done
+
+        local -a keys=( "y" "Y" $'\e' "q" "Q" )
+        local keyp
+        pwb_conduct_dialog ecs_message "$ecs_psource" -jc -a keys -r keyp
+
+        if [[ "Yy" =~ "$keyp" ]]; then
+            local -a cur_margins
+            pwb_get_margins cur_margins "$ecs_psource"
+            pwb set_margins "$ecs_psource" 0
+
+            git commit
+
+            pwb set_margins "$ecs_psource" "${cur_margins[@]}"
+        fi
+    fi
+}
+
+exec_set_filter()
+{
+    local -a esf_lines=(
+        "Select a filter from the following list:"
+        "'n' Not filtered"
+        "'c' Committed only"
+        "'s' Staged only"
+        "'m' Modified only"
+        "'i' Ignored only"
+        "'u' Untracked only"
+        ""
+        "ESCAPE to cancel"
+    )
+
+    local -a esf_keys=( n c s m i u $'\e' )
+    local esf_keyp
+
+    pwb_conduct_dialog esf_lines SI_HANDLE -a esf_keys -r esf_keyp
+    if [[ "$esf_keyp" != $'\e' ]]; then
+        local -i index="$NOT_FILTERED"
+        for key in "${esf_keys[@]}"; do
+            if [[ "$key" == "$esf_keyp" ]]; then
+                SI_FILTER="$index"
+                return 1
+            fi
+            (( ++index ))
+        done
+    fi
+
+    return 0
+}
+
+exec_diff_file()
+{
+    local -n edf_data="$3"
+    local edf_handle="$4"
+    local -a edf_row
+    IFS="$DELIM" read -r -a edf_row <<< "${edf_data[$2]}"
+
+    if [ "${edf_row[1]}" -eq "$MODIFIED" ]; then
+        local -a cur_margins
+        pwb_get_margins cur_margins "$edf_handle"
+
+        "${VIEW_CALL_ARGS[@]}" < <( git diff "${edf_row[0]}" )
+
+        pwb set_margins SI_HANDLE "${cur_margins[@]}"
+    fi
+}
+
+exec_stage_file()
+{
+    local -n esf_data="$3"
+    local esf_handle="$4"
+    local -a esf_row
+    IFS="$DELIM" read -r -a esf_row <<< "${esf_data[$2]}"
+
+    if [ "${esf_row[1]}" -gt "$STAGED" ]; then
+        git add "${esf_row[0]}"
+
+        esf_row[1]="$STAGED"
+        IFS="$DELIM" esf_data[$2]="${esf_row[*]}"
+        pwb print_row "$esf_handle" "$2"
+    fi
+}
+
+exec_unstage_file()
+{
+    local -n euf_data="$3"
+    local euf_handle="$4"
+    local -a euf_row
+    IFS="$DELIM" read -r -a euf_row <<< "${euf_data[$2]}"
+
+    if [ "${euf_row[1]}" -eq "$STAGED" ]; then
+        git restore --staged "${euf_row[0]}"
+
+        euf_row[1]="$MODIFIED"
+        IFS="$DELIM" euf_data[$2]="${euf_row[*]}"
+        pwb print_row "$euf_handle" "$2"
+    fi
+}
+
+exec_view_file()
+{
+    local -n evf_data="$3"
+    local evf_handle="$4"
+    local -a evf_row
+    IFS="$DELIM" read -r -a evf_row <<< "${evf_data[$2]}"
+    local fname="${evf_row[0]}"
+
+    if ! [ -d "$fname" ]; then
+        local -a cur_margins
+        pwb_get_margins cur_margins "$evf_handle"
+        pwb set_margins "$evf_handle" 0
+
+        "${VIEW_CALL_ARGS[@]}" "$fname"
+
+        pwb set_margins "$evf_handle" "${cur_margins[@]}"
+    fi
+
+    return 0
+}
+
+exec_delete_file()
+{
+    local -n edf_data="$3"
+    local edf_handle="$4"
+    local -a edf_row
+    IFS="$DELIM" read -r -a edf_row <<< "${edf_data[$2]}"
+    local fname="${edf_row[0]}"
+
+    if [ "${edf_row[1]}" -lt "$IGNORED" ]; then
+        if confirm_statement "Delete git-tracked file '$fname'"; then
+            read -n1 -p Deleting
+            git rm "$fname"
+            read -n1 -p Done\ deleting
+        fi
+    else
+        if confirm_statement "Delete untracked file '$fname'"; then
+            rm "$fname"
+        fi
+    fi
+}
+
+
+#########################
+###   PWB CALLBACKS   ###
+#########################
+
+print_line()
+{
+    local -n pl_dsource="$2"
+    local -a pl_row
+    IFS="$DELIM" read -a pl_row <<< "${pl_dsource[$1]}"
+    local color="${FILTER_COLORS[$(( pl_row[1] + 1 ))]}"
+
+    printf -v tline $'\e[%sm%-*.*s\e[39;22m' "$color" "$3" "$3" "${pl_row[0]}"
+    pwb limit_print "$3" "$tline"
+}
+
+noop_print_left() { :; }
+print_left()
+{
+    local -i index="$1"
+    local pl_handle="$5"
+
+    local limit_args=(
+        -t "${SI_REGIONS[LM_TOP]}"
+        -c "${SI_REGIONS[LM_LINES]}"
+        -l "${SI_REGIONS[LM_LEFT]}"
+        -w "${SI_REGIONS[LM_WIDE]}"
+    )
+
+    local -i left=$(( SI_REGIONS[LM_WIDE] - 2 ))
+
+    local -i rows top
+    pwb get_data_count "$pl_handle" -v rows
+    pwb get_top_row "$pl_handle" -v top
+
+    local -a scrollbar_args=(
+        -s "$rows"
+        -t "$top"
+        -v "${SI_REGIONS[LM_LINES]}"
+    )
+
+    local -a pl_scrollbar
+    pwb_get_scroll_bar pl_scrollbar "${scrollbar_args[@]}"
+
+    for block in "${pl_scrollbar[@]}"; do
+        printf $'\e[%dG%s\e[1D\e[1E' "$left" "$block"
+    done
+}
+
+print_top()
+{
+    local limit_args=(
+        -t "${SI_REGIONS[TM_TOP]}"
+        -c "${SI_REGIONS[TM_LINES]}"
+        -l "${SI_REGIONS[SC_LEFT]}"
+        -w "${SI_REGIONS[SC_WIDE]}"
+    )
+
+    local -n pt_dsource="$2"
+    local -a pt_row
+    IFS="$DELIM" read -r -a pt_row <<< "${pt_dsource[$1]}"
+    local -i index=$(( pt_row[1] + 1 ))
+    local type="${FILTER_NAMES[$index]}"
+    local color="${FILTER_COLORS[$index]}"
+
+    local -a pt_lines=(
+        "PWB GIT SCAN"
+        "${pt_row[0]}"
+    )
+
+    printf -v pt_lines["${#pt_lines[*]}"] $'\e[%sm%s\e[39;22m' "$color" "$type"
+    printf -v pt_lines["${#pt_lines[*]}"] ""
+    printf -v pt_lines["${#pt_lines[*]}"] "Press F1 for help"
+
+    pwb_print_array pt_lines "${limit_args[@]}"
+}
+
+print_bottom()
+{
+    local limit_args=(
+        -t "${SI_REGIONS[BM_TOP]}"
+        -c "${SI_REGIONS[BM_LINES]}"
+        -l "${SI_REGIONS[SC_LEFT]}"
+        -w "${SI_REGIONS[SC_WIDE]}"
+    )
+
+    local -i index="$1"
+    local -i total="${#SI_DATA[*]}"
+    local -a lines
+    printf -v lines[0] $'Record \e[33;1m%d\e[39;22m out of \e[33;1m%d\e[39;22m' \
+           $(( index+1 )) "$total"
+
+    pwb_print_array lines "${limit_args[@]}"
+}
+
+
+exec_line()
+{
+    local keyp="$1"
+    local el_handle="$4"
+
+    local -i ecode=0
+    local el_func
+    if pwb_keybinder func KEYFUNCS -v el_func -k "$keyp"; then
+        "$el_func" "$@"
+        ecode="$?"
+        printf $'\e[H\e[2J'
+        pwb print_all "$el_handle"
+    fi
+
+    return "$ecode"
+}
+
+
+###################################
+###   INSTANCE PREP FUNCTIONS   ###
+###################################
+
+get_content_width()
+{
+    local -n gcw_wide="$1"
+    local -n gcw_array="$2"
+
+    local -i cur_wide
+    gcw_wide=0
+    for line in "${gcw_array[@]}"; do
+        cur_wide="${#line}"
+        (( gcw_wide = ( cur_wide >gcw_wide ? cur_wide : gcw_wide ) ))
+    done
+}
+
+set_instance_margins()
+{
+    local sim_handle="$1"
+    local sim_data="$2"
+
+    local -i data_width
+    get_content_width data_width "$sim_data"
+
+    local -A sim_dims
+    pwb get_dimensions -A sim_dims
+
+    local -i non_content=$(( sim_dims[screen_cols] - data_width ))
+    local -i left right
+    (( right = non_content / 2 ))
+    (( left = right + (non_content % 2) ))
+
+    local -a sim_margins=( 5 "$right" 2 "$left" )
+
+    pwb set_margins "$sim_handle" "${sim_margins[@]}"
+}
+
+start_instance()
+{
+    local print_left_func=print_left
+    p_print_left() { "$print_left_func" "$@"; }
+
+    # Create Handle
+    local -a declare_args=(
+        SI_DATA          # This the name that will be established in while-loop
+        0                # This internal value will be reset as needed
+        print_line
+        -e exec_line
+        -b print_bottom
+        -t print_top
+        -l p_print_left
+    )
+
+    local SI_HANDLE
+    pwb declare SI_HANDLE "${declare_args[@]}"
+    pwb_exit_on_error
+
+    local ending_keyp=""
+    declare -a start_args=(
+        -a KEYMAP
+        -k ending_keyp
+    )
+
+    while [[ "$ending_keyp" != 'q' ]]; do
+        # Establish current filter to be name-reffed
+        local -a temp_filter=()
+        local si_name="SI_DATA_COMPLETE"
+        if [ "$SI_FILTER" -ne "$NOT_FILTERED" ]; then
+            prepare_filtered_array temp_filter
+            si_name=temp_filter
+        fi
+
+        local -n SI_DATA="$si_name"
+        local -i SI_DATA_COUNT="${#SI_DATA[*]}"
+
+        if [ "$SI_DATA_COUNT" -lt 1 ]; then
+            local -a empty_warning=()
+            printf -v empty_warning[${#empty_warning[*]}] \
+                   $'There are no files with filter \e[32;1m%s\e[39;22m.' \
+                   "${FILTER_NAMES[$SI_FILTER]}"
+            printf -v empty_warning[${#empty_warning[*]}] \
+                   $'Press any key to restore non-filtered view.'
+            pwb_conduct_dialog empty_warning
+            SI_FILTER="$NOT_FILTERED"
+            continue
+        fi
+
+        # Prepare Handle
+        set_instance_margins SI_HANDLE SI_DATA
+
+        # With margins established, get instance-global regions
+        local -A SI_REGIONS
+        pwb_get_regions SI_REGIONS SI_HANDLE
+
+        # Use do-nothing function for scrollbar not needed:
+        if (( SI_DATA_COUNT <= SI_REGIONS[CO_LINES] )); then
+            print_left_func=noop_print_left
+        fi
+
+        # Update the working data_count value with filtered population
+        pwb set_data_count SI_HANDLE "$SI_DATA_COUNT"
+
+        pwb start SI_HANDLE "${start_args[@]}"
+        pwb_exit_on_error
+        printf $'\e[H\e[2J'
+    done
+}
+
+#########################
+###   MISCELLANEOUS   ###
+#########################
+
+set_scan_path()
+{
+    local ssp_path
+    if ssp_path=$( git rev-parse --show-toplevel ); then
+        cd "$ssp_path"
+        return 0
+    else
+        return 1
+    fi
+}
+
+confirm_statement()
+{
+    local prompt="Press 'y' or 'n'"
+    local -i plen="${#prompt}"
+    local -i mlen="${#1}"
+    if (( mlen > plen )); then
+        local -i ind=$(( (mlen - plen) / 2 ))
+        printf -v prompt "%-*.*s%s" "$ind" "$ind" " " "$prompt"
+    fi
+
+    local -a cs_lines=( "$1" "" "$prompt" )
+    local -a cs_keys=( y Y n N $'\e' )
+    local cs_keyp
+    pwb_conduct_dialog cs_lines SI_HANDLE -a cs_keys -r cs_keyp
+    [[ "Yy" =~ "$cs_keyp" ]];
+}
+
+prepare_view_call_args()
+{
+    app_installed() { type "$1" >/dev/null 2>&1; }
+
+    local -a bat_args=(
+        --paging always
+        --style plain,header-filename,grid
+    )
+    local -n pvca_return="$1"
+    if app_installed "bat"; then
+        pvca_return=( "bat" "${bat_args[@]}" )
+    elif app_installed "batcat"; then
+        pvca_return=( "batcat" "${bat_args[@]}" )
+    else
+        pvca_return=( less )
+    fi
+}
+
+exit_trap() { printf $'\e[H\e[2J'; pwb restore; cd "$OG_DIR"; }
+
+############################
+###   EXECUTION BEGINS   ###
+############################
+
+declare DELIM="|"
+
+enable pwb
+
+# Confirm git-initialized
+declare OG_DIR="$PWD"
+if ! set_scan_path; then
+   exit 1
+fi
+
+# set traps to ensure restored path on any failure/exit
+# trap exit_trap EXIT SIGINT SIGABRT
+
+set_my_traps()
+{
+    reverse_array()
+    {
+        local -n pf_return="$1"
+        # Omit 'reverse_array' and 'smt_trap' function scopes:
+        for name in "${FUNCNAME[@]:2}"; do
+            pf_return=( "$name" "${pf_return[@]}" )
+        done
+    }
+
+    # Display stack for SIGCHLD for debugging
+    smt_trap()
+    {
+        local smtt_msg
+        if [[ "$1" == "SIGCHLD" ]]; then
+            local -a REVFUNCS
+            reverse_array REVFUNCS
+            IFS=$'\u2192'
+            smtt_msg="SIGCHLD Callstack is ${REVFUNCS[*]}'"
+        else
+            printf -v smtt_msg $'Caught signal \e[32;1m%s\e[39;22m\n' "$1"
+        fi
+        read -n1 -p "$smtt_msg"
+    }
+
+    local func="$1"
+    shift
+    for val in "$@"; do
+        trap "smt_trap $val" "$val"
+    done
+}
+
+declare tvalues=(
+    SIGABRT
+    SIGALRM
+    SIGBUS
+    # SIGCHLD
+    # SIGCLD
+    SIGCONT
+    # SIGEMT
+    SIGFPE
+    SIGHUP
+    SIGILL
+    # SIGINFO
+    SIGINT
+    SIGIO
+    # SIGIOT
+    SIGKILL
+    # SIGLOST
+    SIGPIPE
+    # SIGPOLL
+    SIGPROF
+    SIGPWR
+    SIGQUIT
+    SIGSEGV
+    SIGSTKFLT
+    SIGSTOP
+    SIGTSTP
+    SIGSYS
+    SIGTERM
+    SIGTRAP
+    SIGTTIN
+    SIGTTOU
+    # SIGUNUSED
+    SIGURG
+    SIGUSR1
+    SIGUSR2
+    SIGVTALRM
+    SIGXCPU
+    SIGXFSZ
+    SIGWINCH
+)
+
+set_my_traps "${tvalues[@]}"
+
+# Declare classifications before get_context_data()
+declare -i NOT_FILTERED=-1
+declare -i COMMITTED=0
+declare -i STAGED=1
+declare -i MODIFIED=2
+declare -i IGNORED=3
+declare -i UNTRACKED=4
+
+declare -a FILTER_NAMES=( not\ filtered committed staged modified ignored untracked )
+declare -a FILTER_COLORS=(
+    34\;1                # not filtered (blue bold, should never be seen)
+    38\;5\;226           # commited  (yellow, intense)
+    32\;1                # staged    (green, bold)
+    31\;1                # modified  (red, normal)
+    39\;22               # ignored   (default color, normal)
+    39\;2                # untracked (default color, dim)
+)
+
+declare -i SI_FILTER="$NOT_FILTERED"
+
+# Prepare Data
+declare -a SI_DATA_COMPLETE
+get_context_data SI_DATA_COMPLETE
+declare -i SI_DATA_COMPLETE_COUNT="${#SI_DATA_COMPLETE[*]}"
+
+# Inform and exit if SI_DATA is empty
+if [ "$SI_DATA_COMPLETE_COUNT" -eq 0 ]; then
+    declare -a si_lines
+    printf -v si_lines["${#si_lines[*]}"] \
+           $'Nothing to do in directory \e[32;1m%s\e[39;22m.' "$PWD"
+    si_lines+=(
+        ""
+        "Press any key to exit."
+    )
+    pwb_conduct_dialog si_lines
+    return 1
+fi
+
+declare -a PSOURCES=(
+    pwb_exit_on_error
+    pwb_get_regions
+    pwb_get_margins
+    pwb_conduct_dialog
+    pwb_print_array
+    pwb_get_scroll_bar
+    pwb_keybinder
+)
+source <( pwb_sources "${PSOURCES[@]}" )
+
+declare -a KBINDINGS=(
+    "key_f1"     exec_help          "Show help"
+    "c"          exec_commit_file   "Commit selected file"
+    "C"          exec_commit_staged "Commit staged files"
+    "f"          exec_set_filter    "Set filter"
+    "d"          exec_diff_file     "Diff file"
+    "s"          exec_stage_file    "Stage file"
+    "u"          exec_unstage_file  "Unstage file"
+    "v"          exec_view_file     "View file"
+    "key_dc"     exec_delete_file   "Delete file"
+)
+
+declare KEYMAP
+declare -a KEYFUNCS
+pwb_keybinder prep KBINDINGS -v KEYMAP -f KEYFUNCS
+
+# Setup to use bat/batcat, if available, for viewing files
+declare -a VIEW_CALL_ARGS
+prepare_view_call_args VIEW_CALL_ARGS
+
+pwb init
+
+# set -eu
+start_instance
+

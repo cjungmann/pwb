@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+enable pwb
+
+declare ESC=$'\e'
+declare CTRL_CHARS="abtnvfr"
+
+cat <<EOF
+This script displays the character or ANSI escape string generated
+for each user keypress.
+
+The display format will be in the form of an equivalence test matching
+a hypothetical result from calling PWB 'get_keystroke' and the string
+constant that matches the key just pressed.
+
+Keystrokes will be reported until the user presses 'q'.
+EOF
+
+declare keyp keystr
+while [[ "$keyp" != 'q' ]]; do
+    pwb get_keystroke -v keyp
+
+    if [ "${#keyp}" -eq 1 ]; then
+        printf -v keyint "%d" "'$keyp"
+        if (( keyint == 27 )); then
+            printf -v keystr "$'\\\e'"
+        elif (( keyint == 127 )); then
+            keystr="$'\\c?'"    # Backspace key / ASCII 'DEL' / Control-?
+        elif (( keyint < 14 && keyint > 6 )); then
+            printf -v keystr "$'\\%c'" "${CTRL_CHARS:$(( keyint - 7 )):1}"
+        elif [ "$keyint" -lt 32 ]; then
+            printf -v keyoct "\\%03o" $(( keyint + 64 ))
+            printf -v keystr "$'\\c%b'" "$keyoct"
+        else
+            keystr="'$keyp'"
+        fi
+    elif [[ "${keyp:0:1}" == $'\e' ]]; then
+        if [ "${#keyp}" -eq 2 ]; then
+            printf -v keyint "%d" "'${keyp:1:1}"
+            if (( keyint < 14 && keyint > 6 )); then
+                keyp="${CTRL_CHARS:$(( keyint - 7 )):1}"
+            else
+                keyp="${keyp:1:1}"
+            fi
+            printf -v keystr "$'\\\\e\\\\%c'" "$keyp"
+        else
+            printf -v keystr "$'\\\\e%s'"  "${keyp:1}"
+        fi
+    else
+        # Just in case:
+        keystr="$'$keyp'"
+    fi
+
+    printf $'[[ "$keyp" == \e[7;33;1m%s\e[39;22;27m ]]\n' "$keystr"
+done

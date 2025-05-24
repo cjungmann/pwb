@@ -1,0 +1,410 @@
+#!/usr/bin/env bash
+
+get_context_data()
+{
+    local -n gcd_return="$1"
+    gcd_return=()
+
+    gcd_return+=( "0${DELIM}8" )
+    gcd_return+=( "8${DELIM}8" )
+
+    local -i end=256
+    local -i start=16
+    for (( i=16, limit=22; i<limit && i<end; i+=6, limit+=6 )); do
+        gcd_return+=( "$i${DELIM}6" )
+    done
+}
+
+get_color_from_row()
+{
+    local -n gsi_index="$1"
+    local -i data_index="$2"
+
+    local -a row
+    IFS="$DELIM" read -r -a row <<< "${PDATA[$data_index]}"
+    local -i column="$CURCOLUMN"
+    (( column = (row[1] <= column ? row[1] - 1 : column) ))
+
+    (( gsi_index = row[0] + column ))
+}
+
+
+######################################
+###   COLOR CONVERSION FUNCTIONS   ###
+######################################
+
+# Convert component colors to 256 color cube
+pack_color()
+{
+    local -n bc_color="$1"
+    local -n bc_colors="$2"
+    (( bc_color = 16 + (bc_colors[0] * 36) + (bc_colors[1] * 6) + bc_colors[2] ))
+}
+
+# Convert color-cube colors (16-231) to
+# component red-blue-green colors
+crack_color()
+{
+    local -n cc_return="$1"
+    local value="$2"
+
+    local -i red green blue
+    (( value -= 16 ))
+    (( blue = value % 6 ))
+    (( green = (value/6) % 6 ))
+    (( red = value/36 ))
+
+    cc_return=( "$red" "$green" "$blue" )
+}
+
+# Calculate appropriate text color to print in
+# designated background color
+calc_text_color()
+{
+    local -n ctc_return="$1"
+    local -i ctc_color="$2"
+
+    local -i comps_sum
+    local -a comps
+    crack_color comps "$ctc_color"
+    (( comps_sum = comps[0] + comps[1] + comps[2] ))
+
+    local black="38;5;0"
+    local white="38;5;15"
+
+    if (( ctc_color==7 || ctc_color==15 )); then
+        ctc_return="$black"
+    elif (( comps_sum < 7 )); then
+        ctc_return="$white"
+    else
+        ctc_return="$black"
+    fi
+}
+
+#################################
+###   PWB EXECUTE FUNCTIONS   ###
+#################################
+
+exec_help()
+{
+    local eh_keyp
+    pwb_keybinder help KEYBINDINGS -v eh_keyp
+
+    exec_manager "$eh_keyp" "${@:1}"
+    local -i ecode="$?"
+    if [[ "$eh_keyp" == 'q' ]] || [ "$ecode" -ne 0 ]; then
+        return 1
+    fi
+    pwb print_all "$4"
+    pwb_exit_on_error
+    return 0
+}
+
+exec_move_left()
+{
+    local -n emr_data="$3"
+    local -a row
+    IFS="$DELIM" read -r -a row <<< "${emr_data[$2]}"
+
+    # Adjust if coming from longer line
+    (( CURCOLUMN = row[1] < CURCOLUMN ? row[1] : CURCOLUMN ))
+
+    if (( CURCOLUMN > 0 )); then
+        (( --CURCOLUMN ))
+        local eml_phandle="$4"
+        pwb print_row "$eml_phandle" "$2"
+    fi
+    return 0
+}
+
+exec_move_right()
+{
+    local -n emr_data="$3"
+    local -a row
+    IFS="$DELIM" read -r -a row <<< "${emr_data[$2]}"
+
+    if (( CURCOLUMN < row[1]-1 )); then
+        (( ++CURCOLUMN ))
+        local eml_phandle="$4"
+        pwb print_row "$eml_phandle" "$2"
+    fi
+    return 0
+}
+
+exec_set_fg()
+{
+    local -i esf_index=35
+    get_color_from_row esf_index "$2"
+    G_SAMPLE_FG="$esf_index"
+    pwb print_row "$4" "$2"
+    pwb_exit_on_error
+}
+
+exec_set_bg()
+{
+    local -i esb_index
+    get_color_from_row esb_index "$2"
+    G_SAMPLE_BG="$esb_index"
+    pwb print_row "$4" "$2"
+    pwb_exit_on_error
+}
+
+exec_manager()
+{
+    local keyp="$1"
+
+    local -i ecode=0
+    local el_func
+    if pwb_keybinder func KEYFUNCS -v el_func -k "$keyp"; then
+        "$el_func" "$@"
+        ecode="$?"
+    fi
+
+    return "$ecode"
+}
+
+
+###############################
+###   PWB PRINT FUNCTIONS   ###
+###############################
+
+print_line()
+{
+    local -n pl_data="$2"
+    local -a row
+    IFS="$DELIM" read -r -a row <<< "${pl_data[$1]}"
+
+    local text_color
+
+    local -i pl_column="$CURCOLUMN"
+    (( pl_column = (row[1] <= pl_column ? row[1] - 1 : pl_column) ))
+
+    local -i focus="$4"
+
+    local -i start end column=0
+    (( start = row[0] ))
+    (( end = start + row[1] ))
+
+    for (( i=start; i<end; ++i, ++column )); do
+        calc_text_color text_color "$i"
+        if (( focus>0 && column == pl_column )); then
+            printf $'[\e[48;5;%d;%sm%3d\e[49;39m]' "$i" "$text_color" "$i"
+        else
+            printf $'\e[48;5;%d;%sm %3d \e[49;39m' "$i" "$text_color" "$i"
+        fi
+    done
+}
+
+print_right()
+{
+    local -i pr_index
+    get_color_from_row pr_index "$1"
+
+    local -a pr_lines=(
+        "256-color ANSI Explorer"
+        ""
+        "Focus Color:"
+    )
+
+    printf -v pr_lines[${#pr_lines[*]}] \
+           $'|\e[48;5;%dm     \e[49m|' "$pr_index"
+
+    pr_lines+=( "" )
+
+    local red="n/a" blue="n/a" green="n/a"
+
+    # If part of 216 color 'cube'
+    if (( pr_index > 16 && pr_index < 232 )); then
+        local -a comps
+        crack_color comps "$pr_index"
+        red="${comps[0]}"
+        green="${comps[1]}"
+        blue="${comps[2]}"
+    fi
+
+    pr_lines+=( "Color Components" )
+
+    printf -v pr_lines[${#pr_lines[*]}] \
+           $'  red: %s' "$red"
+    printf -v pr_lines[${#pr_lines[*]}] \
+           $'green: %s' "$green"
+    printf -v pr_lines[${#pr_lines[*]}] \
+           $' blue: %s' "$blue"
+
+    pr_lines+=( "" )
+    add_sample_line pr_lines 38 "$G_SAMPLE_FG"
+    add_sample_line pr_lines 48 "$G_SAMPLE_BG"
+
+    printf -v pr_lines[${#pr_lines[*]}] \
+           $'\e[38;5;%d;48;5;%dm  default  \e[1mbold  \e[2mdim  \e[39;49;22m' \
+           "$G_SAMPLE_FG" "$G_SAMPLE_BG"
+
+    pr_lines+=(
+        ""
+        "Type F1 for help."
+    )
+
+    # printf -v pr_lines[${#pr_lines[*]}] \
+    #        $'Foreground string: "\\\\e[38;5;%dm"' "$pr_index"
+    # printf -v pr_lines[${#pr_lines[*]}] \
+    #        $'Background string: "\\\\e[48;5;%dm"' "$pr_index"
+
+    pwb_print_array pr_lines -jc "${ARGS_PRINT_RIGHT[@]}"
+
+}
+
+
+###################################
+###   MISCELLANEOUS FUNCTIONS   ###
+###################################
+
+exit_trap() { printf $'\e[H;2J'; pwb restore; }
+
+set_page_margins()
+{
+    local spm_handle="$1"
+    pwb get_dimensions
+    local -i left right content
+    (( left = 2 ))
+    (( content = 8 * 5 )) # 8 Colors by 5 characters each
+    (( right = PWB_ASSOC[screen_cols] - left - content ))
+    pwb set_margins "$spm_handle" 2 "$right" 2 "$left"
+}
+
+add_sample_line()
+{
+    local -n asl_lines="$1"
+    local -i code="$2"
+    local -i value="$3"
+
+    # Add right-padding to left-align text:
+    local spaces=""
+    if (( value < 10 )); then
+        spaces="  "
+    elif (( value < 100 )); then
+        spaces=" "
+    fi
+
+    local prefix="Foreground"
+    if (( code == 48 )); then
+        prefix="Background"
+    fi
+
+    printf -v tline \
+           $'%s sample: \e[48;5;%dm   \e[49m (\\\\e[%d;5;%dm)%s' \
+           "$prefix" "$value" "$code" "$value" "$spaces"
+    asl_lines+=( "$tline" )
+}
+
+set_margin_print_arrays()
+{
+    local smpa_handle="$1"
+    local -A MMA
+    pwb_get_regions MMA "$smpa_handle"
+
+    shift
+
+    if [ -n "$1" ]; then
+        local -n top_array="$1"
+        top_array=(
+            -t "${MMA[TM_TOP]}"
+            -c "${MMA[TM_LINES]}"
+            -l "${MMA[CO_LEFT]}"
+            -w "${MMA[CO_WIDE]}"
+        )
+    fi
+
+    if [ -n "$2" ]; then
+        local -n right_array="$2"
+        right_array=(
+            -t "${MMA[RM_TOP]}"
+            -c "${MMA[RM_LINES]}"
+            -l "${MMA[RM_LEFT]}"
+            -w "${MMA[RM_WIDE]}"
+        )
+    fi
+
+    if [ -n "$3" ]; then
+        local -n bottom_array="$3"
+        bottom_array=(
+            -t "${MMA[BM_TOP]}"
+            -c "${MMA[BM_LINES]}"
+            -l "${MMA[CO_LEFT]}"
+            -w "${MMA[CO_WIDE]}"
+        )
+    fi
+
+    if [ -n "$4" ]; then
+        local -n left_array="$4"
+        left_array=(
+            -t "${MMA[LM_TOP]}"
+            -c "${MMA[LM_LINES]}"
+            -l "${MMA[LM_LEFT]}"
+            -w "${MMA[LM_WIDE]}"
+        )
+    fi
+}
+
+
+############################
+###   EXECUTION BEGINS   ###
+############################
+
+declare DELIM='|'
+
+declare -a PDATA
+get_context_data PDATA
+
+declare -i CURCOLUMN=0
+
+enable pwb
+
+declare -a src_array=(
+    pwb_exit_on_error
+    pwb_keybinder
+    pwb_get_regions
+    pwb_print_array
+)
+source <( pwb_sources "${src_array[@]}" )
+
+# GLOBAL VARIABLES
+declare -i G_SAMPLE_BG=236
+declare -i G_SAMPLE_FG=255
+
+# Global array to be used in several places
+declare -a KEYBINDINGS=(
+    "key_left"   exec_move_left  "Move left"
+    "key_right"  exec_move_right "Move right"
+    "key_f1"     exec_help       "Show help"
+    $'\cb'       exec_set_bg     "Set sample background"
+    $'\cf'       exec_set_fg     "Set sample foreground"
+)
+
+declare KEYMAP
+declare -a KEYFUNCS
+pwb_keybinder prep -v KEYMAP KEYBINDINGS -f KEYFUNCS
+
+declare -a pwb_args=(
+    PDATA
+    "${#PDATA[*]}"
+    print_line
+    -e exec_manager
+    -r print_right
+    -h     # we'll handle the highlighting
+)
+
+declare PHANDLE
+pwb declare PHANDLE "${pwb_args[@]}"
+pwb_exit_on_error
+
+set_page_margins PHANDLE
+
+
+declare -a ARGS_PRINT_RIGHT
+set_margin_print_arrays PHANDLE "" ARGS_PRINT_RIGHT
+
+trap exit_trap EXIT SIGINT SIGABRT
+pwb init
+
+pwb start PHANDLE -a KEYMAP
+pwb_exit_on_error

@@ -1,0 +1,541 @@
+#!/usr/bin/env bash
+
+######################################
+###   TERMINFO DATA ORGANIZATION   ###
+######################################
+
+make_terminfo_regex()
+{
+    local -n mtr_regex="$1"
+    local -a rearr=(
+        ^
+        \([[:space:]]\{50,\}\) # must by highly-indented,
+                               # save to determine indentation
+
+        \([^[:space:]]+\)      # variable name
+        [[:space:]]\{2,\}      # gap of at least 2 spaces
+        \([^[:space:]]+\)      # cap name
+        [[:space:]]\{2,\}      # gap of at least 2 spaces
+        \([^[:space:]]\{2\}\)  # termcap code
+        [[:space:]]\{2,\}      # gap of at least 2 spaces
+        \(.*\)                 # description
+        $
+    )
+
+    local OIFS="$IFS"
+    IFS=''
+    mtr_regex="${rearr[*]}"
+    IFS="$OIFS"
+}
+
+make_caps_catalog_array()
+{
+    local -n mta_array="$1"
+    local parse_variable=^[[:space:]]\{50,\}Variable[[:space:]]\{6,\}Cap
+    local parse_var_type=^[[:space:]]\{50,\}\([^[:space:]]\{2,\}\)
+    local parse_line
+    make_terminfo_regex "parse_line"
+    local regex_extra=[[:space:]]\{80\}\(.*\)$
+
+    local -i inline=0
+    local -i margin=0
+    local indented
+
+    local var_type
+
+    local -a line_parts
+    local -n rm_indent="BASH_REMATCH[1]"
+
+    local IFS="$DELIM"
+
+    while read -r; do
+        # Skip lines until we have a var type
+        if [ "${#var_type}" -lt 2 ]; then
+            if [ -z "$var_type" ]; then
+                 if [[ "$REPLY" =~ $parse_variable ]]; then
+                     var_type=1
+                 fi
+            elif [[ "$REPLY" =~ $parse_var_type ]]; then
+                var_type="${BASH_REMATCH[1]:0:2}"
+                var_type="${var_type,,}"
+            fi
+            continue
+        fi
+
+        # Ignore empty lines when we're processing a var_type
+        if [[ "$REPLY" =~ ^[[:space:]]*$ ]]; then
+           continue
+        fi
+
+        # Append follow-on description lines to line_parts[3]:
+        if [ "${#line_parts[*]}" -gt 3 ]; then
+            # Some parts are here, let's see if the current line
+            # is a description continuation:
+            if [[ "$REPLY" =~ $regex_extra ]]; then
+                local desc="${line_parts[3]}"
+                if [[ "${desc: -1:1}" != '-' ]] ; then
+                    desc="$desc "
+                fi
+                line_parts[3]="${desc}${BASH_REMATCH[1]}"
+                # Get the next line in case more description provided
+                continue
+            else
+                local val=""
+                local cap_name="${line_parts[1]}"
+
+                case "$var_type" in
+                    bo )
+                        if [[ "$INFOCMP" =~ [[:space:]]"$cap_name", ]]; then
+                            val="on"
+                        fi
+                        ;;
+                    st )
+                        if [[ "$INFOCMP" =~ [[:space:]]"$cap_name"=([^,]+), ]]; then
+                           val="${BASH_REMATCH[1]}"
+                        fi
+                        ;;
+                    nu )
+                        if [[ "$INFOCMP" =~ [[:space:]]"$cap_name"\#([^,]+), ]]; then
+                            val="${BASH_REMATCH[1]}"
+                        fi
+                        ;;
+                esac
+
+                line_parts=( "$var_type" "$val" "${line_parts[@]}" )
+
+                # As soon as we know it's not a description continuation,
+                # save the array and clear for starting a new entry.
+                mta_array+=( "${line_parts[*]}" )
+                line_parts=()
+            fi
+        fi
+
+        # Once we've started reading info lines, and already having skipped
+        # if the current line in empty, every line should match the regex.
+        # Failing to match indicates the section is complete, we clear the
+        # 'var_type' variable to trigger to var type seeking condition at the
+        # top of the loop.
+        if [[ "$REPLY" =~ $parse_line ]]; then
+
+            # Save parts after indenting spaces:
+            line_parts=( "${BASH_REMATCH[@]:2}" )
+
+            if [ "${#line_parts[*]}" -gt 3 ]; then
+                if (( margin == 0 )); then
+                    indented="${BASH_REMATCH[1]}"
+                    margin="${#indented}"
+                    regex_extra=^[[:space:]]\{$(( margin + 10 )),\}\(.\*\)$
+                fi
+            fi
+        else
+            var_type=''
+        fi
+        # Avoid need to parse word-break hyphens by disabling hyphenation:
+    # done < terminfo2.txt
+    done < <( MANWIDTH=300 man --nh 5 terminfo )
+}
+
+##########################
+###   DATA FUNCTIONS   ###
+##########################
+
+get_field_sizes()
+{
+    local -n gfs_return="$1"
+    local -n gfs_source="$2"
+
+    gfs_return=()
+
+    local IFS="$DELIM"
+    local -a gfs_record
+    local -i index
+
+    for gfs_line in "${gfs_source[@]}"; do
+        read -r -a gfs_record <<< "$gfs_line"
+        local -i limit="${#gfs_record[*]}"
+        for (( index=0; index < limit; ++index )); do
+            local val="${gfs_record[$index]}"
+            local -i vlen="${#val}"
+            local -i fmax="${gfs_return[$index]:- 0}"
+            (( gfs_return[index] = (vlen > fmax ? vlen : fmax) ))
+        done
+    done
+}
+
+get_format_string()
+{
+    local -n fs_string="$1"
+    shift
+    local -a indexes=( "$@" )
+
+    local -a fs_array
+    get_field_sizes fs_array RI_TABLE
+
+    local -a fs_parts=()
+    for index in "${indexes[@]}"; do
+        fs_parts+=( "%-${fs_array[$index]}s" )
+    done
+
+    local IFS=" "
+    fs_string="${fs_parts[*]}"
+}
+
+#####################
+###   pwb SETUP   ###
+#####################
+
+
+################################
+###   KEYBINDING FUNCTIONS   ###
+################################
+
+exec_help()
+{
+    local eh_keyp
+    pwb_keybinder help KEYBINDINGS -v eh_keyp
+
+    shift
+    execute_line "$eh_keyp" "$@"
+    local -i ecode="$?"
+    if [ "$ecode" -ne 0 ] || [[ "$eh_keyp" == "q" ]]; then
+        return 1
+    fi
+}
+
+exec_value()
+{
+    (( FLAG_SET_ONLY = (FLAG_SET_ONLY==0 ? 1 : 0) ))
+    return 1;
+}
+
+exec_show_all() { FLAG_CATEGORY="$CAT_ALL"; return 1; }
+exec_only_bool() { FLAG_CATEGORY="$CAT_BOOL"; return 1; }
+exec_only_numeric() { FLAG_CATEGORY="$CAT_NUMERIC"; return 1; }
+exec_only_string() { FLAG_CATEGORY="$CAT_STRING"; return 1; }
+
+get_category_name()
+{
+    local -n gfn_name="$1"
+    case "$FLAG_CATEGORY" in
+        "$CAT_ALL" )     gfn_name="All Categories" ;;
+        "$CAT_BOOL" )    gfn_name="Boolean Values Only" ;;
+        "$CAT_NUMERIC" ) gfn_name="Numeric Values Only" ;;
+        "$CAT_STRING" )  gfn_name="String Values Only" ;;
+    esac
+}
+
+#########################
+###   PWB FUNCTIONS   ###
+#########################
+
+print_line()
+{
+    local -n pl_dsource="$2"
+    local -i pl_focus="$4"
+
+    local IFS="$DELIM"
+    local -a pl_row=( ${pl_dsource[$1]} )
+
+    local col
+    if [ -n "${pl_row[1]}" ]; then
+        col="1"
+    else
+        col="2"
+    fi
+
+    printf $'\e[%sm' "$col"
+    printf "$RI_FORMAT" "${pl_row[@]:2:3}"
+    printf $'\e[39;22m'
+}
+
+print_top()
+{
+    local -i index="$1"
+    local -n pl_dsource="$2"
+    local IFS="$DELIM"
+    local -a pt_row=( ${pl_dsource[$index]} )
+
+    local pt_cat_name
+    get_category_name pt_cat_name
+    local pt_filter_type="none"
+    if [ "$FLAG_SET_ONLY" -ne 0 ]; then
+        pt_filter_type="set only"
+    fi
+
+    local type
+    case "${pt_row[0]}" in
+        bo) type="Boolean" ;;
+        nu) type="Numeric" ;;
+        st) type="String" ;;
+    esac
+
+    local -a pt_lines=( "TERMINAL CAPABILITIES TABLE" )
+    printf -v pt_lines[1] $'Category \e[32;1m%s\e[39;22m, Filter \e[32;1m%s\e[39;22m' \
+           "$pt_cat_name" "$pt_filter_type"
+    printf -v pt_lines[2] $'Type \e[32;1m%s\e[39;22m' "$type"
+    if [ -z "${pt_row[1]}" ]; then
+        pt_lines+=( $'\e[31;1mUndefined\e[39;22m' )
+    else
+        printf -v pt_lines[3] $'"\e[32;1m%s\e[39;22m"' "${pt_row[1]}"
+    fi
+    pt_lines+=( "${pt_row[5]}" )
+
+    local -a pt_args=(
+        -t 1 -l 1
+        -w "${RI_REGIONS[SC_WIDE]}"
+        -c "${RI_REGIONS[TM_LINES]}"
+    )
+
+    printf $'\e[48;2;48;48;48m'
+    pwb_print_array pt_lines "${pt_args[@]}"
+    printf $'\e[49m'
+}
+
+print_bottom()
+{
+    local -i index="$1"
+    local -a pb_lines
+    printf -v pb_lines[0] $'Capability \e[32;1m%d\e[39;22m out of \e[32;1m%d\e[39;22m' \
+           $(( index+1 )) "$RI_ROW_COUNT"
+
+    local -a pb_args=(
+        -t $(( RI_REGIONS[BM_TOP] + 1 ))
+        -c $(( RI_REGIONS[BM_LINES] - 1 ))
+        -l "${RI_REGIONS[SC_LEFT]}"
+        -w "${RI_REGIONS[SC_WIDE]}"
+    )
+    pwb_print_array pb_lines "${pb_args[@]}"
+}
+
+# Use when we don't need a scroll bar
+print_left_noop() { :; }
+
+# Use to print a scroll bar
+print_left_sb()
+{
+    # Get scroll bar array
+    pwb get_dimensions RI_HANDLE
+    local -a sb_args=(
+        -c "${PWB_ASSOC[pager_lines]}"
+        -s "${PWB_ASSOC[data_rows]}"
+        -t "${PWB_ASSOC[row_top]}"
+        -v "${PWB_ASSOC[pager_lines]}"
+    )
+    local -a sb_chars
+    pwb_get_scroll_bar sb_chars "${sb_args[@]}"
+
+    # Position scroll bar starting column
+    printf $'\e[%dG' $(( PWB_ASSOC[margin_left] - 1 ))
+
+    # Print scroll bar array
+    local newline=""
+    for char in "${sb_chars[@]}"; do
+        printf "%s%s" "$newline" "$char"
+        newline=$'\e[1D\e[1B'
+    done
+}
+
+execute_line()
+{
+    local keyp="$1"
+    shift
+    local -n el_dsource="$2"
+    local line="${el_dsource[$1]}"
+    local phandle="$3"
+
+    local el_func
+
+    if pwb_keybinder func KEYFUNCS  -v el_func -k "$keyp"; then
+        "$el_func" "$line"
+        local -i ecode="$?"
+        printf $'\e[2J'
+        pwb print_all "$phandle"
+
+        return "$ecode"
+    fi
+}
+
+
+#########################
+###   MISCELLANEOUS   ###
+#########################
+
+filter_table()
+{
+    local -n ft_target_array="$1"
+    ft_target_array=()
+
+    # Assert-type test for inappropriate call
+    if [ "$FLAG_CATEGORY" -eq "$CAT_ALL" ] \
+       && [ "$FLAG_SET_ONLY" -eq 0 ]; then
+        echo "Flags indicate desire for entire table.  We should not be filtering."
+        read -n1 -p "Press any key to exit the program."
+        exit 1
+    fi
+
+    for ft_row in "${CAPS_ARRAY[@]}"; do
+        # An empty value will look like: 'bo||', so a '|' in
+        # the fourth position indicates an empty value.
+        # Skip empty values if set flag is set:
+        if [ "$FLAG_SET_ONLY" -ne 0 ] \
+               && [[ "${ft_row:3:1}" == "$DELIM" ]]; then
+            continue
+        fi
+
+        local ttype="${ft_row:0:2}"
+
+        if [[ "$FLAG_CATEGORY" == "$CAT_BOOL" ]] \
+               && [[ "$ttype" != "bo" ]]; then
+            continue
+        elif [[ "$FLAG_CATEGORY" == "$CAT_NUMERIC" ]] \
+                 && [[ "${ft_row:0:2}" != "nu" ]]; then
+            continue
+        elif [[ "$FLAG_CATEGORY" == "$CAT_STRING" ]] \
+                 && [[ "${ft_row:0:2}" != "st" ]]; then
+            continue
+        fi
+
+        ft_target_array+=( "$ft_row" );
+    done
+}
+
+set_margins()
+{
+    local sm_handle="$1"
+    local sm_format="$2"
+
+    printf -v tline "$sm_format" $'' $'' $''
+    local -i width="${#tline}"
+
+    pwb get_dimensions
+    pwb_exit_on_error
+
+    local -i left right
+    local -i leftover=$(( PWB_ASSOC[screen_cols] - width ))
+    (( right = leftover / 2 ))
+    (( left = right + (leftover % 2) ))
+
+    local -a marg_args=( 7 "$right" 3 "$left" )
+
+    pwb set_margins "$sm_handle" "${marg_args[@]}"
+    pwb_exit_on_error
+}
+
+run_instance()
+{
+    local ri_keyp_name="$1"
+    local ri_catname=CAPS_ARRAY
+    if [ "$FLAG_SET_ONLY" -ne 0 ] \
+           || [ "$FLAG_CATEGORY" -ne "$CAT_ALL" ]; then
+        local -a ri_filtered
+        filter_table ri_filtered
+        ri_catname="ri_filtered"
+    fi
+
+    local -n RI_TABLE="$ri_catname"
+    local -i RI_ROW_COUNT="${#RI_TABLE[*]}"
+
+    declare RI_FORMAT
+    get_format_string RI_FORMAT 2 3 4
+
+    local print_left_func
+    print_left() { "$print_left_func" "$@"; }
+
+    local ri_args=(
+        RI_TABLE
+        "$RI_ROW_COUNT"
+        print_line
+        -e execute_line
+        -t print_top
+        -l print_left
+        -b print_bottom
+    )
+
+    local RI_HANDLE
+    pwb declare RI_HANDLE "${ri_args[@]}"
+
+    set_margins RI_HANDLE "$RI_FORMAT"
+
+    local -A RI_REGIONS
+    pwb_get_regions RI_REGIONS RI_HANDLE
+
+    # Enable scroll bar if necessary
+    if [ "$RI_ROW_COUNT" -gt "${RI_REGIONS[CO_LINES]}" ]; then
+        print_left_func=print_left_sb
+    else
+        print_left_func=print_left_noop
+    fi
+
+    pwb start RI_HANDLE -a KEYMAP -k "$ri_keyp_name"
+}
+
+# Run a loop to spawn new instances each time the filter changes:
+run_program()
+{
+    local rp_keyp
+    while [[ "$rp_keyp" != "q" ]]; do
+        run_instance rp_keyp
+        printf $'\e[2J\eH'
+    done
+}
+
+exit_trap() { printf $'\e[2J'; pwb restore; }
+
+###########################
+###   BEGIN EXECUTION   ###
+###########################
+
+enable pwb
+
+declare -a psources=(
+    pwb_exit_on_error
+    pwb_print_array
+    pwb_get_regions
+    pwb_keybinder
+    pwb_get_scroll_bar
+)
+
+source <( pwb_sources "${psources[@]}" )
+
+declare DELIM
+DELIM=$'\cb'   # invisible control-b, \002, STX (start of text)
+DELIM=$'\200'  # visible first character of extended (past 7-bit) ascii
+
+# Get workstation terminfo values:
+declare INFOCMP=$( infocmp )
+INFOCMP="${INFOCMP//\\E/\\e}"
+# Organize values into usable form:
+declare -a CAPS_ARRAY
+make_caps_catalog_array CAPS_ARRAY
+
+declare -a KEYBINDINGS=(
+    "?"  exec_help         "Show help"
+    'v'  exec_value        "Toggle show values"
+    'a'  exec_show_all     "Show all term names"
+    'b'  exec_only_bool    "Show only boolean values"
+    'n'  exec_only_numeric "Show only numeric values"
+    's'  exec_only_string  "Show only string values"
+)
+
+# Global KEYMAP used by run_instance()
+declare KEYMAP
+declare -a KEYFUNCS
+pwb_keybinder prep KEYBINDINGS -v KEYMAP -f KEYFUNCS
+
+# Global flags for filtering capabilities:
+declare -i FLAG_SET_ONLY=0
+declare -i FLAG_CATEGORY=0
+declare -i CAT_ALL=0
+declare -i CAT_BOOL=1
+declare -i CAT_NUMERIC=2
+declare -i CAT_STRING=3
+
+# declare PHANDLE
+# pwb declare PHANDLE CAPS_ARRAY "${#CAPS_ARRAY[*]}" print_line -e execute_line
+# pwb_exit_on_error
+
+trap exit_trap EXIT SIGINT SIGABRT
+pwb init
+
+run_program
+

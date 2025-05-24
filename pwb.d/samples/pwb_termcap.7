@@ -1,0 +1,46 @@
+.TH pwb_termcap 7
+.SH NAME
+.B pwb_termcap
+\- Browse your terminal's terminal capabilities
+.SH SYNOPSIS
+.PP
+.B pwb_termcap
+.SH DESCRIPTION
+.PP
+This script should work on two levels: as a somewhat useful
+application, and as an example that might help someone solve
+a similar coding challenge.
+.SS WHAT IT DOES
+.PP
+This application lists all known terminal capabilities, highlighting
+those supported by the host terminal and dimming those not supported.
+The top margin will display details about the selected capability.
+Some filtering options are provided.
+.PP
+See available options by typing
+.RB \(lq ? \(rq
+for help;
+type
+.RB \(lq q \(rq
+to quit/exit.
+.SS WHAT IT DEMONSTRATES
+.TP
+.I Collecting and organizing data
+for display is often the most
+significant challenge faced when making a PWB application.
+In function
+.BR make_caps_catalog_array ,
+this application parses a man page
+.RB ( terminfo (5))
+for the full list of capabilities and searches the value returned
+by
+.B infocmp
+for the host terminal's supported capabilities.
+.TP
+.I Filtering data
+is done by entering and re-entering function
+.BR run_instance ,
+where a new
+.B pwb
+instance is created based (usually) on a temporary array that is
+created for the current filter flags.

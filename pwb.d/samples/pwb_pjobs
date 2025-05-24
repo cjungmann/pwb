@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+
+build_print_job_regex()
+{
+    local -n pbjr_regex="$1"
+    local -a parts=(
+        ^
+        \(               # group 1, job name
+        [^[:space:]]+
+        \)
+        [[:space:]]+     # space between fields
+        \(               # group 2, user name
+        [^[:space:]]+
+        \)
+        [[:space:]]+
+        \(               # group 3, job size
+        [^[:space:]]+
+        \)
+        [[:space:]]+
+        \(               # group 4, date
+        .*
+        \)
+    )
+    local IFS=""
+    pbjr_regex="${parts[*]}"
+}
+
+
+collect_print_jobs()
+{
+    local -n cd_data="$1"
+    local regex
+    build_print_job_regex regex
+
+    while read -r; do
+        if [[ "$REPLY" =~ $regex ]]; then
+            cd_data+=( "${BASH_REMATCH[*]:1}" )
+        fi
+    done < <( lpstat -W not-completed )
+}
+
+###################################
+###  KEYBINDER EXEC FUNCTIONS   ###
+###################################
+
+exec_help()
+{
+    local eh_keyp
+    pwb_keybinder help KEYBINDINGS -v eh_keyp
+
+    shift
+    exec_line "$eh_keyp" "$@"
+    local -i ecode="$?"
+    if [[ "$eh_keyp" == 'q' ]] || [ "$ecode" -ne 0 ]; then
+        return 1
+    fi
+}
+
+exec_cancel_job()
+{
+    local -n ecj_data="$3"
+    local ecj_phandle="$4"
+
+    local IFS="$DELIM"
+    local -a ecj_row
+    read -r -a ecj_row <<< "${ecj_data[$2]}"
+    local queue_name="${ecj_row[0]}"
+
+
+    local -a ecj_lines=(
+        "Gonna cancel a print job"
+        "$queue_name"
+        "$ecj_phandle"
+        ""
+    )
+
+    if cancel "$queue_name"; then
+        printf -v ecj_lines[${#ecj_lines[*]}] "Success"
+    else
+        printf -v ecj_lines[${#ecj_lines[*]}] "Failure"
+    fi
+
+    pwb_conduct_dialog ecj_lines "$ecj_phandle"
+}
+
+#########################
+###   PWB CALLBACKS   ###
+#########################
+
+print_line()
+{
+    local -n pl_dsource="$2"
+    printf "%-*.*s" "$3" "$3" "${pl_dsource[$1]}"
+}
+
+execute_line()
+{
+    local keyp="$1"
+    local el_psource="$4"
+
+    local -i ecode=0
+    local el_func
+    if pwb_keybinder func KEYFUNCS -v el_func -k "$keyp"; then
+        printf $'e\[H\e[2J'
+        "$el_func" "$@"
+        ecode="$?"
+        printf $'\e[H\e[2J'
+        pwb print_all "$el_psource"
+    fi
+
+    return "$ecode"
+}
+
+#########################
+###   MISCELLANEOUS   ###
+#########################
+
+exit_trap() { printf $'\e[H\e[2J'; pwb restore; }
+
+############################
+###   EXECUTION BEGINS   ###
+############################
+
+enable pwb
+
+declare DELIM=$'|'
+
+declare -a PSOURCES=(
+    pwb_exit_on_error
+    pwb_keybinder
+    pwb_conduct_dialog
+)
+source <( pwb_sources "${PSOURCES[@]}" )
+
+# Global array to be used in several places
+declare -a KEYBINDINGS=(
+    '?'      exec_help       "Show help"
+    "key_f1" exec_help       "Show help"
+    "c"      exec_cancel_job "Cancel selected job"
+)
+
+declare KEYMAP
+declare -a KEYFUNCS
+pwb_keybinder prep -v KEYMAP KEYBINDINGS -f KEYFUNCS
+
+declare -a PDATA
+collect_print_jobs PDATA
+
+declare -a PARGS=(
+    PDATA
+    "${#PDATA[*]}"
+    print_line
+    -e execute_line
+)
+declare PHANDLE
+pwb declare PHANDLE "${PARGS[@]}"
+pwb_exit_on_error
+
+trap exit_trap EXIT SIGINT SIGABRT
+
+pwb init
+pwb start PHANDLE -a KEYMAP
+pwb_exit_on_error
