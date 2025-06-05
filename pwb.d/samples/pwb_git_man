@@ -1038,7 +1038,6 @@ declare -a KEYFUNCS
 pwb_keybinder prep KBINDINGS -v KEYMAP -f KEYFUNCS
 
 # Move to the root of the git repository to fix file access:
-declare PGM_OG_DIR="$PWD"
 cd "$PGM_GIT_DIR"
 
 trap exit_trap EXIT SIGINT SIGABRT
@@ -1046,3 +1045,13 @@ pwb init
 
 start_program
 
+## BEGIN_DOC
+## A git file manager that highlights different
+## classes of files and provides a set of actions
+## that can be taken on the files.
+##
+## This script implements a filter procedure
+## using pwb_selector to present a subordinate
+## options selector when the user triggers a
+## filter interaction.
+## END_DOC
