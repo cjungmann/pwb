@@ -519,7 +519,7 @@ print_top()
         -w "${SI_REGIONS[SC_WIDE]}"
     )
 
-    local -a pt_lines=( "PWB TEMPLATE BASE" )
+    local -a pt_lines=( "PWB FILE MANAGER" )
 
     local IFS="/"
     printf -v pt_lines["${#pt_lines[*]}"] "%s" "${DIR_STEPS[*]}"
@@ -687,7 +687,7 @@ exit_trap() { printf $'\e[H\e[2J'; pwb restore; }
 # of the elements in the following FILE_TYPES array:
 is_executable(){ [ -n "$1" ] && [ "${1:0:1}" -eq 1 ]; }
 is_directory() { [ -n "$1" ] && [ "${1:2:1}" -eq 1 ]; }
-is_link()      { [ -n "$1" ] &&[ "${1:4:2}" -eq 1 ]; }
+is_link()      { [ -n "$1" ] && [ "${1:4:2}" -eq 1 ]; }
 
 is_man()       { [[ "$1" =~ ^.*\.[1-9](\.gz)?$ ]]; }
 is_markdown()  { [[ "$1" =~ ^.*\.(md|MD)$ ]]; }
@@ -855,3 +855,10 @@ prepare_view_call_args VIEW_CALL_ARGS
 start_instance
 
 cd "$OG_DIR"
+
+## BEGIN_DOC
+## This script is an example of a file manager,
+## It's not a complete file manager, but rather
+## a showcase for applying methods to individual
+## data lines.
+## END_DOC
