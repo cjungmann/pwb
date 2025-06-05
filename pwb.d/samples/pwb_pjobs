@@ -93,6 +93,14 @@ print_line()
     printf "%-*.*s" "$3" "$3" "${pl_dsource[$1]}"
 }
 
+print_top()
+{
+    local -a pt_lines=(
+        "PWB Print Job Viewer"
+    )
+    pwb_print_array pt_lines "${PT_DIMS[@]}"
+}
+
 execute_line()
 {
     local keyp="$1"
@@ -129,6 +137,7 @@ declare -a PSOURCES=(
     pwb_exit_on_error
     pwb_keybinder
     pwb_conduct_dialog
+    pwb_print_array
 )
 source <( pwb_sources "${PSOURCES[@]}" )
 
@@ -151,13 +160,38 @@ declare -a PARGS=(
     "${#PDATA[*]}"
     print_line
     -e execute_line
+    -t print_top
 )
 declare PHANDLE
 pwb declare PHANDLE "${PARGS[@]}"
 pwb_exit_on_error
+
+pwb set_margins PHANDLE 5
+pwb_exit_on_error
+declare -A GDIMS
+pwb get_dimensions PHANDLE -A GDIMS
+pwb_exit_on_error
+declare -a PT_DIMS=(
+    -t 1
+    -l 1
+    -w "${GDIMS[screen_cols]}"
+    -c "${GDIMS[margin_top]}"
+    -j c
+)
+
+print_top
 
 trap exit_trap EXIT SIGINT SIGABRT
 
 pwb init
 pwb start PHANDLE -a KEYMAP
 pwb_exit_on_error
+
+## BEGIN_DOC
+## This script has been ghosted, ignored without
+## ceremony after its purpose was fulfilled and
+## left in an incomplete state.
+##
+## It shows open print jobs and enables the user
+## to cancel any of the jobs.
+## END_DOC
