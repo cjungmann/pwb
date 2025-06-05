@@ -16,6 +16,8 @@ constant that matches the key just pressed.
 Keystrokes will be reported until the user presses 'q'.
 EOF
 
+printf $'\e[H\e[2J'
+
 declare keyp keystr
 while [[ "$keyp" != 'q' ]]; do
     pwb get_keystroke -v keyp
@@ -53,3 +55,10 @@ while [[ "$keyp" != 'q' ]]; do
 
     printf $'[[ "$keyp" == \e[7;33;1m%s\e[39;22;27m ]]\n' "$keystr"
 done
+
+## BEGIN_DOC
+## A simple program, using only one PWB feature,
+## get_keystroke.  However, it serves a purpose in
+## development to identify keystroke strings to
+## which a script might want to respond.
+## END_DOC
