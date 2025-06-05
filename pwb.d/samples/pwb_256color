@@ -408,3 +408,13 @@ pwb init
 
 pwb start PHANDLE -a KEYMAP
 pwb_exit_on_error
+
+## BEGIN_DOC
+## Select colors from the terminal 256 color
+## palette to preview interactions of foreground
+## and background colors.
+##
+## This script explores an implementation of
+## two-dimensional selection by highlighting
+## substrings in a given line.
+## END_DOC

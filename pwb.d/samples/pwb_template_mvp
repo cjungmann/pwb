@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# This script is a Minimal Viable Program, and can serve as a
-# starting point for a new project.
-
 #########################
 ###   PWB CALLBACKS   ###
 #########################
@@ -46,3 +43,9 @@ trap exit_trap EXIT SIGINT SIGABRT
 
 pwb init
 pwb start PHANDLE
+
+## BEGIN_DOC
+## The essential bare minimum script that
+## allows a user to browse a dataset, in this
+## case, the files in the current directory.
+## END_DOC

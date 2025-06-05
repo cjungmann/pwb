@@ -312,3 +312,11 @@ declare -a DIR_STEPS=( "$PWD" )
 start_instance
 
 cd "$OG_DIR"
+
+## BEGIN_DOC
+## This is a working template that can serve as
+## a starting point for new projects.  It offers
+## useful margins, formatting, color-coding, help
+## display, keybinding, and a scroll bar if and
+## only if necessary..
+## END_DOC

@@ -801,3 +801,13 @@ pwb init
 # set -eu
 start_instance
 
+## BEGIN_DOC
+## This is an early effort to make a tool to
+## present 'git status' information in a more
+## flexible and actionable way.
+##
+## It demonstrates a method of filtering
+## content and how to offer some actions,
+## but its deficiencies led to a more
+## capable 'pwb_git_man'.
+## END_DOC

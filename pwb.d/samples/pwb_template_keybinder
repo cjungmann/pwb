@@ -94,3 +94,9 @@ trap exit_trap EXIT SIGINT SIGABRT
 pwb init
 pwb start PHANDLE -a KEYMAP
 pwb_exit_on_error
+
+## BEGIN_DOC
+## An enhancement of 'pwb_template_mvp' that
+## demonstrates 'pwb_keybinder' protocols for
+## an easier way to handle user input.
+## END_DOC

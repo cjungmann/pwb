@@ -440,4 +440,13 @@ declare -a DIR_STEPS=( "$PWD" )
 start_instance
 
 cd "$OG_DIR"
-o
+
+## BEGIN_DOC
+## This script demonstrates how to implement a
+## checkbox interaction using pwb.
+##
+## It includes the stub of an action function,
+## 'exec_perform_action' that can be copied
+## and/or modified to perform some domain-
+## specific objectives.
+## END_DOC
