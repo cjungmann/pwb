@@ -16,12 +16,16 @@
 
 get_context_data()
 {
-    local gcd_cat_name="$1"
+    # Names must match section names for nameref to work
+    local gcd_categories_name="$1"
     local gcd_entries_name="$2"
-    local gcd_source="$3"
+
+    local gcd_colors_name="$3"
+    local gcd_source="$4"
 
     local -n gcd_categories="$1"
     local -n gcd_entries="$2"
+    local -n gcd_colors="$3"
 
     local aname gcd_cur_target
 
@@ -31,7 +35,9 @@ get_context_data()
     while read -r; do
         if [[ "$REPLY" =~ ^\[([^\]]+)\]$ ]]; then
             aname="${BASH_REMATCH[1]}"
-            gcd_cur_target="gcd_$aname"
+            local -n gcd_cur_name="gcd_${aname}_name"
+            gcd_cur_target="$gcd_cur_name"
+
             local -n gcd_array="$gcd_cur_target"
             gcd_array=()
             continue
@@ -44,7 +50,7 @@ get_context_data()
 
     local trail=$'\c?'  # DEL/0x7F
 
-    # Test for too-few fields with safe trailing-delimiter code:
+    # Get first row, ensure trailing delimiter adds empty element:x
     read -r -a gcd_row <<< "${gcd_entries[0]}$trail"
     gcd_row=( "${gcd_row[@]%$trail}" )
 
@@ -56,7 +62,12 @@ get_context_data()
         done
     fi
 
-    read -n1 -p Continue\ with\ good\ data
+    # Populate colors array from categories
+    gcd_colors=( 0 )   # Use default color for uncategorised
+    for el in "${gcd_categories[@]}"; do
+        read -ra gcd_row <<< "$el"
+        gcd_colors+=( "${gcd_row[1]}" )
+    done
 }
 
 ###########################
@@ -120,7 +131,6 @@ exec_return()
     return 1
 }
 
-
 #########################
 ###   PWB CALLBACKS   ###
 #########################
@@ -134,7 +144,7 @@ print_line()
 
     local colspec=""
     if (( "$cat" > 0 )); then
-        printf -v colspec $'\e[3%d;1m' $(( cat+1 ))
+        printf -v colspec $'\e[%sm' "${SI_COLORS[$cat]}"
         printf "%s" "$colspec"
     fi
 
@@ -186,7 +196,7 @@ print_top()
         -w "${SI_REGIONS[SC_WIDE]}"
     )
 
-    local -a pt_lines=( "PWB TEMPLATE BASE" )
+    local -a pt_lines=( "PWB TRANSACTION SCANNER" )
 
     local IFS="/"
     printf -v pt_lines["${#pt_lines[*]}"] "%s" "${DIR_STEPS[*]}"
@@ -205,7 +215,8 @@ print_bottom()
     )
 
     local -i index="$1"
-    local -i total="${#SI_DATA[*]}"
+    local -n pb_dsource="$2"
+    local -i total="${#pb_dsource[*]}"
     local -a lines
     printf -v lines[0] $'Record \e[33;1m%d\e[39;22m out of \e[33;1m%d\e[39;22m' \
            $(( index+1 )) "$total"
@@ -273,8 +284,8 @@ set_instance_margins()
 start_instance()
 {
     # Prepare Data
-    local -a SI_CATS SI_ENTRIES
-    get_context_data SI_CATS SI_ENTRIES "$FILENAME"
+    local -a SI_CATS SI_ENTRIES SI_COLORS
+    get_context_data SI_CATS SI_ENTRIES SI_COLORS "$FILENAME"
     local -i SI_ENTRIES_COUNT="${#SI_ENTRIES[*]}"
 
     if [ "$SI_ENTRIES_COUNT" -eq 0 ]; then
@@ -423,10 +434,10 @@ prepend_default_categories()
 
     declare -a DEF_CATS=(
         [categories]
-        \&Groceries
-        \&Housing
-        \&Utilities
-        \&Entertainment
+        \&Groceries"$DELIM"38\;5\;40
+        \&Housing"$DELIM"38\;5\;27
+        \&Utilities"$DELIM"38\;5\;226
+        \&Entertainment"$DELIM"38\;5\;160
     )
 
     local IFS=$'\n'
@@ -435,7 +446,6 @@ prepend_default_categories()
 
 exit_trap()
 {
-    read -n1 -p "Exit the trap"
     printf $'\e[H\e[2J'
     if [ -n "$FILEFAKE" ]; then
         rm "$FILEFAKE"
