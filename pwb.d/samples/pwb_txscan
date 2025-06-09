@@ -7,31 +7,33 @@
 # Expect a data row will have the following fields.
 # The first five are from sources, the final field,
 # category, is added
-# date
-# amount
-# name
-# type
-# memo
-# category
+# 0: date
+# 1: amount
+# 2: name
+# 3: type
+# 4: memo
+# 5: category
 
 get_context_data()
 {
-    # Names must match section names for nameref to work
-    local gcd_categories_name="$1"
+    # Array for raw category lines
+    local -a gcd_categories
+
+    # These two variables will be accessed indirectly,
+    # according to the [name] section headers in the file:
+    local gcd_categories_name="gcd_categories"
     local gcd_entries_name="$2"
 
-    local gcd_colors_name="$3"
+    # Along with gcd_categories_name, these names are
+    # used to indirectly access variables from the calling scope:
+    local gcd_cat_labels_name="$1"
+    local gcd_cat_colors_name="$3"
+
+    # PTX file to parse
     local gcd_source="$4"
 
-    local -n gcd_categories="$1"
-    local -n gcd_entries="$2"
-    local -n gcd_colors="$3"
-
+    # Read data from file into section-based arrays:
     local aname gcd_cur_target
-
-    local -a gcd_row
-    local IFS="$DELIM"
-
     while read -r; do
         if [[ "$REPLY" =~ ^\[([^\]]+)\]$ ]]; then
             aname="${BASH_REMATCH[1]}"
@@ -48,7 +50,12 @@ get_context_data()
         fi
     done < "$gcd_source"
 
+    local -a gcd_row
+    local IFS="$DELIM"
+
+    # Process entries, adding a category field if missing:
     local trail=$'\c?'  # DEL/0x7F
+    local -n gcd_entries="$gcd_entries_name"
 
     # Get first row, ensure trailing delimiter adds empty element:x
     read -r -a gcd_row <<< "${gcd_entries[0]}$trail"
@@ -62,10 +69,20 @@ get_context_data()
         done
     fi
 
+    # Process raw category table, distributing values to
+    # synchronized category labels and category colors arrays.
+
+    declare -n gcd_labels="$gcd_cat_labels_name"
+    declare -n gcd_colors="$gcd_cat_colors_name"
+
+    # Empty targets before adding contents:
+    gcd_labels=( )
+    gcd_colors=( )
+
     # Populate colors array from categories
-    gcd_colors=( 0 )   # Use default color for uncategorised
     for el in "${gcd_categories[@]}"; do
-        read -ra gcd_row <<< "$el"
+        IFS="$DELIM" read -ra gcd_row <<< "$el"
+        gcd_labels+=( "${gcd_row[0]}" )
         gcd_colors+=( "${gcd_row[1]}" )
     done
 }
@@ -111,14 +128,27 @@ exec_categorize()
 
 exec_save()
 {
+    # Collect file data before writing
     local -a es_lines
+
+    # Categories first,
     es_lines=(
         "[categories]"
-        "${SI_CATS[@]}"
+    )
+    # Combine separated category information:
+    local -i index=0
+    for cat in "${SI_CATS[@]}"; do
+        es_lines+=( "${cat}${DELIM}${SI_COLORS[$index]}" )
+        (( ++index))
+    done
+
+    # Then add entries
+    es_lines+=(
         "[entries]"
         "${SI_ENTRIES[@]}"
     )
 
+    # Save the staged data:
     local newname="${FILEROOT}.ptx"
     read -n1 -p "About to save ${#es_lines[*]} lines to '$newname'"
 
@@ -144,7 +174,7 @@ print_line()
 
     local colspec=""
     if (( "$cat" > 0 )); then
-        printf -v colspec $'\e[%sm' "${SI_COLORS[$cat]}"
+        printf -v colspec $'\e[%sm' "${SI_COLORS[$(( cat -1 ))]}"
         printf "%s" "$colspec"
     fi
 
@@ -196,10 +226,22 @@ print_top()
         -w "${SI_REGIONS[SC_WIDE]}"
     )
 
-    local -a pt_lines=( "PWB TRANSACTION SCANNER" )
+    local -n pt_dsource="$2"
+    IFS="$DELIM" read -ra pt_row <<< "${pt_dsource[$1]}"
 
-    local IFS="/"
-    printf -v pt_lines["${#pt_lines[*]}"] "%s" "${DIR_STEPS[*]}"
+    local cat_name="Uncagegorized"
+    local -i cat_index=$(( ${pt_row[@]: -1} - 1 ))
+    if (( cat_index >= 0 )); then
+        cat_name="${SI_CATS[$cat_index]}"
+        cat_name="${cat_name/&/ }"
+    fi
+
+    local -a pt_lines=(
+        "PWB TRANSACTION SCANNER"
+        "${pt_row[4]}"
+        "$cat_name"
+    )
+
     printf -v pt_lines["${#pt_lines[*]}"] "Press F1 for help"
 
     pwb_print_array pt_lines "${limit_args[@]}"
@@ -431,14 +473,51 @@ pick_file()
 prepend_default_categories()
 {
     local filename="$1"
+    local target_name="ptx_cats.txt"
 
     declare -a DEF_CATS=(
         [categories]
-        \&Groceries"$DELIM"38\;5\;40
-        \&Housing"$DELIM"38\;5\;27
-        \&Utilities"$DELIM"38\;5\;226
-        \&Entertainment"$DELIM"38\;5\;160
     )
+
+    # possible categories file in order of precedence
+    local -a candidates=(
+        "$target_name"
+        "~/$target_name"
+        "${TOOLS_PATH}/$target_name"
+        "${TOOLS_PATH}/default_cats.txt"
+    )
+
+    # standardize test for two occurances:
+    is_id_line() { [[ "$1" =~ ^\[pwb_txscan\]$ ]]; }
+
+    local first_line
+    for path in "${candidates[@]}"; do
+        if [ -f "$path" ]; then
+            if first_line=$( head -n1 "$path" ); then
+                if is_id_line "$first_line"; then
+                    break
+                fi
+            fi
+        fi
+    done
+
+    if [ -n "$path" ]; then
+        local name color
+        while read -r line || [[ -n "$line" ]]; do
+            if [[ "$line" =~ ^(.+[^[:space:]])[[:space:]]+([[:digit:];]+)$ ]]; then
+                name="${BASH_REMATCH[1]}"
+                color="${BASH_REMATCH[2]}"
+                DEF_CATS+=( "${name}${DELIM}$color" )
+            fi
+        done < "$path"
+    else
+        DEF_CATS+=(
+            \&Groceries"$DELIM"38\;5\;40
+            \&Housing"$DELIM"38\;5\;27
+            \&Utilities"$DELIM"38\;5\;226
+            \&Entertainment"$DELIM"38\;5\;160
+        )
+    fi
 
     local IFS=$'\n'
     echo "${DEF_CATS[*]}" > "$filename"
@@ -477,7 +556,10 @@ declare -a KBINDINGS=(
     "s"          exec_save       "Save changes"
 )
 
-declare DELIM=$'\t'
+declare SPATH=$( readlink -f "$0" )
+declare TOOLS_PATH="${SPATH%/*}/pwb_txscan.d"
+
+declare DELIM=$'\c?'
 
 declare KEYMAP
 declare -a KEYFUNCS
@@ -497,8 +579,6 @@ FILEROOT="${FILENAME%.*}"
 FILEEXT="${FILENAME##*.}"
 
 if [[ "$FILEEXT" != "ptx" ]]; then
-    declare SPATH=$( readlink -f "$0" )
-    declare TOOLS_PATH="${SPATH%/*}/pwb_txscan.d"
     FILEFAKE=$( mktemp )
     prepend_default_categories "$FILEFAKE"
 
