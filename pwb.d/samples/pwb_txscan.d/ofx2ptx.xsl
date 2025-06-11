@@ -10,7 +10,8 @@
       indent="yes"
       encoding="utf-8"/>
 
-  <xsl:variable name="delim" select="'&#127;'" />
+  <!-- <xsl:variable name="delim" select="'&#127;'" /> -->
+  <xsl:variable name="delim" select="'&#09;'" />
   <xsl:variable name="nl" select="'&#10;'" />
 
   <!-- Converting to xs:dateTime, YYYY-MM-DDThh:mm:ss -->
