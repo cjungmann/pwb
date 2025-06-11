@@ -14,7 +14,7 @@
 # 4: memo
 # 5: category
 
-get_context_data()
+read_full_data()
 {
     # Array for raw category lines
     local -a gcd_categories
@@ -44,9 +44,11 @@ get_context_data()
             gcd_array=()
             continue
         fi
+        local ltab=$'\t'
         if [ -n "$gcd_cur_target" ]; then
             local -n gcd_array="$gcd_cur_target"
-            gcd_array+=( "$REPLY" )
+            # Convert tab delimiters to internal value
+            gcd_array+=( "${REPLY//$ltab/$DELIM}" )
         fi
     done < "$gcd_source"
 
@@ -58,7 +60,7 @@ get_context_data()
     local -n gcd_entries="$gcd_entries_name"
 
     # Get first row, ensure trailing delimiter adds empty element:x
-    read -r -a gcd_row <<< "${gcd_entries[0]}$trail"
+    read -ra gcd_row <<< "${gcd_entries[0]}$trail"
     gcd_row=( "${gcd_row[@]%$trail}" )
 
     if (( "${#gcd_row[*]}" == 5 )); then
@@ -87,6 +89,52 @@ get_context_data()
     done
 }
 
+get_filtered_entries()
+{
+    local -n gfe_filtered_entries="$1"
+    local -i gfe_filter="$2"
+
+    local -a gfe_row
+    local -i gfe_row_cat
+
+    local IFS="$DELIM"
+    gfe_filtered_entries=()
+    for entry in "${SI_ENTRIES[@]}"; do
+        read -ra gfe_row <<< "$entry"
+        gfe_row_cat="${gfe_row[@]: -1}"
+        if (( gfe_row_cat == gfe_filter )); then
+            gfe_filtered_entries+=( "$entry" )
+        fi
+    done
+}
+
+mark_matches()
+{
+    local -n mm_entries="$1"
+    local mm_regex="$2"
+
+    local -i regex_len="${#mm_regex[*]}"
+
+    local -a mm_row
+
+    local -i index=0
+    local IFS="$DELIM"
+    for entry in "${mm_entries[@]}"; do
+        read -ra mm_row <<< "$entry"
+        mm_row=( "${mm_row[@]:0:6}" )
+        if [ "$regex_len" -gt 0 ]; then
+            if [[ "$entry" =~ $mm_regex ]]; then
+                # printf $'entry "\e[32;1m%s\e[39;22m" matched regex "\e[32;1m%s\e[39;22m"\n' \
+                #        "$entry" "$mm_regex"
+                mm_row+=( 100 )
+            fi
+        fi
+
+        mm_entries[$index]="${mm_row[*]}"
+        (( ++index ))
+    done
+}
+
 ###########################
 ###   BOUND FUNCTIONS   ###
 ###########################
@@ -106,9 +154,15 @@ exec_help()
 
 exec_categorize()
 {
+    local -a ec_headlines=(
+        "Use arrows to change the focus category."
+        "Press ENTER to select the focus category."
+        "Type the highlighted letter to quick-select."
+    )
+
     local -a ec_opts=( "Uncategorized" "${SI_CATS[@]}" )
     local keyp selopt
-    if pwb_selector ec_opts -jl -k keyp -tnumbers -v selopt; then
+    if pwb_selector ec_opts -jl -k keyp -h ec_headlines -tnumbers -v selopt; then
         local -a ec_row
         local -i rlen
         local -n ec_source="$3"
@@ -126,34 +180,121 @@ exec_categorize()
     fi
 }
 
-exec_save()
+exec_filter()
 {
-    # Collect file data before writing
-    local -a es_lines
-
-    # Categories first,
-    es_lines=(
-        "[categories]"
+    local -a ec_headlines=(
+        "Use arrows to change the focus category."
+        "Press ENTER to select the focus category."
+        "Type the highlighted letter to quick-select."
     )
-    # Combine separated category information:
-    local -i index=0
-    for cat in "${SI_CATS[@]}"; do
-        es_lines+=( "${cat}${DELIM}${SI_COLORS[$index]}" )
-        (( ++index))
+
+    local -a ec_opts=( "None" "Uncategorized" "${SI_CATS[@]}" )
+    local keyp selopt
+    if pwb_selector ec_opts -jl -k keyp -h ec_headlines -tnumbers -v selopt; then
+        if [[ "$keyp" != $'\e' ]]; then
+            SA_FILTER=$(( selopt - 1 ))
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+exec_match()
+{
+    # Print same way at setup and during interaction
+    print_entry()
+    {
+        # leave room for cursor
+        local -i flen=$(( width-1 ))
+        local -i rlen=$(( width - ${#cur_regex} - 1 ))
+        local spaces
+        printf -v spaces "%*.*s" "$rlen" "$rlen" " "
+        printf -v em_dialog[2] \
+               $'%s\e[5m_\e[25m%s' \
+               "$cur_regex" "$spaces"
+    }
+
+    local -i width=50
+    local -a em_exit_keys=( $'\cm' $'\e' )
+    local cur_regex="$SI_REGEX"
+
+    local -a em_dialog=(
+        "Match Items with Regular Expression"
+        ""
+    )
+    print_entry
+
+    local em_keyp
+
+    local -a edit_args=(
+        cur_regex
+        em_keyp
+        em_exit_keys
+    )
+
+    while ! [[ "$em_keyp" =~ ^[$'\e\cm']$ ]]; do
+        pwb_print_message em_dialog -jc
+        if pwb_edit_line "${edit_args[@]}"; then
+            print_entry
+        fi
+
+        mark_matches "$SA_ENTRIES_NAME" "$cur_regex"
+        pwb print_all SI_HANDLE
     done
 
-    # Then add entries
-    es_lines+=(
-        "[entries]"
-        "${SI_ENTRIES[@]}"
+    # Update global SI_REGEX only if ENTER pressed,
+    # otherwise, revert to selections of previous SI_REGEX
+    if [[ "$em_keyp" == $'\cm' ]]; then
+        SI_REGEX="$cur_regex"
+    fi
+
+    mark_matches "$SA_ENTRIES_NAME" "$SI_REGEX"
+    pwb print_all SI_HANDLE
+
+}
+
+exec_save()
+{
+    local newname="${FILEROOT}.ptx"
+
+    local -a es_confirm
+    printf -v es_confirm[${#es_confirm[*]}] \
+           $'About to save \e[32;1m%s\e[39;22m to \e[32;1m%s\e[39;22m' \
+           "$OG_FILENAME" "$newname"
+
+    es_confirm+=(
+        ""
+        "Type Y to save, N or ESC to abort"
     )
 
-    # Save the staged data:
-    local newname="${FILEROOT}.ptx"
-    read -n1 -p "About to save ${#es_lines[*]} lines to '$newname'"
+    local -a kallowed=( y Y n N $'\e' )
+    local kpressed
+    pwb_conduct_dialog es_confirm -a kallowed -r kpressed
+    if [[ "$kpressed" =~ ^[yY] ]]; then
+        # Collect file data before writing
+        local -a es_lines
 
-    IFS=$'\n'
-    echo "${es_lines[*]}" > "$newname"
+        # Categories first,
+        es_lines=(
+            "[categories]"
+        )
+        # Combine separated category information:
+        local -i index=0
+        for cat in "${SI_CATS[@]}"; do
+            es_lines+=( "${cat}${DELIM}${SI_COLORS[$index]}" )
+            (( ++index))
+        done
+
+        # Then add entries
+        es_lines+=(
+            "[entries]"
+            "${SI_ENTRIES[@]}"
+        )
+
+        IFS=$'\n'
+        echo "${es_lines[*]}" > "$newname"
+    fi
 }
 
 exec_return()
@@ -169,18 +310,34 @@ print_line()
 {
     local -n pl_dsource="$2"
     local -a pl_row
-    IFS="$DELIM" read -r -a pl_row <<< "${pl_dsource[$1]}"
+    IFS="$DELIM" read -ra pl_row <<< "${pl_dsource[$1]}"
+
+    local pl_last_field="${pl_row[@]: -1}"
+    if ! [[ "$pl_last_field" =~ ^[-[:digit:]]*$ ]]; then
+        read -n1 -p "Press key to clear screen and show analysis"
+        printf $'\e[2J'
+        IFS="|"
+        printf $'\n is now \e[36;1m%s\e[39;22m\n' "${pl_row[*]}"
+        printf $'and the last element is "\e[33;1m%s\e[39;22m"\n' "${pl_row[@]: -1}"
+        printf $'AKA pl_last_field, "\e[31;1m%s\e[39;22m"\n' "$pl_last_field"
+        read -n1 -p Continue
+        exit
+    fi
+
     local -i cat="${pl_row[@]: -1}"
 
     local colspec=""
-    if (( "$cat" > 0 )); then
+    if (( "$cat" == 100 )); then
+        printf -v colspec $'\e[%sm' "48;5;238"
+        printf "%s" "$colspec"
+    elif (( "$cat" > 0 )); then
         printf -v colspec $'\e[%sm' "${SI_COLORS[$(( cat -1 ))]}"
         printf "%s" "$colspec"
     fi
 
     local -i limit="$3"
 
-    printf -v tline "%s${SI_FORMAT}%s" "$colspec" "${pl_row[@]:0:3}" $'\e[39;22m'
+    printf -v tline "%s${SI_FORMAT}%s" "$colspec" "${pl_row[@]:0:3}" $'\e[39;49;22m'
     printf "%-*.*s" "$limit" "$limit" "$tline"
 }
 
@@ -227,22 +384,27 @@ print_top()
     )
 
     local -n pt_dsource="$2"
-    IFS="$DELIM" read -ra pt_row <<< "${pt_dsource[$1]}"
+    IFS="$DELIM" read -ra pt_row "${pt_dsource[$1]}"
 
     local cat_name="Uncagegorized"
     local -i cat_index=$(( ${pt_row[@]: -1} - 1 ))
+
     if (( cat_index >= 0 )); then
         cat_name="${SI_CATS[$cat_index]}"
         cat_name="${cat_name/&/ }"
     fi
 
-    local -a pt_lines=(
-        "PWB TRANSACTION SCANNER"
+    local -a pt_lines
+    printf -v pt_lines[${#pt_lines[*]}] \
+           $'Scanning file \e[32;1m%s\e[39;22m' \
+           "$OG_FILENAME"
+
+    pt_lines+=(
         "${pt_row[4]}"
         "$cat_name"
     )
 
-    printf -v pt_lines["${#pt_lines[*]}"] "Press F1 for help"
+    printf -v pt_lines["${#pt_lines[*]}"] $'Press \e[32;1mF1\e[39;22m for help'
 
     pwb_print_array pt_lines "${limit_args[@]}"
 }
@@ -323,68 +485,111 @@ set_instance_margins()
     pwb set_margins "$sim_handle" "${sim_margins[@]}"
 }
 
-start_instance()
+announce_empty_file()
 {
-    # Prepare Data
+    local -a aef_lines
+    printf -v aef_lines[${#aef_lines[*]}] \
+           $'File \e[32;1m%s\e[39;22m contains no transactions.' \
+           "$OG_FILENAME"
+    aef_lines+=(
+        ""
+        "Press any key to return."
+    )
+
+    pwb_conduct_dialog aef_lines
+}
+
+is_app_exit_key()
+{
+    local iaek_keyp="$1"
+    [[ "$iaek_keyp" == 'q' ]] ||  [[ "$iaek_keyp" == $'\e' ]]
+}
+
+# Initiates a display with the current category filter in force.
+# The key that terminates the display is returned for scrutiny
+# concerning whether to conclude running the application.
+run_with_entries()
+{
+    local rwe_exit_key_name="$1"
+    local rwe_entries_name="$2"
+
+    # Prepare alligning format string for print_line() function:
+    local SI_FORMAT
+    make_format_string SI_FORMAT "$rwe_entries_name"
+
+    # Establish global regular expression storage
+    SI_REGEX=""
+
+    # Get filtered entries count for 'pwb declare' parameters:
+    local -n rwe_entries="$rwe_entries_name"
+    local -i rwe_entries_count="${#rwe_entries[*]}"
+
+    # Prepare indirect print_left function for 'pwb declare' parameters
+    local print_left_func=print_left
+    p_print_left() { "$print_left_func" "$@"; }
+
+    # Create Handle
+    local -a declare_args=(
+        "$rwe_entries_name"
+        "$rwe_entries_count"
+        print_line
+        -e exec_line
+        -b print_bottom
+        -t print_top
+        -l p_print_left
+    )
+
+    local SI_HANDLE
+    pwb declare SI_HANDLE "${declare_args[@]}"
+    pwb_exit_on_error
+
+    # Set margins according to data;
+    set_instance_margins SI_HANDLE "$rwe_entries_name"
+    # then regions according to margins
+    local -A SI_REGIONS
+    pwb_get_regions SI_REGIONS SI_HANDLE
+
+    # Remove left-margin scrollbar if not enough entries:
+    if (( "$rwe_entries_count" <= SI_REGIONS[CO_LINES] )); then
+        print_left_func=noop_print_left
+    fi
+
+    local ending_keyp
+    declare -a start_args=(
+        -a KEYMAP
+        -k "$rwe_exit_key_name"
+    )
+
+    pwb start SI_HANDLE "${start_args[@]}"
+    pwb_exit_on_error
+}
+
+start_application()
+{
+    # Prepare full, unfiltered data from file:
     local -a SI_CATS SI_ENTRIES SI_COLORS
-    get_context_data SI_CATS SI_ENTRIES SI_COLORS "$FILENAME"
+    read_full_data SI_CATS SI_ENTRIES SI_COLORS "$FILENAME"
     local -i SI_ENTRIES_COUNT="${#SI_ENTRIES[*]}"
 
     if [ "$SI_ENTRIES_COUNT" -eq 0 ]; then
-        declare -a si_lines
-        printf -v si_lines["${#si_lines[*]}"] \
-               $'Directory \e[32;1m%s\e[39;22m is empty' "$PWD"
-        si_lines+=(
-            ""
-            "Press any key to return."
-        )
-        pwb_conduct_dialog si_lines
+        announce_empty_file
     else
-        local print_left_func=print_left
-        p_print_left() { "$print_left_func" "$@"; }
+        local -i SA_FILTER=-1
+        local -a filtered_entries=()
+        local SA_ENTRIES_NAME
+        local sa_keyp
 
-        local SI_FORMAT
-        make_format_string SI_FORMAT SI_ENTRIES
-
-        # Create Handle
-        local -a declare_args=(
-            SI_ENTRIES
-            "$SI_ENTRIES_COUNT"
-            print_line
-            -e exec_line
-            -b print_bottom
-            -t print_top
-            -l p_print_left
-        )
-
-        local SI_HANDLE
-        pwb declare SI_HANDLE "${declare_args[@]}"
-        pwb_exit_on_error
-
-        # Prepare Handle
-        set_instance_margins SI_HANDLE SI_ENTRIES
-
-        # With margins established, get instance-global regions
-        local -A SI_REGIONS
-        pwb_get_regions SI_REGIONS SI_HANDLE
-
-        # Use do-nothing function for scrollbar not needed:
-        if (( SI_ENTRIES_COUNT <= SI_REGIONS[CO_LINES] )); then
-            print_left_func=noop_print_left
-        fi
-
-        local ending_keyp
-        declare -a start_args=(
-            -a KEYMAP
-            -k ending_keyp
-        )
-
-        pwb start SI_HANDLE "${start_args[@]}"
-        pwb_exit_on_error
-
-        if [[ "$ending_keyp" == 'q' ]]; then
-            exit 0
-        fi
+        while ! is_app_exit_key "$sa_keyp"; do
+            if (( SA_FILTER < 0 )); then
+                SA_ENTRIES_NAME="SI_ENTRIES"
+            else
+                filtered_entries=()
+                get_filtered_entries filtered_entries SA_FILTER
+                SA_ENTRIES_NAME="filtered_entries"
+            fi
+            printf $'\e[2J'
+            run_with_entries sa_keyp "$SA_ENTRIES_NAME"
+        done
     fi
 }
 
@@ -405,7 +610,7 @@ make_format_string()
     local -a mfs_maxes
 
     for line in "${mfs_array[@]}"; do
-        IFS="$DELIM" read -r -a mfs_row <<< "$line"
+        read -ra mfs_row <<< "$line"
         if (( fields == 0 )); then
             fields="${#mfs_row[*]}"
             for (( i=0; i<fields; ++i )); do
@@ -470,6 +675,9 @@ pick_file()
     return 1
 }
 
+# This function is called to add category entries to a derived
+# ptx file.  The fields must be delimited by tabs, and will
+# be immediately converted to the internal IFS value.
 prepend_default_categories()
 {
     local filename="$1"
@@ -478,6 +686,9 @@ prepend_default_categories()
     declare -a DEF_CATS=(
         [categories]
     )
+
+    # Override any other delimiter so as to use tabs here:
+    local DELIM=$'\t'
 
     # possible categories file in order of precedence
     local -a candidates=(
@@ -523,8 +734,26 @@ prepend_default_categories()
     echo "${DEF_CATS[*]}" > "$filename"
 }
 
+confirm_action()
+{
+    local -a ac_lines=(
+        "Confirm $1"
+        ""
+        "Y or N?"
+        )
+
+    local -a allowed=( y Y n N key_escape )
+    local ca_keyp
+    pwb_conduct_dialog ac_lines -jc SI_HANDLE -a allowed -r ca_keyp
+    [[ "$ca_keyp" =~ Y|y ]]
+}
+
 exit_trap()
 {
+    if [ "$?" -ne 0 ] ;then
+       echo
+       read -n1 -p "View error before leaving"
+    fi
     printf $'\e[H\e[2J'
     if [ -n "$FILEFAKE" ]; then
         rm "$FILEFAKE"
@@ -543,8 +772,10 @@ declare -a PSOURCES=(
     pwb_get_regions
     pwb_conduct_dialog
     pwb_print_array
+    pwb_print_message
     pwb_get_scroll_bar
     pwb_keybinder
+    pwb_edit_line
     pwb_selector
 )
 source <( pwb_sources "${PSOURCES[@]}" )
@@ -553,12 +784,15 @@ declare -a KBINDINGS=(
     "key_f1"     exec_help       "Show help"
     "key_escape" exec_return     "Return"
     "c"          exec_categorize "Categorize Entry"
+    "f"          exec_filter     "Filter list"
+    "m"          exec_match      "Match Items"
     "s"          exec_save       "Save changes"
 )
 
 declare SPATH=$( readlink -f "$0" )
 declare TOOLS_PATH="${SPATH%/*}/pwb_txscan.d"
 
+# Using DEL/0x7F for delimiter
 declare DELIM=$'\c?'
 
 declare KEYMAP
@@ -574,6 +808,8 @@ if [ -z "$FILENAME" ]; then
         exit 1
     fi
 fi
+
+declare OG_FILENAME="$FILENAME"
 
 FILEROOT="${FILENAME%.*}"
 FILEEXT="${FILENAME##*.}"
@@ -597,7 +833,7 @@ fi
 trap exit_trap EXIT SIGINT SIGABRT
 pwb init
 
-start_instance
+start_application
 
 ## BEGIN_DOC
 ## This script does some unusual things:
