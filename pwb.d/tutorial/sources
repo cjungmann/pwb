@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+
+## BEGIN_DOC
+## This tutorial introduces the script `pwb_sources` and
+## the source functions to which it provides access.
+##
+## Source functions are non-executable scripts containing
+## a function with the same name as the script file.  They
+## provide development shortcuts and examples of more
+## advanced pwb programming.
+##
+## In addition to the man page for this topic, one should
+## consult the 'pwb_sources' man page and then use pwb_sources
+## to read source function man pages.
+## END_DOC
+
+enable pwb
+enable stat # Use builtin stat for speed
+
+# SOURCE FUNCTIONS
+# List of source functions to source into the project:
+declare -a pwbsrc=(
+    pwb_exit_on_error     # basic error warning and information
+    pwb_print_message     # prints a screen-centered, bordered message
+    pwb_erase_dims        # erases the output of pwb_print_message
+    pwb_get_regions       # returns array margin coordinates for pwb_print_array
+    pwb_print_array       # prints an array within a defined space
+    pwb_get_scroll_bar    # returns an array to be used to print a scroll bar
+)
+# pwb_sources is a script to manage sourcefunction
+source <( pwb_sources "${pwbsrc[@]}" )
+
+print_line()
+{
+    local -i index="$1"
+    # Add prefix to nameref variables to increase chances the
+    # name won't shadow or be shadowed by similar variables:
+    local -n pl_array="$2"
+    local -i chars_limit="$3"
+
+    local line="${pl_array[$index]}"
+
+    printf "%-*s" "$chars_limit" "${line:0:$chars_limit}"
+}
+
+# Use output of pwb_get_regions to print the top margin.
+print_head()
+{
+    local -i index="$1"
+    local pname="$5"
+
+    local -i row_count
+    pwb get_data_count "$pname" -v row_count
+    local tline
+    printf -v tline \
+           $'Row \e[32;1m%2d\e[39;22m out of \e[32;1m%d\e[39;22m total' \
+           $(( index+1 )) "$row_count"
+
+    local -a lines=(
+        "PWB Tutorial: Using PWB Source Functions"
+        "$tline"
+    )
+
+    local -a ppa_args=(
+        lines          # array of lines to print
+        -t 1           # top of screen
+
+        # Use screen width rather than content width
+        -l 1                          # left
+        -w "${REGION_DIMS[SC_WIDE]}"  # width
+
+        # -c is for number of lines in the margin.  Array lines
+        #    that exceed the margin height will be ignored.
+        -c "${REGION_DIMS[TM_LINES]}" # number of lines in margin
+    )
+
+    # Source function
+    pwb_print_array "${ppa_args[@]}"
+}
+
+print_right_margin()
+{
+    local pname="$5"
+
+    local -a scrbar
+
+    pwb get_dimensions "$pname"
+    local -i lines="${PWB_ASSOC[pager_lines]}"
+    local -a scrargs=(
+        scrbar
+        -v "$lines"
+        -s "${PWB_ASSOC[data_rows]}"
+        -t "${PWB_ASSOC[row_top]}"
+        -c "$lines"
+    )
+    # Source function
+    pwb_get_scroll_bar "${scrargs[@]}"
+
+    # separation from content
+    printf ' '
+
+    for block in "${scrbar[@]}"; do
+        printf $'%s\e[1B\e[1D' "$block"
+    done
+}
+
+# NEW (item 3)
+# Show a message if the user presses ENTER, using source functions
+# `pwb_print_message` and `pwb_erase_dims`.
+execute_line()
+{
+    local keyp="$1"
+    local -i index="$2"
+    local -n el_array="$3"
+    local pwb_name="$4"
+
+    local fname="${el_array[$index]}"
+    stat "$fname" -l
+
+    # Text lines for message box.  Include any prompt
+    # in the lines array to ensure the prompt is written
+    # inside the bounding box.
+    local tline
+    printf -v tline $'Stat on file \e[32;1m%s\e[39;22m' "$fname"
+    local -a msg=( "$tline" )
+    for key in "${!STAT[@]}"; do
+        printf -v tline $'%-12s: \e[32;1m%s\e[39;22m' "$key" "${STAT[$key]}"
+        msg+=( "$tline" )
+    done
+    msg+=( "" "Press any key to continue" )
+
+    # Source function
+    # pwb_print_message and pwb_erase_dims are paired to
+    # print and erase a message box
+    local -a dims
+    pwb_print_message -a dims msg
+    read -sn1
+    pwb_erase_dims dims
+    pwb print_all "$pwb_name"
+}
+
+clean_up() { pwb restore; }
+
+############################
+###   EXECUTION STARTS   ###
+############################
+
+declare -i curlen maxlen=0
+declare -a FNAMES
+for fname in *; do
+    FNAMES+=( "$fname" )
+    curlen="${#fname}"
+    (( maxlen = curlen > maxlen ? curlen : maxlen ))
+done
+
+# Prepare args to allow comments
+declare -a declare_args=(
+    FNAMES
+    "${#FNAMES[*]}"
+    print_line
+
+    # NEW (item 3)
+    # Register the execute_line function
+    -t print_head
+    -e execute_line
+    -r print_right_margin
+)
+
+declare PHANDLE
+pwb declare PHANDLE "${declare_args[@]}"
+pwb_exit_on_error
+# NEW ^^ (item 2) ^^
+# Use source functions to provide explicit error notifications
+
+# NEW (item 4)
+# Get screen dimensions without handle for margins for
+# centering the content
+pwb get_dimensions
+declare -i swide="${PWB_ASSOC[screen_cols]}"
+declare -i lrmargin=$(( (swide - maxlen) / 2 ))
+pwb set_margins PHANDLE 5 "$lrmargin"
+pwb_exit_on_error
+
+# Source function
+# Initialize a global associative array with region dimensions
+declare -A REGION_DIMS
+pwb_get_regions REGION_DIMS PHANDLE 
+
+# NEW (item 6)
+declare KEYMAP
+declare -a keymap_array=(
+    '?'    7
+)
+pwb declare_keymap KEYMAP keymap_array
+pwb_exit_on_error
+
+trap clean_up EXIT SIGABRT SIGINT
+
+#5 Start the interaction
+pwb init
+
+# NEW (item 6)
+# Register keymap to activate the keys
+pwb start PHANDLE -a KEYMAP
+pwb_exit_on_error
+

@@ -1,0 +1,210 @@
+.TH margins 7
+.SH INTRODUCTION
+.PP
+Margins are an important feature of
+.BR  pwb .
+Superficially, they can be used to create a visual buffer around
+the content for easier viewing.  A more functional purpose for margins
+is to divide the screen into regions to be filled with context
+information like usage hints, item details, or progress information.
+
+The related script uses margins to center text and to provide
+a minimal usage prompt.  It also introduces a more robust line print
+function that heeds the allowed length.
+.SH USING MARGINS
+.PP
+There are several things to 
+Using margins in the
+.B pwb
+ecosystem 
+.SS SETTING MARGINS
+.PP
+Margins are defined spaces that surround the content.  Margins are
+created by calling the
+.B set_margins
+action after declaring the
+.B pwb
+handle.
+.PP
+The
+.B set_margins
+action is applied to a handle, so the handle must be created
+with the
+.B declare
+action before setting the margins.  The following example declares
+the handle as in the previous chapter, but then sets the margins for
+4 lines top and bottom, and 20 on left and right:
+.PP
+.RS 4
+.EX
+pwb declare PHANDLE DIR_FILES \(dq\(Do{\(shDIR_FILES[*]}\(dq print_line
+pwb set_margins PHANDLE 4 20
+.EE
+.RE
+.PP
+The
+.B set_margins
+action uses a non-obvious arrangement of arguments.  Please refer to
+the
+.B ARGUMENTS OF SET_MARGINS ACTION
+section below for a complete explanation.
+.SS INITIALIZING THE MARGINS
+.PP
+It is important to note that
+.B pwb
+never writes on the screen.  It only moves the cursor around and asks
+the hosting script to write something.
+Unless a script specifically initializes the margins, they may contain
+content from a previous screen.
+.PP
+There are four general ways to initialize margins:
+.PP
+.TS
+tab(|);
+l lx.
+1|T{
+.BR "Initialize screen" .
+This is the recommended way. Use:
+.IP
+.EX
+pwb init
+.EE
+T}
+
+2|T{
+.BR "Erase full screen" .
+Erase the entire screen when starting the script:
+.IP
+.EX
+printf \(Do\(aq\(rse[2J\(aq
+.EE
+T}
+
+3|T{
+.BR "Static fill margins" .
+Before starting, fill margin areas with your own content.
+This requires calculating screen coordinates of the margins
+and printing directly on the screen.
+T}
+
+4|T{
+.BR "Dynamic fill margins" .
+Register margin-printing functions that are called when a new
+item receives focus.  This still requires some calculations,
+and the functions' ability to fully fill the margin.
+T}
+.TE
+.SH NOTES ON THE SCRIPT
+.PP
+The script associated with this page illustrates some margin
+techniques.
+.TP
+.B set_margins function
+uses the screen width and content width to calculate and set
+appropriate margins for centering the content.
+.TP
+.B print_top function
+uses the
+.B get_dimensions
+action with the established
+.B pwb
+handle to get the margin dimensions.
+The margin dimensions are used to position the cursor for
+printing the message.
+.TP
+.B improved line print function
+uses the \(dq\(Do3\(dq characters limit value to print exactly the
+full number of characters permitted to ensure safe printing
+and show a more pleasing margin-to-margin content line.
+.IP
+The
+.B printf
+formatting string is
+.BR \(dq%-*.*s\(dq .
+The asterisks are replaced with integer values in the
+.B printf
+argument list.
+The
+.BR -* ,
+before the period,
+is the
+.I field width
+value that tells
+.B printf
+to print at least \(dqlen\(dq characters, with the
+.B -
+making the string left-justified.
+The
+.BR .*
+.RI ( "precision value" )
+says the string should be no more than \(dqlen\(dq characters, which
+will truncate a line that is too long.
+.IP
+See
+.BR printf(3) ,
+search for
+.RI \(dq precision \(dq
+to learn more about
+.B printf
+format strings.
+
+
+.SH ARGUMENTS OF SET_MARGINS ACTION
+.PP
+The argument order is unusual, but follows the model for the
+CSS box model declaration.
+The rule is the margins are defined in clockwise order, starting
+with the top.  Undefined margins will use the value from the margin
+on its opposite side.
+Only the first argument is required,
+and additional arguments are interpreted like this:
+.RS
+.TS
+tab(|);
+l lx.
+one argument|T{
+number used for all four margins
+T}
+
+two arguments|T{
+first argument is
+.BR top " and " bottom ,
+.br
+second argument is
+.BR left " and " right .
+T}
+
+three arguments|T{
+first argument is
+.BR top ,
+.br
+second argument is
+.BR left " and " right ,
+.br
+third argument is
+.BR bottom .
+T}
+
+four arguments|T{
+arguments apply in
+.BR top ", " right ", " bottom ",  then " left " order."
+T}
+.TE
+.RE
+.PP
+Another way to look at it is:
+.PP
+.EX
+.B pwb set_margins \c
+.I PHANDLE all_sides
+.br
+.B pwb set_margins \c
+.I PHANDLE top_and_bottom right_and_left
+.br
+.B pwb set_margins \c
+.I PHANDLE top right_and_left bottom
+.br
+.B pwb set_margins \c
+.I PHANDLE top right bottom left
+.EE
+.RE

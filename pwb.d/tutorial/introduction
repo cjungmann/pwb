@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+## BEGIN_DOC
+## This code in this script is a copy of the code
+## found in the README.md file if the pwb project.
+## It an example of a minimum viable pwb (MVP)
+## application.
+##
+## This script performs the 3 basic steps
+## 1. Establish data source
+## 2. Implement line print function
+## 3. Enable, declare, and start pwb
+## END_DOC
+
+# Step 1: establish data source
+declare -a DIR_FILES=( * )
+
+# Step 2: implement line print function
+print_line()
+{
+    # retrieve the data
+    local -i index="$1"
+    local -n pl_dsource="$2"
+    local line="${pl_dsource[$index]}"
+
+    # print the data
+    printf "%s" "$line"
+}
+
+# Step 3: Enable the builtin
+enable pwb
+
+# Step 4: Prepare the pwb handle
+pwb declare PHANDLE DIR_FILES "${#DIR_FILES[*]}" print_line
+
+# Step 5: Start the interaction
+pwb start PHANDLE
+

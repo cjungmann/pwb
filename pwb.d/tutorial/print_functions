@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+
+## BEGIN_DOC
+## This script shows how line and margin print functions
+## are similar.
+##
+## Declaring the pwb handle with the '-h' option
+## disables automatic highlighting, permitting the line
+## print function to provide custom highlighting.  In
+## this script, the print function not only changes the
+## foreground and background colors, it also changes
+## the case of the selected line to suggest that
+## non-color cues can also signal selection.
+##
+## The print_top() function prints centered text in the
+## top margin.  pwb calls the margin print functions for
+## the focus item, so there is no need for them to
+## consult the focus argument.
+## END_DOC
+
+declare -a DIR_FILES=( * )
+
+# This function implements a custom highlighting
+# scheme and for the first time in the tutorial,
+# full-width highlighting.
+#
+# When implementing custom highlighting, it is
+# important to call 'pwb handle' with the '-h' option
+# to prevent the default reverse video.
+print_line()
+{
+    # All data sent to print function
+    local -i index="$1"
+    local data_name="$2"
+    local -i chars_limit="$3"
+    local -i focus="$4"
+    local pwb_name="$5"
+    local extra_data="$6"
+
+    # For Bash arrays, use a nameref to access the data,
+    local -n pl_data="$data_name"
+    # and the appropriate syntax to read the row.
+    local line="${pl_data[$index]:0:$chars_limit}"
+
+    # Demo custom highlighting.  Note that this requires
+    # the pwb handle to be declared with the -h option.
+    # Here, we set not only fore- and back-ground colors,
+    # we also change the text to all upper-case.
+    if (( focus == 1 )); then
+        printf $'\e[48;2;255;255;0;38;2;64;128;255;1m'
+        line="${line^^*}"
+    fi
+
+    # print data
+    printf "%-*s" "$chars_limit" "$line"
+
+    if (( focus == 1 )); then
+        # Default foreground, default background, normal intensity:
+        printf $'\e[39;49;22m'
+    fi
+}
+
+# Print given text centered within the defined region,
+# returning the cursor to its original position before
+# returning.
+center_print()
+{
+    local text="$1"
+    local -i limit="$2"
+
+    # Get length, but restrict to limit
+    local -i len="${#text}"
+    (( len = len > limit ? limit : len ))
+
+    # Calculate indent distance to center text
+    local left=$(( (len < limit) ? ((limit-len)/2) : 0 ))
+
+    # erase and fill region background without moving the cursor
+    printf $'\e[%dX' "$limit"
+    # move cursor to column that centers the text
+    if (( left > 0 )); then
+        printf $'\e[%dC' "$left"
+    fi
+    # print the string
+    printf "%s" "${text:0:$len}"
+    # return cursor to original position
+    printf $'\e[%dD' $(( left + len ))
+}
+
+# New function to print (centered) progress information in top margin
+print_top()
+{
+    # retrieve data
+    local -i index="$1"
+    local -i chars_limit="$3"
+    local phandle="$5"
+
+    local -i row_count
+    pwb get_data_count "$phandle" -v row_count
+
+    # Setting background color to see printed extent
+    printf $'\e[48;2;64;64;64m'
+
+    local -a lines=(
+        "Print Functions Script"
+        ""
+        "Press 'q' to quit."
+    )
+    # Array element 1 is a generated line
+    printf -v lines[1] "Row %d out of %d" $(( index+1 )) "$row_count"
+
+    for line in "${lines[@]}"; do
+        center_print "$line" "$chars_limit"
+        # move to next line
+        printf $'\e[1B'
+    done
+
+    # Restore default background color
+    printf $'\e[49m'
+}
+
+# Function to get length of longest string in an array
+get_max_len()
+{
+    local -n gml_return="$1"
+    local -n gml_array="$2"
+
+    local -i curlen
+
+    gml_return=0
+    for file in "${gml_array[@]}"; do
+        curlen="${#file}"
+        (( gml_return = ( curlen > gml_return ? curlen : gml_return ) ))
+    done
+}
+
+# Calculate appropriate margins for centering the content
+set_margins()
+{
+    # Get max content width that must be contained
+    local -n sm_array="$1"
+    local -i maxlen=0
+    get_max_len maxlen "$1"
+
+    # Ensure a minimum to accommodate the top-margin contents
+    (( maxlen = ( maxlen < 30 ? 30 : maxlen ) ))
+
+    # Get screen width
+    pwb get_dimensions
+    local -i screen_cols="${PWB_ASSOC[screen_cols]}"
+
+    # Split non-content space into two for margin widths
+    local -i lr_margin=$(( (screen_cols - maxlen ) / 2 ))
+
+    local sm_pname="$2"
+    pwb set_margins "$sm_pname" 3 "$lr_margin"
+}
+
+
+############################
+###   EXECUTION BEGINS   ###
+############################
+
+enable pwb
+
+# New arguments, -h to disable default highlighting
+pwb declare PHANDLE -h DIR_FILES "${#DIR_FILES[*]}" print_line -t print_top
+
+set_margins DIR_FILES PHANDLE
+
+exit_trap() { pwb restore; }
+trap exit_trap EXIT SIGINT SIGABRT
+
+pwb init
+
+pwb start PHANDLE
+

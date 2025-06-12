@@ -1,0 +1,290 @@
+.TH introduction 7
+.SH INTRODUCING PWB, PAGER WITH BENEFITS
+.PP
+.B pwb
+facilitates building applications that present collections of items
+on which various actions can be generated.
+.B pwb
+decides when and where to print something, but delegates to the
+Bash script exactly what is printed, which keys are active, and
+what is to be done when the keys are pressed.
+.PP
+The script associated with this introduction is a minimum viable
+.B pwb
+.RI ( MVP )
+application, illustrating the foundation of
+.B pwb
+development.
+
+.SH BASIC REQUIREMENTS
+.SS PWB BASICS
+.PP
+Assuming the script is prepared as an executable script (see
+.B MAKING CALLABLE SCRIPTS
+below if that doesn't make sense), any script using
+.B pwb
+must provide two features, a
+.BR "data source" " and a " "print function" .
+.PP
+The
+.B data source
+can be any data store whose members can be accessed with an integer
+index, like a Bash array.
+The
+.B print function
+must be provided by the script so
+.B pwb
+can call it to print each line in the content area.
+.PP
+Given these two items, it is a simple matter to declare and start
+a
+.B pwb
+application.
+.SH THE FIRST APP
+.PP
+Let's walk through the first application, implementing the required
+.BR "Data Source "  And " Print Function" .
+
+.SS ESTABLISH DATA SOURCE
+.PP
+We'll use the simplest data collection available, the files in the
+current working directory.  It can be done in a single statement:
+
+.EX
+declare -a DIR_FILES=( * )
+.EE
+
+.SS IMPLEMENT THE PRINT FUNCTION
+.PP
+The print function will be called for each line in the content
+area of the screen.
+.B pwb
+positions the cursor before calling, so the print function can simply
+start printing.
+It will be called for each line to fully-populate the screen, and to
+unhighlight the old and highlight the new when the user changes the
+selection.
+.PP
+At the minumum, the print function must
+.BR "retrieve the data" ,
+and
+.BR "print the data" .
+.IP
+.EX
+print_line()
+{
+   \(sh retrieve the data
+   local -i index=\(dq\(Do1\(dq
+   local -n pl_dsource=\(dq\(Do2\(dq
+   local line=\(dq\(Do{pl_dsource[\(Doindex]}\(dq
+
+   \(sh print the data
+   printf \(dq%s\(dq \(dq\(Doline\(dq
+}
+.EE
+.PP
+.B Notes on the Code Fragment:
+.TP
+.B Arguments
+In this case we are only using the first two arguments of the six
+arguments passed to the callback function.
+The arguments are defined below (see
+.BR "PRINT LINE ARGUMENTS" )
+and in the
+.B pwb
+man page.
+.TP
+.B Argument Names
+It can be helpful to make named copies of position arguments to
+clarify their meaning.
+A nameref variable will be necessary to access the array data source.
+.TP
+.B Prefix for Name of Nameref Variable
+The example uses a prefix, based in the function name, on the nameref
+variable to avoid the nameref and the variable to which it refers
+having the same name.
+.TP
+.B Data Retrieval
+Access the array value using the index into the namereffed variable
+.TP
+.B Printing
+Print the data starting where
+.B pwb
+has left the cursor.
+.TP
+.B WARNING: Ignored Line Length \(dq\(Do3\(dq
+By ignoring \(dq\(Do3\(dq argument containing the characters
+allowed for the line print function, this line print function
+risks spoiling the screen by overwriting the bounds allowed by
+.BR pwb .
+.IP
+Normally, a script should carefully heed \(dq\(Do3\(dq to prevent
+overflow.
+.IP
+In this case, where the data source is the file names of this project,
+no data item will be long enough to overflow, it is reasonably safe
+to ignore \(dq\(Do3\(dq.  
+.SS TRUE MINIMUM PRINT
+.PP
+Directly using positional arguments without naming them, a true
+minimum print function, with a Bash array for the data source,
+could look like:
+.IP
+.EX
+print_line()
+{
+   local -n pl_dsource=\(dq\(Do2\(dq
+   printf \(dq%s\(dq \(dq\(Do{pl_source[\(Do1]}\(dq
+}
+.EE
+
+
+.SS START PWB
+.PP
+With the resources ready, we can start up
+.BR pwb .
+The following three lines of code are the minimum essential for
+starting a
+.B pwb
+application:
+
+.EX
+enable pwb
+pwb declare PHANDLE DIR_FILES \(dq\(Do{DIR_FILES[*]}\(dq print_line
+pwb start PHANDLE
+.EE
+.SH PRINT LINE ARGUMENTS
+.B pwb
+will call your print function for every line in the content area,
+and again when the selection changes to unhighlight the old selection
+and to highlight the new.
+.PP
+.B pwb
+calls the function with six arguments as follows.  Most can be
+ignored if not needed for the print.
+.TS
+tab(|);
+l lx.
+\(Do1|(int) row index in data source
+\(Do2|(str) name of the data source
+\(Do3|(int) maximum number of characters to print
+\(Do4|(int) focus flag, 1 if in focus, 0 if not
+\(Do5|T{
+(str) name of
+.B pwb
+handle
+T}
+\(Do6|(str) name of optional extra data source
+.TE
+.PP
+The significance of the first three arguments have been covered above.
+.SS \(Do4 FOCUS FLAG
+.PP
+By default,
+.B pwb
+will handle highlighting the focus line by setting the output mode
+to reverse video before calling the print function on the highlighted
+line.
+For cases when the default behaviour is not desirable, a script can
+disable default highlighting with the
+.B -h
+option to the
+.B pwb declare
+action, then have the print function consider the focus flag when
+deciding if the line should be highlighted or not.
+.SS \(Do5 PWB HANDLE
+.PP
+The controlling
+.B pwb
+handle is provided in case
+.B pwb
+information or services might be required while constructing and
+delivering the content.
+.SS \(Do6 EXTRA DATA
+If
+.B pwb declare
+includes the
+.BI -d " extra_data_name"
+option, the value for which
+.I extra_data_name
+stands will be passed to the print functions as argument
+.BR \(Do6 .
+The script can use the value directly, or if it's a variable name,
+access the contents of the named variable using a
+.B nameref
+variable.
+.SH MAKING CALLABLE SCRIPTS
+.PP
+A script is a text file containing commands recognized by the
+interpreter that will process the script.
+.PP
+A script can be run by invoking the interpreter with the script
+name as an argument.  Assuming a Bash script named
+.BR do_it ,
+the following is an example of this method:
+.PP
+.RS 7
+.EX
+$ bash do_it
+.EE
+.RE
+.PP
+Scripts are more commonly prepared as self-executing scripts, so
+only the script name is needed to run it:
+.PP
+.RS 7
+.EX
+$ ./do_it
+.EE
+.RE
+.SS Preparing the script
+.PP
+A self-executing script has two important characteristics:
+.TP
+.B Starts with a Shebang
+The first line of a self-executing script must start with
+.BR #! ,
+otherwise known as a \(lqshebang\(rq, refering to the characters
+.BR # ,
+sh[e]arp and
+.BR ! ,
+bang.
+The shebang is followed by a command the starts the interpreter.
+.IP
+Some shebang examples:
+.IP
+.RS 11
+.EX
+#!/bin/bash
+.EE
+or
+.EX
+#!/usr/bin/env bash
+.EE
+.RE
+.IP
+The second form is preferable because some systems may not put
+.B Bash
+in the
+.B /bin
+directory, but the command
+.B env
+is always found in
+.B /usr/bin
+and can find
+.B Bash
+whereever it is installed.
+.TP
+.B Has Execution Bits Set
+The script must be tagged as executable or invoking it will result in
+the message
+.IR "permission denied" .
+.IP
+Set the execution permission with this command:
+.IP
+.RS 11
+.EX
+chmod a+x do_it
+.EE
+.RE
+.IP

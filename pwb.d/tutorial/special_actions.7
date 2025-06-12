@@ -1,0 +1,127 @@
+.TH special_actions 7
+.mso gproto.tmac
+.SH NAME
+.PP
+.BR special_actions
+\- 
+.B pwb
+actions that work without a handle.
+.SH SYNOPSIS
+.PP
+.B pwb get_dimensions
+.cli_prototype ?!-A:associative_array
+.PP
+.B pwb measure_string
+.cli_prototype ?!-v:variable_name ?!-- @string
+.B pwb limit_print
+.cli_prototype @length ?!-- @string
+.PP
+.B pwb get_keystroke
+.cli_prototype ?@handle ?!-v:variable_name
+.SH DESCRIPTION
+.PP
+These actions all help with the delivery of a
+.B pwb
+application, but do not need a
+.B pwb
+handle.
+All could be implemented, with some difficulty, in Bash, but
+are included in the
+.B pwb
+API as a convenience to developers.
+.PP
+This document is merely an introduction to this class of
+.B pwb
+actions.
+The actions are more completely documented in the
+.B pwb
+man page.  Refer to that document for more information.
+.SH SETUP ACTION
+.PP
+If margins are used in a
+.B pwb
+application, they must be established before starting
+.BR pwb .
+.TP
+.B get_dimensions
+This action returns screen dimensions that can help when establishing
+margins.  The value will be found in Bash associative variable
+.B PWB_ASSOC
+unless using the
+.B -v
+option to use another variable.
+.IP
+The following example will set margins for
+.B pwb
+handle
+.I PHANDLE
+to create a 5 line margin on top and half-screen margin on the
+right:
+.IP
+.RS 11
+.EX
+\(sh Prepare margins
+pwb get_dimensions
+declare -i rmargin=$(( \(Do{PWB_ASSOC[screen_cols]} / 2 ))
+pwb set_margins PHANDLE 5 \(dq\(Dormargin\(dq 0 0
+.EE
+.RE
+.SH CONSTRAINED PRINTING
+.PP
+It is important that printing callback funtions do not print outside
+of their assigned area.
+.B printf
+and judicious substring expansions can do this with simple text, but
+colored text makes it much more difficult.
+.B pwb
+actions
+.BR measure_string " and " limit_print
+both help manage the difference between the actual and visible
+lengths of strings.
+Its return value will be found in Bash variable
+.B PWB_VALUE
+unless the
+.B -v
+option specifies an alternate variable name.
+.PP
+On a terminal, colors are set with special embeded string that are
+introduced with an ESCAPE character.  Strings that include these
+escape codes for coloring text will contain more characters than will
+show on the screen when the string is printed.
+.TP
+.B measure_string
+is used to get the visible character count of a string.
+Being able to predict a string's length facilitates formatting,
+from centering text to measuring for margins.
+.TP
+.B limit_print
+will print only the specified number of visible characters, not
+counting the escape sequences in the total, and (invisibly) printing
+all remaining escape sequences that remain after the limit is
+reached.
+.SH KEYSTROKE DETECTION
+.PP
+Traditional keyboard characters are one-character long and easy
+to handle with Bash's
+.B read
+builtin command with the
+.B -n1
+option.
+It gets more complicated with function and navigation keys, or
+keys pressed with Control and/or Alt, because those keystrokes
+return a string of characters.
+.TP
+.B get_stroke
+is an easier-to-use alternative to the
+.B read
+function when reading user input one keystroke at a time.
+The keystroke value will be returned in the Bash variable
+.B PWB_VALUE
+unless the
+.B -v
+option is used to specify another variable name.
+
+
+
+
+
