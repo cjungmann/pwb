@@ -1,0 +1,180 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+## BEGIN_DOC
+## Run a simple menu that selects by user selection by letter.
+##
+## This is a first draft, some additional features may be added
+## if this seems to be a useful tool
+## END_DOC
+
+source <( pwb_sources pwb_read_args pwb_print_message )
+
+pwb_run_menu()
+{
+    set_selection()
+    {
+        local -n ss_output="$1"
+        local -n ss_source="$2"
+        local -i ss_index_request="$3"
+
+        local -i ss_index_cur=0
+        for line in "${ss_source[@]}"; do
+            if (( ss_index_cur == ss_index_request )); then
+                printf -v ss_output[${#ss_output[*]}] \
+                       $'\e[7m%s\e[27m' "$line"
+            else
+                ss_output+=( "$line" )
+            fi
+
+            (( ++ss_index_cur ))
+        done
+    }
+
+    crack_option()
+    {
+        local -n co_output="${1:- prm_empty_val}"
+        local -n co_letter="${2:- prm_empty_val}"
+        local co_string="$3"
+
+        local left right
+        local left="${co_string%%&*}"
+        local right="${co_string##*&}"
+
+        # Fake components if no '&' in string
+        if [[ "$left" == "$co_string" ]]; then
+            [[ "$co_string" =~ ^([[:space:]]*)(.*)$ ]]
+            left="${BASH_REMATCH[1]}"
+            right="${BASH_REMATCH[2]}"
+        fi
+
+        if [ "${#left}" -eq 0 ]; then
+            co_letter="${right:0:1}"
+            printf -v co_output '\e[%sm%c\e[39;49;22m%s' \
+                   "$PRM_HILITE" "$co_letter" "${right:1}"
+        else
+            co_letter="${right:0:1}"
+            printf -v co_output '%s\e[%sm%c\e[39;49;22m%s' \
+                   "$left" "$PRM_HILITE" "$co_letter" "${right:1}"
+        fi
+    }
+
+    decode_lines()
+    {
+        local -n cl_lines="$1"
+        local -n cl_map="$2"
+        local -n cl_options="$3"
+
+        local cracked_line letter
+        local string
+
+        for option in "${cl_options[@]}"; do
+            if [ -z "$string" ]; then
+                string="$option"
+            else
+                crack_option cracked_line letter "$string"
+                cl_lines+=( "$cracked_line" )
+                cl_map+=( "${letter,*}" "$option" )
+                string=""
+                option=""
+            fi
+        done
+    }
+
+    execute_by_index()
+    {
+        local -n ebi_map="$1"
+        local -i ebi_index="$2"
+
+        # Assertion of sorts
+        local -i sanity="${#ebi_map[*]}"
+        if (( ebi_index * 2 >= sanity )); then
+            printf $'\e[H\e[2J'
+            read -n1 -p "Programming error: index out-of-range."
+            exit 1
+        fi
+
+        local -a funcarr
+        read -r -a funcarr <<< "${ebi_map[$(( ebi_index*2 + 1 ))]}"
+        "${funcarr[@]}"
+    }
+
+    process_keystroke()
+    {
+        local -n pk_map="$1"
+        local -n pk_index="$2"
+        local pk_keyp="$keyp"
+
+        local -i start_index=$(( pk_index + 1 ))
+        local -i first_found=-1;
+        local -i cur_index
+        local -i mult_flag=0
+        local -i entries=$(( ${#pk_map[*]} / 2 ))
+
+        for (( i=0; i<entries; ++i )); do
+            (( cur_index = (start_index + i) % entries ))
+            local lkeyp="${pk_map[$(( cur_index*2 ))]}"
+            if [[ "${lkeyp,,*}" == "$pk_keyp" ]]; then
+                if (( first_found < 0 )); then
+                    first_found="$cur_index"
+                else
+                    mult_flag=1
+                fi
+            fi
+        done
+
+        if [ "$first_found" -ge 0 ]; then
+            pk_index="$first_found"
+            if [ "$mult_flag" -eq 0 ]; then
+                execute_by_index "$1" "$first_found"
+                return 0
+            fi
+        fi
+
+        return 1
+    }
+
+    local -a empty_array=()
+    local -a PRM_HILITE="38;5;51"
+
+    local options_array handle_name head_lines="empty_array" justification="l"
+    local -a cmd_args=( "$@" )
+    local -a name_array=( options_array handle_name )
+    local -a opts_list=(
+        "h+" head_lines
+        "j+" justification
+    )
+
+    if pwb_read_args cmd_args name_array opts_list; then
+        local -a prm_lines
+
+        local -n prm_head_lines="$head_lines"
+
+        decode_lines prm_lines prm_map "$options_array"
+        local -i lines_count="${#prm_lines[*]}"
+
+        local -i index=0
+        local keyp
+        local -a prm_display
+        while [[ "$keyp" != $'\e' ]]; do
+            prm_display=( "${prm_head_lines[@]}" )
+            set_selection prm_display prm_lines "$index"
+            pwb_print_message prm_display -j"$justification"
+            pwb get_keystroke -v keyp
+
+            if [[ "$keyp" == $'\eOB' ]]; then
+                (( index = index<lines_count-1 ? index+1 : index ))
+            elif [[ "$keyp" == $'\eOA' ]]; then
+                (( index = index>0 ? index-1 : index ))
+            elif [[ "$keyp" == $'\cm' ]]; then
+                execute_by_index prm_map "$index"
+                return 0
+            elif process_keystroke prm_map index "$keyp"; then
+                return 0
+            fi
+        done
+    fi
+
+    return 1
+}
