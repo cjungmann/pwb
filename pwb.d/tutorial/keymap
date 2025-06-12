@@ -1,0 +1,232 @@
+#!/usr/bin/env bash
+
+## BEGIN_DOC
+## Introducing Keymaps for User Input
+##
+## Keymaps are used to recognize keystrokes and to define
+## responses.
+##
+## This script employes a very basic implementation of a
+## keymap triggering an action, with the 's' key displaying
+## some details about the highlighted file.
+##
+## The associated man page will explain how to define
+## keymaps and how they interact with execution functions.
+## END_DOC
+
+declare -a DIR_FILES=( * )
+
+show_file()
+{
+    local fname="$1"
+    local sf_phandle="$2"
+    local -a format_parts=(
+        "file name:%n"
+        "file type:%F"
+        "size:%s"
+        "owner:%U"
+        "changed:%y"
+        )
+
+    local IFS="|"
+    local line
+
+    line=$( stat -c"${format_parts[*]}" "$fname" )
+
+    local -a lines=( $line )
+
+    simple_message lines "$sf_handle"
+}
+
+exec_line()
+{
+    local keyp="$1"
+    local -i index="$2"
+    local el_dsource="$3"
+    local el_phandle="$4"
+
+    local -n el_array="$el_dsource"
+    local file="${el_array[$index]}"
+
+    case "$keyp" in
+        s ) show_file "$file" "$el_phandle"
+            ;;
+    esac
+}
+
+declare -a alt_keymap=(
+    "s"   7   # call execute function for 's'
+)
+
+pwb declare_keymap ALT_KEYMAP alt_keymap
+
+
+# Print given text centered within the defined region,
+# returning the cursor to its original position before
+# returning.
+center_print()
+{
+    local text="$1"
+    local -i limit="$2"
+
+    # Get length, but restrict to limit
+    local -i len="${#text}"
+    (( len = len > limit ? limit : len ))
+
+    # Calculate indent distance to center text
+    local left=$(( (len < limit) ? ((limit-len)/2) : 0 ))
+
+    # erase and fill region background without moving the cursor
+    printf $'\e[%dX' "$limit"
+    # move cursor to column that centers the text
+    if (( left > 0 )); then
+        printf $'\e[%dC' "$left"
+    fi
+    # print the string
+    printf "%s" "${text:0:$len}"
+    # return cursor to original position
+    printf $'\e[%dD' $(( left + len ))
+}
+
+simple_message()
+{
+    local -n sd_lines="$1"
+    local sd_phandle="$2"
+
+    lines+=( "" )
+    lines+=("Press any key to continue." )
+
+    # Calculate location for centered presentation
+    local maxwide
+    get_max_len maxwide lines
+    (( maxwide+=2 ))
+
+    pwb get_dimensions
+    local -i wide="${PWB_ASSOC[screen_cols]}"
+    local -i tall="${PWB_ASSOC[screen_lines]}"
+
+    local -i left=$(( (wide - maxwide) / 2 ))
+    local -i top=$(( (tall - ${#lines[@]}) / 2 ))
+
+    # Move cursor to starting position
+    printf $'\e[%d;%dH' "$top" "$left"
+
+    # change background so message stands out:
+    printf $'\e[48;2;64;128;255m'
+
+    for line in "${lines[@]}"; do
+        center_print "$line" "$maxwide"
+        # move to next line
+        printf $'\e[1B'
+    done
+
+    read -n1
+
+    # Restore screen
+    printf $'\e[49m'   # Restore default background
+    printf $'\e[2J'    # Erase entire screen to ensure margins are erased, too
+    pwb print_all "$sf_phandle"
+}
+
+print_line()
+{
+    # retrieve data
+    local -i index="$1"
+    local -n pl_dsource="$2"
+    local line="${pl_dsource[$index]}"
+
+    # print data
+    local -i len="$3"
+    printf "%-*.*s" "$len" "$len" "$line"
+}
+
+# New function to print (centered) progress information in top margin
+print_top()
+{
+    # retrieve data
+    local -i index="$1"
+    local -i chars_limit="$3"
+    local phandle="$5"
+
+    local -i row_count
+    pwb get_data_count "$phandle" -v row_count
+
+    # Setting background color to see printed extent
+    printf $'\e[48;2;64;64;64m'
+
+    local -a lines=(
+        "Print Functions Script"
+        ""
+        "Press 's' for a little stats display"
+        "Press 'q' to quit."
+    )
+    # Array element 1 is a generated line
+    printf -v lines[1] "Row %d out of %d" $(( index+1 )) "$row_count"
+
+    for line in "${lines[@]}"; do
+        center_print "$line" "$chars_limit"
+        # move to next line
+        printf $'\e[1B'
+    done
+
+    # Restore default background color
+    printf $'\e[49m'
+}
+
+# Function to get length of longest string in an array
+get_max_len()
+{
+    local -n gml_return="$1"
+    local -n gml_array="$2"
+
+    local -i curlen
+
+    gml_return=0
+    for file in "${gml_array[@]}"; do
+        curlen="${#file}"
+        (( gml_return = ( curlen > gml_return ? curlen : gml_return ) ))
+    done
+}
+
+# Calculate appropriate margins for centering the content
+set_margins()
+{
+    # Get max content width that must be contained
+    local -n sm_array="$1"
+    local -i maxlen=0
+    get_max_len maxlen "$1"
+
+    # Ensure a minimum to accommodate the top-margin contents
+    (( maxlen = ( maxlen < 40 ? 40 : maxlen ) ))
+
+    # Get screen width
+    pwb get_dimensions
+    local -i screen_cols="${PWB_ASSOC[screen_cols]}"
+
+    # Split non-content space into two for margin widths
+    local -i lr_margin=$(( (screen_cols - maxlen ) / 2 ))
+
+    local sm_pname="$2"
+    pwb set_margins "$sm_pname" 4 "$lr_margin" 2
+}
+
+
+############################
+###   EXECUTION BEGINS   ###
+############################
+
+enable pwb
+
+pwb declare_keymap ALT_KEYMAP alt_keymap
+
+pwb declare PHANDLE DIR_FILES "${#DIR_FILES[*]}" print_line -t print_top -e exec_line
+
+set_margins DIR_FILES PHANDLE
+
+exit_trap() { pwb restore; }
+trap exit_trap EXIT SIGINT SIGABRT
+
+pwb init
+
+pwb start PHANDLE -a ALT_KEYMAP
+
