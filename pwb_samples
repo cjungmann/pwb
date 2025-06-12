@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+get_samples_list()
+{
+    local -n gsl_return="$1"
+    gsl_return=()
+
+    local gsl_odir="$PWD"
+    cd "$PWB_SAMPLES_PATH"
+
+    for file in *; do
+        case "$file" in
+            bash     ) ;;
+            bash_src ) ;;
+            *.d      ) ;;      # exclude script's resource directory
+            *.[[:digit:]] ) ;; # exclude script's man page
+            * )
+                gsl_return+=( "$file" )
+                ;;
+        esac
+    done
+
+    cd "$gsl_odir"
+}
+
+check_for_sample()
+{
+    local candidate="$1"
+    for script in "${SLIST[@]}"; do
+        if [[ "$candidate" == "$script" ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+run_sample_with_args()
+{
+    local sample_name="pwb_$1"
+    if check_for_sample "$sample_name"; then
+        local -a rswa_args=( "${@:2}" )
+        local spath="${PWB_SAMPLES_PATH}/$sample_name"
+        if [ "${#rswa_args[*]}" -gt 0 ]; then
+            "$spath" "${rswa_args[@]}"
+        else
+            "$spath"
+        fi
+    fi
+}
+
+# Extract original PREFIX value from script path:
+# (Mainly so I can run this as a link in /usr/local/bin)
+if [[ "${BASH_SOURCE[0]}" =~ ^(.*)/bin/pwb_samples$ ]]; then
+    declare PREFIX="${BASH_REMATCH[1]}"
+else
+    declare PREFIX="/usr/local"
+fi
+
+declare PWB_SAMPLES_PATH="${PREFIX}/share/pwb/samples"
+declare OG_PATH="$PWD"
+
+declare -a SLIST
+get_samples_list SLIST
+
+enable pwb
+
+source <( pwb_sources pwb_scripts_browser )
+
+exit_trap() { printf $'\e[H\e[2J'; pwb restore; }
+trap exit_trap EXIT SIGINT SIGABRT
+
+pwb init
+
+if [ "$#" -eq 0 ]; then
+    pwb_scripts_browser SLIST "$PWB_SAMPLES_PATH"
+elif run_sample_with_args "$@"; then
+   exit
+fi
