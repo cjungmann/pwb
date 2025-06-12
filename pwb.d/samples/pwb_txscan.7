@@ -1,0 +1,65 @@
+.TH pwb_txscan
+.mso gproto.tmac
+.SH NAME
+.PP
+.B pwb_txscan
+\- Scan transactions in a PTX file.  Categorize transactions and save work.
+.SH SYNOPSIS
+.B pwb_txscan
+.RI [ filename ]
+.SH DESCRIPTION
+.PP
+A user can scan the transactions found in a
+.B ptx
+file, assigning categories to specific transactions for grouping
+and measuring subtotals.
+.PP
+While
+.B ptx
+is the native file format, other documents can be imported and saved
+as
+.BR ptx .
+.BR OFX / QFX
+files can be imported, as well as an
+.B XML
+document
+created by exporting account data from Charles Schwab.
+.PP
+A Bash programmer could use this script as a template to implement
+a custom file handler.
+.SS IMPORT REQUIREMENTS
+.PP
+Importing files require the program
+.B xsltproc
+to transform the XML documents into
+.B ptx
+format.
+.SH FILE FORMAT
+.PP
+The
+.B ptx
+file is a text file with multiple sections including
+.BR categories " and " entries .
+Each section is prefaced with the section type enclosed in
+square braces
+.RB "( \(lq" [ "\(rq and \(lq" ] "\(rq )."
+.PP
+Section content is in tab-delimited format.
+.PP
+The
+.B categories
+section has lines consisting of two fields, category name and display
+color, separated by a TAB character.
+The
+.B entries
+section contains six field records,
+.TS
+tab(|);
+lb l.
+date|Date of transaction in XML date format
+amount|Transaction amount in dollars and cents
+name|The external party to the transaction
+type|Transaction type, differing according to source
+memo|If provided, a memo or description will be in field 5.
+category|1-based integer index value of specified category.
+.TE
