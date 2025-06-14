@@ -1,0 +1,247 @@
+#!/usr/bin/env bash
+
+# Data function(s)
+get_full_data()
+{
+   local -n gfd_return="$1"
+
+   local -a gfd_files
+   shopt -s nullglob
+   gfd_files=( * )
+   shopt -u nullglob
+
+   local IFS="$DELIM"
+   local -a fields=( %n %A %s )
+
+   while read -r; do
+       gfd_return+=( "$REPLY" )
+   done < <( stat -c "${fields[*]}" "${gfd_files[@]}" )
+}
+
+# PWB callback function(s)
+
+print_line()
+{
+    local -n pl_dsource="$2"
+    local pl_row
+    IFS="$DELIM" read -ra pl_row <<< "${pl_dsource[$1]}"
+
+    printf -v tline "$PFORMAT" "${pl_row[@]}"
+    printf "%-*.*s" "$3" "$3" "$tline"
+}
+
+
+# Margin-printing functions
+
+print_top()
+{
+    local -n pt_data="$2"
+    local -a pt_row
+    IFS="$DELIM" read -ra pt_row <<< "${pt_data[$1]}"
+
+    local -a pt_lines=(
+        "PWB TABLE VIEWER"
+        "${pt_row[@]}"
+        "line 5"
+        "line 6"
+    )
+
+    printf $'\e[44m'
+    pwb_print_array pt_lines "${TOP_MARG_ARGS[@]}"
+    printf $'\e[49m'
+}
+
+print_bottom()
+{
+    pwb get_data_count "$5"
+    local -a pb_lines
+    printf -v pb_lines[${#pb_lines[*]}] \
+           $'Record \e[32;1m%d\e[39;22m out of \e[32;1m%d\e[39;22m' \
+           $(( $1 + 1 )) "$PWB_VALUE"
+
+    printf $'\e[48;m'
+    pwb_print_array pb_lines "${BOTTOM_MARG_ARGS[@]}"
+    printf $'\e[49m'
+}
+
+print_left()
+{
+    local -a pl_lines=( bogus )
+    printf $'\e[42m'
+    pwb_print_array pl_lines "${LEFT_MARG_ARGS[@]}"
+    printf $'\e[49m'
+}
+
+print_right()
+{
+    local -a pr_lines=( )
+    printf $'\e[43m'
+    pwb_print_array pr_lines "${RIGHT_MARG_ARGS[@]}"
+    printf $'\e[49m'
+}
+
+# Utility functions
+
+get_field_widths()
+{
+    local -n mrw_widths="$1"
+    local -n mrw_dsource="$2"
+    local IFS="$DELIM"
+
+    # Make max-tracking array with zero at each field
+    read -ra mrw_widths <<< "${mrw_dsource[0]}"
+    local -i index=0
+    for field in "${mrw_widths[@]}"; do
+        mrw_widths[$(( index++ ))]=0
+    done
+
+    local -i field_count="$index"
+
+    local -a cur_row
+    local -i cur_len cur_max=0
+
+    for row in "${mrw_dsource[@]}"; do
+        read -ra cur_row <<< "$row"
+        for (( i=0; i<field_count; ++i )); do
+            cur_len="${#cur_row[i]}"
+            cur_max="${mrw_widths[i]}"
+            if (( cur_len > cur_max )); then
+                mrw_widths[$i]="$cur_len"
+            fi
+        done
+    done
+}
+
+make_format_string()
+{
+    local -n mfs_return="$1"
+    local -n mfs_field_widths="$2"
+
+    local -a parts=()
+
+    for width in "${mfs_field_widths[@]}"; do
+        printf -v parts["${#parts[*]}"] "%%-%ds" "$width"
+    done
+
+    local IFS=" "
+    mfs_return="${parts[*]}"
+}
+
+set_margins()
+{
+    local sm_handle="$1"
+    local -n sm_widths="$2"
+
+    # Calculate content width
+    local -i tot_width=0
+    for width in "${sm_widths[@]}"; do
+        (( tot_width += width ))
+    done
+    # Account for one space between each field:
+    (( tot_width += (${#sm_widths[*]} - 1) ))
+
+    # Get extra spaces
+    pwb get_dimensions
+    local -i spaces_to_distribute=$(( PWB_ASSOC[screen_cols] - tot_width ))
+
+    local -i left=2 right=0
+    if (( spaces_to_distribute > 2 )); then
+        (( right = spaces_to_distribute / 2 ))
+        (( left = spaces_to_distribute - right ))
+    fi
+
+    pwb set_margins "$sm_handle" 5 "$right" 2 "$left"
+}
+
+get_marg_args()
+{
+    local -a empty=()
+    local gma_handle="$1"
+
+    local -n gma_top="${2:-empty}"
+    local -n gma_right="${3:-empty}"
+    local -n gma_bottom="${4:-empty}"
+    local -n gma_left="${5:-empty}"
+
+    pwb get_dimensions "$gma_handle"
+
+    gma_top=(
+        -t 1
+        -l 1
+        -w "${PWB_ASSOC[screen_cols]}"
+        -c "${PWB_ASSOC[margin_top]}"
+    )
+
+    gma_bottom=(
+        -t $(( PWB_ASSOC[screen_lines] - PWB_ASSOC[margin_bottom] + 1 ))
+        -l 1
+        -w "${PWB_ASSOC[screen_cols]}"
+        -c "${PWB_ASSOC[margin_bottom]}"
+    )
+
+    gma_left=(
+        -t $(( PWB_ASSOC[margin_top] + 1 ))
+        -l 1
+        -w "${PWB_ASSOC[margin_left]}"
+        -c "${PWB_ASSOC[pager_lines]}"
+    )
+
+    gma_right=(
+        -t $(( PWB_ASSOC[margin_top] + 1 ))
+        -l $(( PWB_ASSOC[screen_cols] - PWB_ASSOC[margin_right] + 1 ))
+        -w "${PWB_ASSOC[margin_right]}"
+        -c "${PWB_ASSOC[pager_lines]}"
+    )
+}
+
+exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb_restore; }
+
+# Begin execution
+
+declare DELIM="|"
+
+enable pwb
+
+declare -a SOURCE_ARGS=(
+    pwb_exit_on_error
+    pwb_print_array
+)
+source <( pwb_sources "${SOURCE_ARGS[@]}" )
+
+declare -a PDATA
+get_full_data PDATA
+
+declare -a FIELD_WIDTHS
+get_field_widths FIELD_WIDTHS PDATA
+
+declare PFORMAT
+make_format_string PFORMAT FIELD_WIDTHS
+
+declare -a DECLARE_ARGS=(
+    PDATA
+    "${#PDATA[*]}"
+    print_line
+    -t print_top
+    -b print_bottom
+    -l print_left
+    -r print_right
+)
+declare PHANDLE
+pwb declare PHANDLE "${DECLARE_ARGS[@]}"
+
+set_margins PHANDLE FIELD_WIDTHS
+
+declare -a LEFT_MARG_ARGS RIGHT_MARG_ARGS TOP_MARG_ARGS BOTTOM_MARG_ARGS
+get_marg_args PHANDLE TOP_MARG_ARGS RIGHT_MARG_ARGS BOTTOM_MARG_ARGS LEFT_MARG_ARGS
+
+trap exit_trap EXIT SIGINT SIGABRT
+
+pwb init
+pwb start PHANDLE
+pwb restore
+
+## BEGIN_DOC
+## The essential bare minimum script that
+## allows a user to browse a dataset, in this
+## case, the files in the current directory.
+## END_DOC
