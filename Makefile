@@ -83,6 +83,7 @@ uninstall:
 # uninstall SOURCER stuff:
 	rm -rf $(PREFIX)/share/$(BUILTIN)
 	rm -f $(PREFIX)/bin/$(SOURCER)
+	rm -f $(PREFIX)/bin/pwb_samples
 # If ate still installed, update link to point to original ate_sources_impl
 	@if [ -f $(PREFIX)/bin/ate_sources_impl ]; then \
 	   echo "Restoring orignal link to ate_sources."; \
