@@ -5,6 +5,8 @@ populate_files()
     local -n pf_files="$1"
     local path="$2"
 
+    echo "In populate_files, reading from path '$path'"
+
     local fname
     for fname in $path/* ; do
         if [[ "$fname" =~ ^.*/pwb_[^.]+$ ]]; then
@@ -14,6 +16,8 @@ populate_files()
             fi
         fi
     done
+
+    read -n1 -p "There are ${#pf_files[*]} files in the list"
 }
 
 show_args()
@@ -45,6 +49,17 @@ show_args()
     pwb_conduct_dialog sa_lines
 }
 
+get_sources_directory()
+{
+    local -n gsd_dir="$1"
+    for source in "${BASH_SOURCE[@]}"; do
+        if [[ "$source" =~ ^(.*)/pwb_browser$ ]]; then
+            gsd_dir="${BASH_REMATCH[1]}"
+            return 0
+        fi
+    done
+}
+
 
 declare -a KEYBINDS=(
     '?' default_show_help     "Show help page"
@@ -56,7 +71,8 @@ declare -a KEYBINDS=(
 enable pwb
 source <( pwb_sources pwb_scripts_browser )
 
-declare dir="#PREFIX#/share/pwb/sources"
+declare dir
+get_sources_directory dir
 
 declare -a slist
 populate_files slist "$dir"
