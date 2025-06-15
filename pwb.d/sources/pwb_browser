@@ -5,8 +5,6 @@ populate_files()
     local -n pf_files="$1"
     local path="$2"
 
-    echo "In populate_files, reading from path '$path'"
-
     local fname
     for fname in $path/* ; do
         if [[ "$fname" =~ ^.*/pwb_[^.]+$ ]]; then
@@ -16,8 +14,6 @@ populate_files()
             fi
         fi
     done
-
-    read -n1 -p "There are ${#pf_files[*]} files in the list"
 }
 
 show_args()
