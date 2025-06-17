@@ -268,6 +268,8 @@ exec_save()
         "Type Y to save, N or ESC to abort"
     )
 
+    local OP_DELIM=$'\t'
+
     local -a kallowed=( y Y n N $'\e' )
     local kpressed
     pwb_conduct_dialog es_confirm -a kallowed -r kpressed
@@ -282,15 +284,15 @@ exec_save()
         # Combine separated category information:
         local -i index=0
         for cat in "${SI_CATS[@]}"; do
-            es_lines+=( "${cat}${DELIM}${SI_COLORS[$index]}" )
+            es_lines+=( "${cat}${OP_DELIM}${SI_COLORS[$index]}" )
             (( ++index))
         done
 
         # Then add entries
-        es_lines+=(
-            "[entries]"
-            "${SI_ENTRIES[@]}"
-        )
+        es_lines+=( "[entries]" )
+        for entry in "${SI_ENTRIES[@]}"; do
+            es_lines+=( "${entry//$DELIM/$OP_DELIM}" )
+        done
 
         IFS=$'\n'
         echo "${es_lines[*]}" > "$newname"
@@ -487,7 +489,8 @@ set_instance_margins()
 
 announce_empty_file()
 {
-    local -a aef_lines
+    local -a aef_lines=( "pwb_txscan" )
+
     printf -v aef_lines[${#aef_lines[*]}] \
            $'File \e[32;1m%s\e[39;22m contains no transactions.' \
            "$OG_FILENAME"
@@ -496,7 +499,20 @@ announce_empty_file()
         "Press any key to return."
     )
 
-    pwb_conduct_dialog aef_lines
+    pwb_conduct_dialog aef_lines -jc
+}
+
+announce_no_files()
+{
+    local -a anf_lines=(
+        "pwb_txscan"
+        ""
+        "There are no recognized transaction files."
+        ""
+        "Press any key to exit"
+    )
+
+    pwb_conduct_dialog anf_lines -jc
 }
 
 is_app_exit_key()
@@ -650,27 +666,38 @@ pick_file()
 {
     local -n pf_return="$1"
 
-    # Basic whiptail arguments:
-    local -a dlg_args=(
-        --stdout
-        --title "Open a file"
-        --menu
-        "Pick a file to open"
-        18 40
-        38
-    )
-
-    # Add tag/item menu entries with filename and empty string pairs:
+    # Make set of whiptail --menu file entries, consisting of
+    # the filename as the tag, and an empty string as the "item":
+    local -a file_entries
     for file in *; do
-        dlg_args+=( "$file" "" )
+        if [[ "$file" =~ ^.*\.(xml|ptx)$ ]]; then
+            file_entries+=( "$file" "" )
+        fi
     done
 
-    local pf_file
-    if pf_file=$( dialog "${dlg_args[@]}" ); then
-        local -n pf_return="$1"
-        pf_return="$pf_file"
-        return 0
+    if (( "${#file_entries[*]}" == 0 )); then
+        announce_no_files
+        exit
+    else
+        # Basic whiptail arguments:
+        local -a dlg_args=(
+            --stdout
+            --title "Open a file"
+            --menu
+            "Pick a file to open"
+            18 60
+            38
+            "${file_entries[@]}"
+        )
+
+        local pf_file
+        if pf_file=$( dialog "${dlg_args[@]}" ); then
+            local -n pf_return="$1"
+            pf_return="$pf_file"
+            return 0
+        fi
     fi
+
 
     return 1
 }
@@ -805,7 +832,7 @@ declare FILEROOT FILEEXT FILEFAKE
 if [ -z "$FILENAME" ]; then
     if ! pick_file FILENAME; then
         echo "No file to open, exiting now."
-        exit 1
+        exit
     fi
 fi
 
