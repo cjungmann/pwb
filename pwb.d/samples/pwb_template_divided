@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+# Data function(s)
+get_data()
+{
+   local -n gd_return="$1"
+
+   shopt -s nullglob
+   gd_return=( * )
+   shopt -u nullglob
+}
+
+# PWB callback function(s)
+
+print_line()
+{
+    # Skip naming 'index' and 'char_count' for basic print
+    local -n pl_dsource="$2"
+    printf "%-*.*s" "$3" "$3" "${pl_dsource[$1]}"
+}
+
+print_top()
+{
+    local -i char_count="$3"
+    local -a pt_lines=(
+        "PWB DIVIDED TEMPLATE"
+        $'Press "\e[32;1mq\e[39;22m" to exit.'
+    )
+    local -a print_array_args=(
+        -t 1
+        -l 1
+        -w "$char_count"
+        -c 2
+        -j c
+    )
+
+    pwb_print_array pt_lines "${print_array_args[@]}"
+}
+
+# Trap signal to handle abrupt exits
+exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb_restore; }
+
+# Separate function declarations from global execution:
+
+enable pwb
+
+# Using source scripts
+declare -a SOURCE_ARGS=(
+    pwb_exit_on_error
+    pwb_print_array
+)
+source <( pwb_sources "${SOURCE_ARGS[@]}" )
+
+# Prepare data source
+declare -a PDATA
+get_data PDATA
+
+# Declare Handle
+declare -a DECLARE_ARGS=(
+    PDATA
+    "${#PDATA[*]}"
+    print_line
+    -t print_top
+)
+declare PHANDLE
+pwb declare PHANDLE "${DECLARE_ARGS[@]}"
+
+# Divide screen by using margins:
+pwb set_margins PHANDLE 3 0 0
+
+# Use trap/signal to handle possible abrupt exits
+trap exit_trap EXIT SIGINT SIGABRT
+
+pwb init
+pwb start PHANDLE
+
+## BEGIN_DOC
+## This script introduces good behavior features.
+## Second in a progression of template scripts.
+##
+## 1. The screen is split to include a top margin
+##    area to provide usage information.
+## 2. Using trap/signal to restore the terminal
+##    in case of early exit due to an error.
+## 3. Introduce pwb_sources, a library of
+##    utilities for doing common useful things.
+## END_DOC

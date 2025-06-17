@@ -1,0 +1,56 @@
+.TH pwb_template_arrays 7
+.SH NAME
+.PP
+.B pwb_template_arrays
+-/ Track multiple data points per data item.
+.SH SUMMARY
+.PP
+Combining several values into a field-separated string
+can be a very efficient way to manage data while interacting
+with the items in a
+.B pwb
+script.
+.SH ROADMAP
+.PP
+.TS
+tab(|);
+l l.
+pwb_template_minimum|nothing but the basics
+pwb_template_divided|User-experience enhancements
+\fBpwb_template_arrays|track multiple data pointers per item\fR
+pwb_template_actions|add response to user input
+pwb_template_search|add search features
+pwb_template_filter|add ability to filter
+pwb_template_list|basis for application
+pwb_template_table|
+.TE
+.SH DESCRIPTION
+.PP
+There are three points of difference between this script and the
+.B pwb_template_divided
+script from which it is derived.
+.TP
+.B Global DELIM
+for consistency in compressing and splitting arrays across the various
+events.
+.TP
+.B Multi-source data collection
+The
+.B get_data
+function combines file names from a directory, file types from
+.BR stat ,
+and color specs by file type from the environment variable
+.B LS_COLORS
+or function
+.BR dircolors .
+Function
+.B create_type_color_reference
+reconciles the color source
+.RB ( LS_COLORS " or " dircolors )
+with the type names provided by
+.BR stat .
+.TP
+.B Presentation
+The file lines are colored by file type in the content area, and the
+type name is displayed in the top margin for the file currently in
+focus.

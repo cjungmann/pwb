@@ -1,0 +1,56 @@
+.TH pwb_template_divided 7
+.SH NAME
+.PP
+.B pwb_template_divided
+\- An enhanced implementation of a minimal
+.B pwb
+application.
+.SH SUMMARY
+.PP
+The second stop on the roadmap is a script that adds
+user experience enhancements, specifically minimal usage
+information (how to exit), and terminal preparation and
+restoration to provide the user with a coherent console
+screens.
+.SH ROADMAP
+.PP
+.TS
+tab(|);
+l l.
+pwb_template_minimum|nothing but the basics
+\fBpwb_template_divided|User-experience enhancements\fR
+pwb_template_arrays|track multiple data pointers per item
+pwb_template_marked|add differentiation by attribute
+pwb_template_actions|add response to user input
+pwb_template_search|add search features
+pwb_template_filter|add ability to filter
+pwb_template_list|basis for application
+pwb_template_table|
+.TE
+.SH DESCRIPTION
+.PP
+This script improved the
+.B pwb_template_minimum
+script with the following user-experience enhancements:
+.TS
+tab(|);
+l lx.
+1.|T{
+Use
+.B pwb set_margins
+to establish a top margin in which a script title and
+exit instructions can be found.
+T}
+
+2.|T{
+Console management using
+.BR "pwb init " and " pwb restore" ,
+with
+.B pwb restore
+in a signal function to gets run even for abrupt exits
+that bypass normal orderly code execution.
+T}
+.TE
+.PP
+Additionally, this script begins grouping different types
+of code to make it easier to scan for debugging and development.

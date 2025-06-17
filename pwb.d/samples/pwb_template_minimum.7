@@ -1,0 +1,44 @@
+.TH pwb_template_minimum 7
+.SH NAME
+.PP
+.B pwb_template_minimum
+\- A minimum implementation of a
+.B pwb
+application.
+.SH SUMMARY
+.PP
+The first stop on the roadmap is a script with the minimum necessary
+code to implement a complete working
+.B pwb
+appcliation.
+.SH ROADMAP
+.PP
+.TS
+tab(|);
+l l.
+\fBpwb_template_minimum|nothing but the basics\fR
+pwb_template_divided|User-experience enhancements
+pwb_template_arrays|track multiple data pointers per item
+pwb_template_actions|add response to user input
+pwb_template_search|add search features
+pwb_template_filter|add ability to filter
+pwb_template_list|basis for application
+pwb_template_table|
+.TE
+.SH DESCRIPTION
+.PP
+Basic minimum steps:
+.TS
+tab(|);
+l l.
+1.|Prepare a data source.
+2.|Prepare a line print callback function.
+3.|Declare a \fBpwb\fR handle.
+4.|Prepare the terminal
+5.|Start the \fBpwb\fR interaction.
+6.|Restore the terminal
+.TE
+.PP
+In this most minimal version, the user must know that pressing
+.RB \(lq q \(rq
+exits the script.
