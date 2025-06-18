@@ -1,0 +1,52 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+pwb_get_margin_args()
+{
+    local -a empty=()
+    local gma_handle="$1"
+
+    local -n gma_top="${2:-empty}"
+    local -n gma_right="${3:-empty}"
+    local -n gma_bottom="${4:-empty}"
+    local -n gma_left="${5:-empty}"
+
+    pwb get_dimensions "$gma_handle"
+
+    gma_top=(
+        -t 1
+        -l 1
+        -w "${PWB_ASSOC[screen_cols]}"
+        -c "${PWB_ASSOC[margin_top]}"
+    )
+
+    gma_bottom=(
+        -t $(( PWB_ASSOC[screen_lines] - PWB_ASSOC[margin_bottom] + 1 ))
+        -l 1
+        -w "${PWB_ASSOC[screen_cols]}"
+        -c "${PWB_ASSOC[margin_bottom]}"
+    )
+
+    gma_left=(
+        -t $(( PWB_ASSOC[margin_top] + 1 ))
+        -l 1
+        -w "${PWB_ASSOC[margin_left]}"
+        -c "${PWB_ASSOC[pager_lines]}"
+    )
+
+    gma_right=(
+        -t $(( PWB_ASSOC[margin_top] + 1 ))
+        -l $(( PWB_ASSOC[screen_cols] - PWB_ASSOC[margin_right] + 1 ))
+        -w "${PWB_ASSOC[margin_right]}"
+        -c "${PWB_ASSOC[pager_lines]}"
+    )
+}
+
+
+## BEGIN_DOC
+## This function uses values returned by
+## 'pwb get_dimensions' to calculate the arguments
+## needed by pwb_print_array to print in each of
+## the four margin areas.
+## END_DOC

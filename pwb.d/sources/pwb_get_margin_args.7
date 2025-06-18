@@ -1,0 +1,108 @@
+.TH pwb_get_margin_args 7
+.mso gproto.tmac
+.SH NAME
+.PP
+.B pwb_get_margin_args
+\- Returns pwb_print_array argument arrays for each margin.
+.SH SYNOPSIS
+.PP
+.B pwb_get_margin_args
+.cli_prototype @handle_name @top_array_name ?@right_array_name ?@bottom_array_name ?@left_array_name
+.SH DESCRIPTION
+.PP
+Convenient function that calculates argument lists for
+using
+.B pwb_print_array
+to print in margin areas.
+The combination of
+.BR pwb_print_array " and " pwb_get_margin_args
+safely prints margin contents, filling the entire area
+without going over the borders.  Use it for printing or
+setting an empty background.
+.SH ARGUMENTS
+.PP
+The first two arguments are required, and any of the last four
+can be an empty string.
+.PP
+The unconventional order of the arguments (top, right, bottom, and left)
+match the order of
+.B pwb set_margins
+which itself follows the clockwise order convention established
+by CSS.
+.TP
+.I handle_name
+The handle should have already had its margins set with
+.B pwb set_margins
+in order for
+.B pwb get_dimensions
+to return accurate values.
+.TP
+.I top_array_name
+like all the
+.I _array_name
+arguments,
+is the name of an array in the caller's scope.
+If you don't need arguments for the top margin, use an
+empty string for this
+.TP
+.I right_array_name
+an empty string or the name of an array which will be
+populated with
+.B pwb_print_array
+arguments for printing in the right margin.
+.TP
+.I bottom_array_name
+an empty string or the name of an array which will be
+populated with
+.B pwb_print_array
+arguments for printing in the bottom margin.
+.TP
+.I left_array_name
+an empty string or the name of an array which will be
+populated with
+.B pwb_print_array
+arguments for printing in the left margin.
+.SH EXAMPLE
+.PP
+.EX
+print_line()
+{
+   local -n pl_data=\(dq\(Do2\(dq
+   printf \(dq%-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Do{pl_data[\(Do1]}\(dq
+}
+
+print_top()
+{
+   local -a pt_lines=(
+      \(dqTitle of Application\(dq
+      \(dq\(dq
+      \(Do\(aqPress \(rse[32;1mq\(rse[39;22m to exit\(aq
+   )
+   pwb_print_array pt_lines \(dq\(Do{TOP_MARG_ARGS[@]}\(dq
+}
+
+print_left()
+{
+   # erase left margin
+   local -a pl_lines=()
+   pwb_print_array pt_lines \(dq\(Do{LEFT_MARG_ARGS[@]}\(dq
+}
+
+enable pwb
+
+source <( pwb_sources pwb_get_margin_args pwb_print_array )
+
+declare -a DATA=( * )
+
+pwb declare HANDLE DATA \(dq\(Do{\(shDATA[*]}\(dq print_line -t print_top
+pwb set_margins HANDLE 3 10 2 10
+
+declare -a TOP_MARG_ARGS
+declare -a LEFT_MARG_ARGS
+pwb_get_margin_args HANDLE TOP_MARG_ARGS \(dq\(dq \(dq\(dq LEFT_MARG_ARGS
+
+pwb init
+pwb start HANDLE
+pwb restore
+.EE
+
