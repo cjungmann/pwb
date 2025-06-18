@@ -21,24 +21,70 @@ print_line()
 
 print_top()
 {
-    local -i char_count="$3"
+    # Collect info
+    local -i total index="$1"
+    local handle_name="$5"
+
+    pwb get_data_count "$handle_name" -v total
+    pwb_exit_on_error
+    printf -v progress_line \
+           $'Item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
+           $(( index+1 )) "$total"
+
+    # Create array for printing
     local -a pt_lines=(
         "PWB DIVIDED TEMPLATE"
+        "$progress_line"
+        ""
         $'Press "\e[32;1mq\e[39;22m" to exit.'
     )
+
+    # Measure and prepare arguments for pwb_print_array
+    pwb get_dimensions
     local -a print_array_args=(
         -t 1
         -l 1
-        -w "$char_count"
-        -c 2
+        -w "${PWB_ASSOC[screen_cols]}"
+        -c 4
         -j c
     )
 
     pwb_print_array pt_lines "${print_array_args[@]}"
 }
 
+# PWB setup
+
+# Set top margin for info, side margins for centering
+set_margins()
+{
+   local sm_handle="$1"
+   local -n sm_data="$2"
+
+   # Measure width of data
+   local -i curlen maxlen=0
+   for item in "${sm_data[@]}"; do
+       curlen="${#item}"
+       if (( curlen > maxlen )); then
+           maxlen="$curlen"
+       fi
+   done
+
+   pwb get_dimensions
+   local -i left right columns="${PWB_ASSOC[screen_cols]}"
+
+   # Only center if at least 2 spare spaces
+   if (( columns > maxlen+1 )); then
+       (( right = (columns - maxlen) / 2 ))
+       (( left = columns - maxlen - right ))
+   else
+       (( left = 0; right = 0 ))
+   fi
+
+   pwb set_margins "$sm_handle" 5 "$right" 1 "$left"
+}
+
 # Trap signal to handle abrupt exits
-exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb_restore; }
+exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb restore; }
 
 # Separate function declarations from global execution:
 
@@ -65,8 +111,7 @@ declare -a DECLARE_ARGS=(
 declare PHANDLE
 pwb declare PHANDLE "${DECLARE_ARGS[@]}"
 
-# Divide screen by using margins:
-pwb set_margins PHANDLE 3 0 0
+set_margins PHANDLE PDATA
 
 # Use trap/signal to handle possible abrupt exits
 trap exit_trap EXIT SIGINT SIGABRT
