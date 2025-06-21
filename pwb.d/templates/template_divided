@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-# Data function(s)
+##########################
+###   DATA FUNCTIONS   ###
+##########################
+
 get_data()
 {
    local -n gd_return="$1"
@@ -10,7 +13,10 @@ get_data()
    shopt -u nullglob
 }
 
-# PWB callback function(s)
+
+##################################
+###   PWB CALLBACK FUNCTIONS   ###
+##################################
 
 print_line()
 {
@@ -84,7 +90,9 @@ print_left_scrollbar()
 }
 
 
-# PWB setup
+###########################
+###   SETUP FUNCTIONS   ###
+###########################
 
 # Set top margin for info, side margins for centering
 set_margins()
@@ -124,6 +132,7 @@ content_needs_scrollbar()
 
 # Trap signal to handle abrupt exits
 exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb restore; }
+
 
 ###########################
 ###   BEGIN EXECUTION   ###
