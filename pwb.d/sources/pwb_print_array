@@ -7,18 +7,20 @@
 ## Justifies output (center, left, or right) according to -j option.
 ## END_DOC
 
-source <( pwb_sources pwb_read_args )
+source <( pwb_sources pwb_exit_on_error pwb_read_args )
 
 pwb_print_array()
 {
     confirm_array_name()
     {
         if [ "$#" -gt 0 ]; then
-            local -n can_var="$1"
-            if [ -v can_var[0] ]; then
+            local varaudit
+            pwb audit_var "$1" -v varaudit
+            pwb_exit_on_error
+            if [[ "$varaudit" =~ ^array ]]; then
                 return 0
             else
-                echo "Argument '$1' is empty or not an array"
+                echo "Argument '$1' is not an array"
                 local IFS=$'\u257E'
                 read -n1 -p "callstack is '${FUNCNAME[*]}'"
             fi
