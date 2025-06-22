@@ -60,7 +60,7 @@ print_top()
 
     # Create array for printing
     local -a pt_lines=(
-        "PWB ARRAYS TEMPLATE"
+        "PWB ACTIONS TEMPLATE"
         $'Press "\e[32;1mF1\e[39;22m" or "\e[32;1m?\e[39;22m" for help, "\e[32;1mq\e[39;22m" to exit.'
         ""
         "${pt_row[@]:0:2}"
