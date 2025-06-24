@@ -8,28 +8,9 @@ get_data()
 {
    local -n gd_return="$1"
 
-   local -a gd_files
    shopt -s nullglob
-   gd_files=( * )
+   gd_return=( * )
    shopt -u nullglob
-
-   local gd_format
-   get_stat_format_string gd_format STAT_FIELDS
-
-   local IFS="$DELIM"
-   gd_return=()
-
-   local fname
-   while read -r; do
-       fname="${REPLY%%${DELIM}*}"
-       if [ -x "$fname" ]; then
-           read -ra gd_row <<< "$REPLY"
-           gd_row[1]="executable"
-           gd_return+=( "${gd_row[*]}" )
-       else
-           gd_return+=( "$REPLY" )
-       fi
-   done < <( stat -c "$gd_format" "${gd_files[@]}" )
 }
 
 
@@ -39,51 +20,31 @@ get_data()
 
 print_line()
 {
+    # Skip naming 'index' and 'char_count' for basic print
     local -n pl_dsource="$2"
-    IFS="$DELIM" read -ra pl_row <<< "${pl_dsource[$1]}"
-    local type_name="${pl_row[1]}"
-    local color_spec="${COLORS_TABLE[$type_name]}"
-    if [ -z "$color_spec" ]; then
-        color_spec="39;49;22"
-    fi
-
-    # Get uncolored padded string
-    printf -v tline "%-*.*s" "$3" "$3" "${pl_row[0]}"
-    # Colorize already-formated text
-    printf $'\e[%sm%s\e[39;49;22m' "$color_spec" "$tline"
+    printf "%-*.*s" "$3" "$3" "${pl_dsource[$1]}"
 }
 
 print_top()
 {
-    local -n pt_dsource="$2"
-    IFS="$DELIM" read -ra pt_row <<< "${pt_dsource[$1]}"
+    # Generate progress info string
+    local -i total index="$1"
+    local handle_name="$5"
+    pwb get_data_count "$handle_name" -v total
+    printf -v progress_line \
+           $'Item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
+           $(( index+1 )) "$total"
 
     # Create array for printing
     local -a pt_lines=(
-        "PWB ACTIONS TEMPLATE"
-        $'Press "\e[32;1mF1\e[39;22m" or "\e[32;1m?\e[39;22m" for help, "\e[32;1mq\e[39;22m" to exit.'
+        "$BASIC_TOP_NAME"
+        "$BASIC_TOP_PROMPT"
         ""
-        "${pt_row[@]:0:2}"
+        "$progress_line"
     )
 
     printf $'\e[48;5;235m'
     pwb_print_array pt_lines "${TOP_MARG_ARGS[@]}"
-    printf $'\e[49m'
-}
-
-print_bottom()
-{
-    # Collect info
-    local -i total index="$1"
-    local handle_name="$5"
-
-    pwb get_data_count "$handle_name" -v total
-    printf -v tline \
-           $'Item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
-           $(( index+1 )) "$total"
-    local -a pb_lines=( "$tline" )
-    printf $'\e[48;5;235m'
-    pwb_print_array pb_lines "${BOTTOM_MARG_ARGS[@]}"
     printf $'\e[49m'
 }
 
@@ -167,16 +128,56 @@ exec_help()
 exec_inspect()
 {
     local -n ex_dsource="$3"
-    local -a ex_row
-    IFS="$DELIM" read -ra ex_row <<< "${ex_dsource[$2]}"
+    local filename="${ex_dsource[$2]}"
+
+    # Paired specs to align for presentation
+    local -a STAT_FIELDS=(
+        "name"        "%n"  # must be first element
+        "file type"   "%F"  # must be second element
+        "size"        "%s"
+        "owner"       "%U"
+        "permissions" "%A"
+        "last change" "%y"
+    )
+
+    # measure labels for formatting
+    local -i len_label=0
+    local -i cur_len
+
+    # compile tokens list to build format string
+    local -a tokens=()
+
+    # Track index to detect field
+    local -i index=0
+    for el in "${STAT_FIELDS[@]}"; do
+        if (( index % 2 == 0 )); then
+            cur_len="${#el}"
+            if (( cur_len > len_label )); then
+                len_label="$cur_len"
+            fi
+        else
+            tokens+=( "$el" )
+        fi
+        (( ++index ))
+    done
+
+    # Get label-correlating array of attributes
+    local DELIM="|"
+    printf -v format "%s${DELIM}" "${tokens[@]}"
+    format="${format:0: -1}"
+    IFS="$DELIM" read -ra attributes <<< $( stat -c "$format" "$filename" )
 
     local -a ex_lines
-    for label in "${STAT_LABELS[@]}"; do
-        printf -v ex_lines[${#ex_lines[*]}]  \
-               $'%*s: \e[32;1m%s\e[39;22m'  \
-               "$STAT_MAX_LABEL" \
-               "$label"          \
-               "${ex_row[$index]}"
+
+    index=0
+    for el in "${STAT_FIELDS[@]}"; do
+        if (( index % 2 == 0 )); then
+            printf -v ex_lines[${#ex_lines[*]}] \
+                   $'%*s: \e[32;1m%s\e[39;22m'  \
+                   "$len_label" \
+                   "$el"        \
+                   "${attributes[$(( index / 2 ))]}"
+        fi
         (( ++index ))
     done
 
@@ -194,13 +195,10 @@ set_margins()
    local sm_handle="$1"
    local -n sm_data="$2"
 
-   local IFS="$DELIM"
-
    # Measure width of data
    local -i curlen maxlen=0
    for item in "${sm_data[@]}"; do
-       read -ra sm_row <<< "$item"
-       curlen="${#sm_row[0]}"
+       curlen="${#item}"
        if (( curlen > maxlen )); then
            maxlen="$curlen"
        fi
@@ -217,7 +215,7 @@ set_margins()
        (( left = 0; right = 0 ))
    fi
 
-   pwb set_margins "$sm_handle" 5 "$right" 1 "$left"
+   pwb set_margins "$sm_handle" 4 "$right" 1 "$left"
 }
 
 content_needs_scrollbar()
@@ -225,99 +223,6 @@ content_needs_scrollbar()
     local cns_handle="$1"
     pwb get_dimensions "$cns_handle"
     (( PWB_ASSOC[data_rows] > 0 && PWB_ASSOC[data_rows] > PWB_ASSOC[pager_lines] ))
-}
-
-get_stat_labels_array()
-{
-    local -n gsla_return="$1"
-    local -n gsla_source="$2"
-
-    gsla_return=()
-
-    local -i index=0
-    for el in "${gsla_source[@]}"; do
-        if (( (index % 2) == 0 )); then
-            gsla_return+=( "$el" )
-        fi
-        (( ++index ))
-    done
-}
-
-get_stat_max_label()
-{
-    local -n gsml_max="$1"
-    local -n gsml_source="$2"
-
-    local -i cur_len
-    gsml_max=0
-    for label in "${gsml_source[@]}"; do
-        cur_len="${#label}"
-        if (( cur_len > gsml_max )); then
-            (( gsml_max = cur_len ))
-        fi
-    done
-}
-
-get_stat_format_string()
-{
-    local -n gsfs_return="$1"
-    local -n gsfs_source="$2"
-
-    local -a format_tokens
-    local -i index=0
-
-    local -i index=0
-    for el in "${gsfs_source[@]}"; do
-        if (( index % 2 == 1 )); then
-            format_tokens+=( "$el" )
-        fi
-        (( ++index ))
-    done
-
-    printf -v gsfs_return "%s${DELIM}" "${format_tokens[@]}"
-    gsfs_return="${gsfs_return:0: -1}"
-}
-
-get_file_type_color_table()
-{
-    # Confirm appropriate variable type
-    pwb audit_var "$1" -a
-    IFS=" " read -ra attrs <<< "$PWB_VALUE"
-    if [[ "${attrs[0]}" != "associative" ]]; then
-        read -n1 -p "Argument '$1' must be an associative array."
-        exit 1
-    fi
-
-    local -n gftct_table="$1"
-    gftct_table=()
-
-    # Use default colors if LS_COLORS not yet set:
-    if [ -z "$LS_COLORS" ]; then
-        exec $( dircolors )
-    fi
-
-    local -a colors
-    if [ -n "$LS_COLORS" ]; then
-        IFS=':' read -ra colors <<< "$LS_COLORS"
-    fi
-
-    for color in "${colors[@]}"; do
-        IFS='=' read -ra color_spec <<< "$color"
-
-        local type_name="${color_spec[0]}"
-        local type_color="${color_spec[1]}"
-
-        case "$type_name" in
-            di   ) gftct_table[directory]="$type_color" ;;
-            rs   ) gftct_table[regular]="$type_color" ;;
-            ln   ) gftct_table["symbolic link"]="$type_color" ;;
-            pi   ) gftct_table[fifo]="$type_color" ;;
-            so   ) gftct_table[socket]="$type_color" ;;
-            bd   ) gftct_table["block device special file"]="$type_color" ;;
-            "cd" ) gftct_table["char device special file"]="$type_color" ;;
-            ex   ) gftct_table["executable"]="$type_color" ;;
-        esac
-    done
 }
 
 # Trap signal to handle abrupt exits
@@ -328,7 +233,6 @@ exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb restore; }
 ###   BEGIN EXECUTION   ###
 ###########################
 
-# Enable first to use its audit_var method in get_file_type_color_table()
 enable pwb
 
 # Using source scripts
@@ -336,31 +240,11 @@ declare -a SOURCE_ARGS=(
     pwb_exit_on_error
     pwb_get_margin_args
     pwb_print_array
-    pwb_conduct_dialog
     pwb_get_scroll_bar
+    pwb_conduct_dialog
     pwb_keybinder
 )
 source <( pwb_sources "${SOURCE_ARGS[@]}" )
-
-declare DELIM="|"
-
-# Paired specs to align for presentation
-declare -a STAT_FIELDS=(
-    "name"        "%n"  # must be first element
-    "file type"   "%F"  # must be second element
-    "size"        "%s"
-    "owner"       "%U"
-    "permissions" "%A"
-    "last change" "%y"
-)
-
-declare -a STAT_LABELS
-get_stat_labels_array STAT_LABELS STAT_FIELDS
-declare -i STAT_MAX_LABEL
-get_stat_max_label STAT_MAX_LABEL STAT_LABELS
-
-declare -A COLORS_TABLE
-get_file_type_color_table COLORS_TABLE
 
 ### KEYBINDING ###
 declare -a KEYBINDINGS=(
@@ -372,8 +256,6 @@ declare KEYMAP
 declare -a KEYFUNCS
 pwb_keybinder prep KEYBINDINGS -v KEYMAP -f KEYFUNCS
 
-### PREPARE PWB ###
-
 # Prepare data source
 declare -a PDATA
 get_data PDATA
@@ -383,10 +265,9 @@ declare -a DECLARE_ARGS=(
     PDATA
     "${#PDATA[*]}"
     print_line
-    -e execute_line
     -t print_top
-    -b print_bottom
     -l print_left
+    -e execute_line
 )
 declare PHANDLE
 pwb declare PHANDLE "${DECLARE_ARGS[@]}"
@@ -394,8 +275,8 @@ pwb declare PHANDLE "${DECLARE_ARGS[@]}"
 # Divide the screen using margins
 set_margins PHANDLE PDATA
 # Set global margin-printing argument arrays
-declare -a TOP_MARG_ARGS BOTTOM_MARG_ARGS
-pwb_get_margin_args PHANDLE TOP_MARG_ARGS "" BOTTOM_MARG_ARGS
+declare -a TOP_MARG_ARGS
+pwb_get_margin_args PHANDLE TOP_MARG_ARGS
 # Set to use or not use a left-margin scrollbar
 declare print_left_func=print_left_empty
 if content_needs_scrollbar PHANDLE; then
@@ -404,6 +285,12 @@ fi
 
 # Use trap/signal to handle possible abrupt exits
 trap exit_trap EXIT SIGINT SIGABRT
+
+# For print_top contents
+declare BASIC_TOP_NAME="PWB ACTIONS TEMPLATE"
+declare BASIC_TOP_PROMPT=$'Press "\e[32;1m?\e[39;22m"'`
+        `$' or "\e[32;1mf1\e[39;22m" for help,'`
+        `$' or "\e[32;1mq\e[39;22m" to quit.'
 
 pwb init
 pwb start PHANDLE -a KEYMAP
