@@ -27,22 +27,20 @@ print_line()
 
 print_top()
 {
-    # Collect info
+    # Generate progress info string
     local -i total index="$1"
     local handle_name="$5"
-
     pwb get_data_count "$handle_name" -v total
-    pwb_exit_on_error
     printf -v progress_line \
            $'Item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
            $(( index+1 )) "$total"
 
     # Create array for printing
     local -a pt_lines=(
-        "PWB DIVIDED TEMPLATE"
-        "$progress_line"
+        "$BASIC_TOP_NAME"
+        "$BASIC_TOP_PROMPT"
         ""
-        $'Press "\e[32;1mq\e[39;22m" to exit.'
+        "$progress_line"
     )
 
     printf $'\e[48;5;235m'
@@ -177,6 +175,10 @@ fi
 
 # Use trap/signal to handle possible abrupt exits
 trap exit_trap EXIT SIGINT SIGABRT
+
+# For print_top contents
+declare BASIC_TOP_NAME="PWB DIVIDED TEMPLATE"
+declare BASIC_TOP_PROMPT=$'Press "\e[32;1mq\e[39;22m" to quit'
 
 pwb init
 pwb start PHANDLE
