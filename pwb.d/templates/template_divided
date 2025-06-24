@@ -168,7 +168,7 @@ pwb declare PHANDLE "${DECLARE_ARGS[@]}"
 set_margins PHANDLE PDATA
 # Set global margin-printing argument arrays
 declare -a TOP_MARG_ARGS
-pwb_get_margin_args PHANDLE TOP_MARG_ARGSX
+pwb_get_margin_args PHANDLE TOP_MARG_ARGS
 # Set to use or not use a left-margin scrollbar
 declare print_left_func=print_left_empty
 if content_needs_scrollbar PHANDLE; then
