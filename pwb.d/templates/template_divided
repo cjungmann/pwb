@@ -115,7 +115,7 @@ set_margins()
        (( right = (columns - maxlen) / 2 ))
        (( left = columns - maxlen - right ))
    else
-       (( left = 0; right = 0 ))
+       (( left = 0, right = 0 ))
    fi
 
    pwb set_margins "$sm_handle" 4 "$right" 1 "$left"
