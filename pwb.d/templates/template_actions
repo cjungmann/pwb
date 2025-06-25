@@ -177,7 +177,6 @@ exec_inspect()
     done
 
     # Get label-correlating array of attributes
-    local DELIM="|"
     printf -v format "%s${DELIM}" "${tokens[@]}"
     format="${format:0: -1}"
     IFS="$DELIM" read -ra attributes <<< $( stat -c "$format" "$filename" )
