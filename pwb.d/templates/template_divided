@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ##########################
-###   DATA FUNCTIONS   ###
+###   data functions   ###
 ##########################
 
 get_data()
@@ -15,36 +15,36 @@ get_data()
 
 
 ##################################
-###   PWB CALLBACK FUNCTIONS   ###
+###   pwb callback functions   ###
 ##################################
 
 print_line()
 {
-    # Skip naming 'index' and 'char_count' for basic print
+    # skip naming 'index' and 'char_count' for basic print
     local -n pl_dsource="$2"
     printf "%-*.*s" "$3" "$3" "${pl_dsource[$1]}"
 }
 
 print_top()
 {
-    # Generate progress info string
+    # generate progress info string
     local -i total index="$1"
     local handle_name="$5"
     pwb get_data_count "$handle_name" -v total
     printf -v progress_line \
-           $'Item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
+           $'item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
            $(( index+1 )) "$total"
 
-    # Create array for printing
+    # create array for printing
     local -a pt_lines=(
-        "$BASIC_TOP_NAME"
-        "$BASIC_TOP_PROMPT"
+        "$basic_top_name"
+        "$basic_top_prompt"
         ""
         "$progress_line"
     )
 
     printf $'\e[48;5;235m'
-    pwb_print_array pt_lines "${TOP_MARG_ARGS[@]}"
+    pwb_print_array pt_lines "${top_marg_args[@]}"
     printf $'\e[49m'
 }
 
@@ -55,50 +55,50 @@ print_left()
     "$print_left_func" "$@"
 }
 
-# No-scrollbar left margin printer
+# no-scrollbar left margin printer
 print_left_empty()
 {
     local -a ple_lines=()
-    pwb_print_array ple_lines "${LEFT_MARG_ARGS[@]}"
+    pwb_print_array ple_lines "${left_marg_args[@]}"
 }
 
-# Scrollbar left margin printer
+# scrollbar left margin printer
 print_left_scrollbar()
 {
     local handle_name="$5"
     pwb get_dimensions "$handle_name"
 
-    local -i width="${PWB_ASSOC[margin_left]}"
+    local -i width="${pwb_assoc[margin_left]}"
     local -i left=$(( width - 2 ))
 
     local -a pls_chars
 
-    local -a SB_ARGS=(
-        -t "${PWB_ASSOC[row_top]}"
-        -s "${PWB_ASSOC[data_rows]}"
-        -v "${PWB_ASSOC[pager_lines]}"
-        -c "${PWB_ASSOC[pager_lines]}"
+    local -a sb_args=(
+        -t "${pwb_assoc[row_top]}"
+        -s "${pwb_assoc[data_rows]}"
+        -v "${pwb_assoc[pager_lines]}"
+        -c "${pwb_assoc[pager_lines]}"
     )
 
-    pwb_get_scroll_bar pls_chars "${SB_ARGS[@]}"
+    pwb_get_scroll_bar pls_chars "${sb_args[@]}"
 
     for char in "${pls_chars[@]}"; do
-        printf $'\e[%dX\e[%dG%s\e[1E' "$width" "$left" "$char"
+        printf $'\e[%dx\e[%dg%s\e[1e' "$width" "$left" "$char"
     done
 }
 
 
 ###########################
-###   SETUP FUNCTIONS   ###
+###   setup functions   ###
 ###########################
 
-# Set top margin for info, side margins for centering
+# set top margin for info, side margins for centering
 set_margins()
 {
    local sm_handle="$1"
    local -n sm_data="$2"
 
-   # Measure width of data
+   # measure width of data
    local -i curlen maxlen=0
    for item in "${sm_data[@]}"; do
        curlen="${#item}"
@@ -108,14 +108,16 @@ set_margins()
    done
 
    pwb get_dimensions
-   local -i left right columns="${PWB_ASSOC[screen_cols]}"
+   local -i left right
+   local -i columns="${PWB_ASSOC[screen_cols]}"
 
-   # Only center if at least 2 spare spaces
-   if (( columns > maxlen+1 )); then
+   # Only center if more than 2 spare spaces
+   if (( columns > maxlen+2 )); then
+       (( columns -= 2 ))
        (( right = (columns - maxlen) / 2 ))
        (( left = columns - maxlen - right ))
    else
-       (( left = 0, right = 0 ))
+       (( left = 2, right = 0 ))
    fi
 
    pwb set_margins "$sm_handle" 4 "$right" 1 "$left"
@@ -137,6 +139,8 @@ exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb restore; }
 ###########################
 
 enable pwb
+
+declare DELIM="|"
 
 # Using source scripts
 declare -a SOURCE_ARGS=(

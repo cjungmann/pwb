@@ -205,14 +205,16 @@ set_margins()
    done
 
    pwb get_dimensions
-   local -i left right columns="${PWB_ASSOC[screen_cols]}"
+   local -i left right
+   local -i columns="${PWB_ASSOC[screen_cols]}"
 
-   # Only center if at least 2 spare spaces
-   if (( columns > maxlen+1 )); then
+   # Only center if more than 2 spare spaces
+   if (( columns > maxlen+2 )); then
+       (( columns -= 2 ))
        (( right = (columns - maxlen) / 2 ))
        (( left = columns - maxlen - right ))
    else
-       (( left = 0, right = 0 ))
+       (( left = 2, right = 0 ))
    fi
 
    pwb set_margins "$sm_handle" 4 "$right" 1 "$left"
@@ -234,6 +236,8 @@ exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb restore; }
 ###########################
 
 enable pwb
+
+declare DELIM="|"
 
 # Using source scripts
 declare -a SOURCE_ARGS=(
