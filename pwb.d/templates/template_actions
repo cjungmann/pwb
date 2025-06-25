@@ -13,6 +13,21 @@ get_data()
    shopt -u nullglob
 }
 
+get_content_size()
+{
+    local -n gfs_return="$1"
+    local -n gfs_content="$2"
+
+    gfs_return=0
+
+    for el in "${gfs_content[@]}"; do
+        local -i curlen="${#el}"
+        if (( curlen > gfs_return )); then
+            (( gfs_return = curlen ))
+        fi
+    done
+}
+
 
 ##################################
 ###   PWB CALLBACK FUNCTIONS   ###
@@ -193,26 +208,17 @@ exec_inspect()
 set_margins()
 {
    local sm_handle="$1"
-   local -n sm_data="$2"
-
-   # Measure width of data
-   local -i curlen maxlen=0
-   for item in "${sm_data[@]}"; do
-       curlen="${#item}"
-       if (( curlen > maxlen )); then
-           maxlen="$curlen"
-       fi
-   done
+   local -i sm_content_size="$2"
 
    pwb get_dimensions
    local -i left right
    local -i columns="${PWB_ASSOC[screen_cols]}"
 
    # Only center if more than 2 spare spaces
-   if (( columns > maxlen+2 )); then
+   if (( columns > sm_content_size+2 )); then
        (( columns -= 2 ))
-       (( right = (columns - maxlen) / 2 ))
-       (( left = columns - maxlen - right ))
+       (( right = (columns - sm_content_size) / 2 ))
+       (( left = columns - sm_content_size - right ))
    else
        (( left = 2, right = 0 ))
    fi
@@ -264,6 +270,10 @@ pwb_keybinder prep KEYBINDINGS -v KEYMAP -f KEYFUNCS
 declare -a PDATA
 get_data PDATA
 
+# Measure data for formatting
+declare -i CONTENT_WIDTH
+get_content_size CONTENT_WIDTH PDATA
+
 # Declare Handle
 declare -a DECLARE_ARGS=(
     PDATA
@@ -277,7 +287,7 @@ declare PHANDLE
 pwb declare PHANDLE "${DECLARE_ARGS[@]}"
 
 # Divide the screen using margins
-set_margins PHANDLE PDATA
+set_margins PHANDLE "$CONTENT_WIDTH"
 # Set global margin-printing argument arrays
 declare -a TOP_MARG_ARGS
 pwb_get_margin_args PHANDLE TOP_MARG_ARGS

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ##########################
-###   data functions   ###
+###   DATA FUNCTIONS   ###
 ##########################
 
 get_data()
@@ -13,9 +13,24 @@ get_data()
    shopt -u nullglob
 }
 
+get_content_size()
+{
+    local -n gfs_return="$1"
+    local -n gfs_content="$2"
+
+    gfs_return=0
+
+    for el in "${gfs_content[@]}"; do
+        local -i curlen="${#el}"
+        if (( curlen > gfs_return )); then
+            (( gfs_return = curlen ))
+        fi
+    done
+}
+
 
 ##################################
-###   pwb callback functions   ###
+###   PWB CALLBACK FUNCTIONS   ###
 ##################################
 
 print_line()
@@ -37,14 +52,14 @@ print_top()
 
     # create array for printing
     local -a pt_lines=(
-        "$basic_top_name"
-        "$basic_top_prompt"
+        "$BASIC_TOP_NAME"
+        "$BASIC_TOP_PROMPT"
         ""
         "$progress_line"
     )
 
     printf $'\e[48;5;235m'
-    pwb_print_array pt_lines "${top_marg_args[@]}"
+    pwb_print_array pt_lines "${TOP_MARG_ARGS[@]}"
     printf $'\e[49m'
 }
 
@@ -59,7 +74,7 @@ print_left()
 print_left_empty()
 {
     local -a ple_lines=()
-    pwb_print_array ple_lines "${left_marg_args[@]}"
+    pwb_print_array ple_lines "${LEFT_MARG_ARGS[@]}"
 }
 
 # scrollbar left margin printer
@@ -68,16 +83,16 @@ print_left_scrollbar()
     local handle_name="$5"
     pwb get_dimensions "$handle_name"
 
-    local -i width="${pwb_assoc[margin_left]}"
+    local -i width="${PWB_ASSOC[margin_left]}"
     local -i left=$(( width - 2 ))
 
     local -a pls_chars
 
     local -a sb_args=(
-        -t "${pwb_assoc[row_top]}"
-        -s "${pwb_assoc[data_rows]}"
-        -v "${pwb_assoc[pager_lines]}"
-        -c "${pwb_assoc[pager_lines]}"
+        -t "${PWB_ASSOC[row_top]}"
+        -s "${PWB_ASSOC[data_rows]}"
+        -v "${PWB_ASSOC[pager_lines]}"
+        -c "${PWB_ASSOC[pager_lines]}"
     )
 
     pwb_get_scroll_bar pls_chars "${sb_args[@]}"
@@ -89,33 +104,24 @@ print_left_scrollbar()
 
 
 ###########################
-###   setup functions   ###
+###   SETUP FUNCTIONS   ###
 ###########################
 
 # set top margin for info, side margins for centering
 set_margins()
 {
    local sm_handle="$1"
-   local -n sm_data="$2"
-
-   # measure width of data
-   local -i curlen maxlen=0
-   for item in "${sm_data[@]}"; do
-       curlen="${#item}"
-       if (( curlen > maxlen )); then
-           maxlen="$curlen"
-       fi
-   done
+   local -i sm_content_size="$2"
 
    pwb get_dimensions
    local -i left right
    local -i columns="${PWB_ASSOC[screen_cols]}"
 
    # Only center if more than 2 spare spaces
-   if (( columns > maxlen+2 )); then
+   if (( columns > sm_content_size+2 )); then
        (( columns -= 2 ))
-       (( right = (columns - maxlen) / 2 ))
-       (( left = columns - maxlen - right ))
+       (( right = (columns - sm_content_size) / 2 ))
+       (( left = columns - sm_content_size - right ))
    else
        (( left = 2, right = 0 ))
    fi
@@ -155,6 +161,10 @@ source <( pwb_sources "${SOURCE_ARGS[@]}" )
 declare -a PDATA
 get_data PDATA
 
+# Measure data for formatting
+declare -i CONTENT_WIDTH
+get_content_size CONTENT_WIDTH PDATA
+
 # Declare Handle
 declare -a DECLARE_ARGS=(
     PDATA
@@ -167,7 +177,7 @@ declare PHANDLE
 pwb declare PHANDLE "${DECLARE_ARGS[@]}"
 
 # Divide the screen using margins
-set_margins PHANDLE PDATA
+set_margins PHANDLE "$CONTENT_WIDTH"
 # Set global margin-printing argument arrays
 declare -a TOP_MARG_ARGS
 pwb_get_margin_args PHANDLE TOP_MARG_ARGS
