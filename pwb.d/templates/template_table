@@ -180,7 +180,8 @@ exec_help()
 exec_inspect()
 {
     local -n ex_dsource="$3"
-    local filename="${ex_dsource[$2]}"
+    IFS="$DELIM" read -ra ex_row <<< "${ex_dsource[$2]}"
+    local filename="${ex_row[0]}"
 
     # Paired specs to align for presentation
     local -a STAT_FIELDS=(
