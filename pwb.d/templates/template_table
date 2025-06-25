@@ -1,247 +1,366 @@
 #!/usr/bin/env bash
 
-# Data function(s)
-get_full_data()
-{
-   local -n gfd_return="$1"
+##########################
+###   DATA FUNCTIONS   ###
+##########################
 
-   local -a gfd_files
+get_data()
+{
+   local -n gd_return="$1"
+   gd_return=()
+
    shopt -s nullglob
-   gfd_files=( * )
+   local -a gd_files=( * )
    shopt -u nullglob
 
-   local IFS="$DELIM"
-   local -a fields=( %n %A %s )
+   # Get name / filetype / size from stat:
+   local format="%n${DELIM}%F${DELIM}%s"
 
    while read -r; do
-       gfd_return+=( "$REPLY" )
-   done < <( stat -c "${fields[*]}" "${gfd_files[@]}" )
+       gd_return+=( "$REPLY" )
+   done < <( stat -c "$format" "${gd_files[@]}" )
 }
 
-# PWB callback function(s)
-
-print_line()
+get_column_sizes()
 {
-    local -n pl_dsource="$2"
-    local pl_row
-    IFS="$DELIM" read -ra pl_row <<< "${pl_dsource[$1]}"
+    local -n gcs_sizes="$1"
+    local -n gcs_source="$2"
 
-    printf -v tline "$PFORMAT" "${pl_row[@]}"
-    printf "%-*.*s" "$3" "$3" "$tline"
-}
-
-
-# Margin-printing functions
-
-print_top()
-{
-    local -n pt_data="$2"
-    local -a pt_row
-    IFS="$DELIM" read -ra pt_row <<< "${pt_data[$1]}"
-
-    local -a pt_lines=(
-        "PWB TABLE VIEWER"
-        "${pt_row[@]}"
-        "line 5"
-        "line 6"
-    )
-
-    printf $'\e[44m'
-    pwb_print_array pt_lines "${TOP_MARG_ARGS[@]}"
-    printf $'\e[49m'
-}
-
-print_bottom()
-{
-    pwb get_data_count "$5"
-    local -a pb_lines
-    printf -v pb_lines[${#pb_lines[*]}] \
-           $'Record \e[32;1m%d\e[39;22m out of \e[32;1m%d\e[39;22m' \
-           $(( $1 + 1 )) "$PWB_VALUE"
-
-    printf $'\e[48;m'
-    pwb_print_array pb_lines "${BOTTOM_MARG_ARGS[@]}"
-    printf $'\e[49m'
-}
-
-print_left()
-{
-    local -a pl_lines=( bogus )
-    printf $'\e[42m'
-    pwb_print_array pl_lines "${LEFT_MARG_ARGS[@]}"
-    printf $'\e[49m'
-}
-
-print_right()
-{
-    local -a pr_lines=( )
-    printf $'\e[43m'
-    pwb_print_array pr_lines "${RIGHT_MARG_ARGS[@]}"
-    printf $'\e[49m'
-}
-
-# Utility functions
-
-get_field_widths()
-{
-    local -n mrw_widths="$1"
-    local -n mrw_dsource="$2"
     local IFS="$DELIM"
+    local -a gcs_row
 
-    # Make max-tracking array with zero at each field
-    read -ra mrw_widths <<< "${mrw_dsource[0]}"
-    local -i index=0
-    for field in "${mrw_widths[@]}"; do
-        mrw_widths[$(( index++ ))]=0
+    # Make array of 0 max sizes from split of first row:
+    read -ra gcs_row <<< "${gcs_source[0]}"
+    gcs_sizes=()
+    for el in "${gcs_row[@]}"; do
+        gcs_sizes+=( 0 )
     done
 
-    local -i field_count="$index"
+    local -i index rowlen elmax curlen
 
-    local -a cur_row
-    local -i cur_len cur_max=0
+    for row in "${gcs_source[@]}"; do
+        read -ra gcs_row <<< "$row"
 
-    for row in "${mrw_dsource[@]}"; do
-        read -ra cur_row <<< "$row"
-        for (( i=0; i<field_count; ++i )); do
-            cur_len="${#cur_row[i]}"
-            cur_max="${mrw_widths[i]}"
-            if (( cur_len > cur_max )); then
-                mrw_widths[$i]="$cur_len"
+        (( index = 0 ))
+        for el in "${gcs_row[@]}"; do
+            local curlen="${#el}"
+            if (( curlen > gcs_sizes[index] )); then
+                (( gcs_sizes[index] = curlen ))
             fi
+            (( ++index ))
         done
     done
 }
 
-make_format_string()
+get_content_size()
 {
-    local -n mfs_return="$1"
-    local -n mfs_field_widths="$2"
+    local -n gfs_return="$1"
+    local -n gfs_columns="$2"
 
-    local -a parts=()
+    gfs_return=$(( gfs_gutter_size * ( ${#gfs_columns[*]} - 1 ) ))
 
-    for width in "${mfs_field_widths[@]}"; do
-        printf -v parts["${#parts[*]}"] "%%-%ds" "$width"
+    for size in "${gfs_columns[@]}"; do
+        (( gfs_return += size ))
     done
-
-    local IFS=" "
-    mfs_return="${parts[*]}"
 }
 
-set_margins()
+
+##################################
+###   PWB CALLBACK FUNCTIONS   ###
+##################################
+
+print_line()
 {
-    local sm_handle="$1"
-    local -n sm_widths="$2"
+    local -n pl_dsource="$2"
+    IFS="$DELIM" read -ra pl_row <<< "${pl_dsource[$1]}"
+    printf -v tline "$PRINT_LINE_FORMAT" "${pl_row[@]}"
+    printf "%-*.*s" "$3" "$3" "$tline"
+}
 
-    # Calculate content width
-    local -i tot_width=0
-    for width in "${sm_widths[@]}"; do
-        (( tot_width += width ))
+print_top()
+{
+    # Generate progress info string
+    local -i total index="$1"
+    local handle_name="$5"
+    pwb get_data_count "$handle_name" -v total
+    printf -v progress_line \
+           $'Item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
+           $(( index+1 )) "$total"
+
+    # Create array for printing
+    local -a pt_lines=(
+        "$BASIC_TOP_NAME"
+        "$BASIC_TOP_PROMPT"
+        ""
+        "$progress_line"
+    )
+
+    printf $'\e[48;5;235m'
+    pwb_print_array pt_lines "${TOP_MARG_ARGS[@]}"
+    printf $'\e[49m'
+}
+
+
+print_left()
+{
+    # will be either print_left_empty or print_left_scrollbar
+    "$print_left_func" "$@"
+}
+
+# No-scrollbar left margin printer
+print_left_empty()
+{
+    local -a ple_lines=()
+    pwb_print_array ple_lines "${LEFT_MARG_ARGS[@]}"
+}
+
+# Scrollbar left margin printer
+print_left_scrollbar()
+{
+    local handle_name="$5"
+    pwb get_dimensions "$handle_name"
+
+    local -i width="${PWB_ASSOC[margin_left]}"
+    local -i left=$(( width - 2 ))
+
+    local -a pls_chars
+
+    local -a SB_ARGS=(
+        -t "${PWB_ASSOC[row_top]}"
+        -s "${PWB_ASSOC[data_rows]}"
+        -v "${PWB_ASSOC[pager_lines]}"
+        -c "${PWB_ASSOC[pager_lines]}"
+    )
+
+    pwb_get_scroll_bar pls_chars "${SB_ARGS[@]}"
+
+    for char in "${pls_chars[@]}"; do
+        printf $'\e[%dX\e[%dG%s\e[1E' "$width" "$left" "$char"
     done
-    # Account for one space between each field:
-    (( tot_width += (${#sm_widths[*]} - 1) ))
+}
 
-    # Get extra spaces
-    pwb get_dimensions
-    local -i spaces_to_distribute=$(( PWB_ASSOC[screen_cols] - tot_width ))
 
-    local -i left=2 right=0
-    if (( spaces_to_distribute > 2 )); then
-        (( right = spaces_to_distribute / 2 ))
-        (( left = spaces_to_distribute - right ))
+########################
+###   EXEC SECTION   ###
+########################
+
+execute_line()
+{
+    local keyp="$1"
+    local el_psource="$4"
+
+    local -i ecode=0
+    local el_func
+    if pwb_keybinder func KEYFUNCS -v el_func -k "$keyp"; then
+        "$el_func" "$@"
+        ecode="$?"
+        printf $'\e[H\e[2J'
+        pwb print_all "$el_psource"
     fi
 
-    pwb set_margins "$sm_handle" 5 "$right" 2 "$left"
+    return "$ecode"
 }
 
-get_marg_args()
+exec_help()
 {
-    local -a empty=()
-    local gma_handle="$1"
+    local eh_keyp
+    pwb_keybinder help KEYBINDINGS -v eh_keyp
 
-    local -n gma_top="${2:-empty}"
-    local -n gma_right="${3:-empty}"
-    local -n gma_bottom="${4:-empty}"
-    local -n gma_left="${5:-empty}"
+    # Recursively call execute_line with exit key from kebinder
+    # in case it's one that should initiate another action
+    execute_line "$eh_keyp" "${@:1}"
+    local -i ecode="$?"
+    if [[ "$eh_keyp" == 'q' ]]; then
+        ecode=1
+    fi
 
-    pwb get_dimensions "$gma_handle"
-
-    gma_top=(
-        -t 1
-        -l 1
-        -w "${PWB_ASSOC[screen_cols]}"
-        -c "${PWB_ASSOC[margin_top]}"
-    )
-
-    gma_bottom=(
-        -t $(( PWB_ASSOC[screen_lines] - PWB_ASSOC[margin_bottom] + 1 ))
-        -l 1
-        -w "${PWB_ASSOC[screen_cols]}"
-        -c "${PWB_ASSOC[margin_bottom]}"
-    )
-
-    gma_left=(
-        -t $(( PWB_ASSOC[margin_top] + 1 ))
-        -l 1
-        -w "${PWB_ASSOC[margin_left]}"
-        -c "${PWB_ASSOC[pager_lines]}"
-    )
-
-    gma_right=(
-        -t $(( PWB_ASSOC[margin_top] + 1 ))
-        -l $(( PWB_ASSOC[screen_cols] - PWB_ASSOC[margin_right] + 1 ))
-        -w "${PWB_ASSOC[margin_right]}"
-        -c "${PWB_ASSOC[pager_lines]}"
-    )
+    return "$ecode"
 }
 
-exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb_restore; }
+exec_inspect()
+{
+    local -n ex_dsource="$3"
+    local filename="${ex_dsource[$2]}"
 
-# Begin execution
+    # Paired specs to align for presentation
+    local -a STAT_FIELDS=(
+        "name"        "%n"  # must be first element
+        "file type"   "%F"  # must be second element
+        "size"        "%s"
+        "owner"       "%U"
+        "permissions" "%A"
+        "last change" "%y"
+    )
 
-declare DELIM="|"
+    # measure labels for formatting
+    local -i len_label=0
+    local -i cur_len
+
+    # compile tokens list to build format string
+    local -a tokens=()
+
+    # Track index to detect field
+    local -i index=0
+    for el in "${STAT_FIELDS[@]}"; do
+        if (( index % 2 == 0 )); then
+            cur_len="${#el}"
+            if (( cur_len > len_label )); then
+                len_label="$cur_len"
+            fi
+        else
+            tokens+=( "$el" )
+        fi
+        (( ++index ))
+    done
+
+    # Get label-correlating array of attributes
+    local DELIM="|"
+    printf -v format "%s${DELIM}" "${tokens[@]}"
+    format="${format:0: -1}"
+    IFS="$DELIM" read -ra attributes <<< $( stat -c "$format" "$filename" )
+
+    local -a ex_lines
+
+    index=0
+    for el in "${STAT_FIELDS[@]}"; do
+        if (( index % 2 == 0 )); then
+            printf -v ex_lines[${#ex_lines[*]}] \
+                   $'%*s: \e[32;1m%s\e[39;22m'  \
+                   "$len_label" \
+                   "$el"        \
+                   "${attributes[$(( index / 2 ))]}"
+        fi
+        (( ++index ))
+    done
+
+    pwb_conduct_dialog ex_lines
+}
+
+
+###########################
+###   SETUP FUNCTIONS   ###
+###########################
+
+# Set top margin for info, side margins for centering
+set_margins()
+{
+   local sm_handle="$1"
+   local -i sm_content_size="$2"
+
+   pwb get_dimensions
+   local -i left right
+   local -i columns="${PWB_ASSOC[screen_cols]}"
+
+   # Only center if more than 2 spare spaces
+   if (( columns > sm_content_size+2 )); then
+       (( columns -= 2 ))
+       (( right = (columns - sm_content_size) / 2 ))
+       (( left = columns - sm_content_size - right ))
+   else
+       (( left = 2, right = 0 ))
+   fi
+
+   pwb set_margins "$sm_handle" 4 "$right" 1 "$left"
+}
+
+content_needs_scrollbar()
+{
+    local cns_handle="$1"
+    pwb get_dimensions "$cns_handle"
+    (( PWB_ASSOC[data_rows] > 0 && PWB_ASSOC[data_rows] > PWB_ASSOC[pager_lines] ))
+}
+
+# Trap signal to handle abrupt exits
+exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb restore; }
+
+
+###########################
+###   BEGIN EXECUTION   ###
+###########################
 
 enable pwb
 
+declare DELIM="|"
+
+# Using source scripts
 declare -a SOURCE_ARGS=(
     pwb_exit_on_error
+    pwb_get_margin_args
     pwb_print_array
+    pwb_get_scroll_bar
+    pwb_conduct_dialog
+    pwb_keybinder
 )
 source <( pwb_sources "${SOURCE_ARGS[@]}" )
 
+### KEYBINDING ###
+declare -a KEYBINDINGS=(
+    "?"      exec_help    "Show help"
+    "key_f1" exec_help    "Show help"
+    "i"      exec_inspect "Inspect file"
+)
+declare KEYMAP
+declare -a KEYFUNCS
+pwb_keybinder prep KEYBINDINGS -v KEYMAP -f KEYFUNCS
+
+# Prepare data source
 declare -a PDATA
-get_full_data PDATA
+get_data PDATA
 
-declare -a FIELD_WIDTHS
-get_field_widths FIELD_WIDTHS PDATA
+# Measure data for formatting
+declare -a COLUMN_SIZES
+get_column_sizes COLUMN_SIZES PDATA
+declare PRINT_LINE_FORMAT
+printf -v PRINT_LINE_FORMAT "%%-%ds  " "${COLUMN_SIZES[@]}"
+PRINT_LINE_FORMAT="${PRINT_LINE_FORMAT:0: -2}"
+declare -i CONTENT_WIDTH
+get_content_size CONTENT_WIDTH COLUMN_SIZES
 
-declare PFORMAT
-make_format_string PFORMAT FIELD_WIDTHS
-
+# Declare Handle
 declare -a DECLARE_ARGS=(
     PDATA
     "${#PDATA[*]}"
     print_line
     -t print_top
-    -b print_bottom
     -l print_left
-    -r print_right
+    -e execute_line
 )
 declare PHANDLE
 pwb declare PHANDLE "${DECLARE_ARGS[@]}"
 
-set_margins PHANDLE FIELD_WIDTHS
+# Divide the screen using margins
+set_margins PHANDLE "$CONTENT_WIDTH"
+# Set global margin-printing argument arrays
+declare -a TOP_MARG_ARGS
+pwb_get_margin_args PHANDLE TOP_MARG_ARGS
+# Set to use or not use a left-margin scrollbar
+declare print_left_func=print_left_empty
+if content_needs_scrollbar PHANDLE; then
+    print_left_func=print_left_scrollbar
+fi
 
-declare -a LEFT_MARG_ARGS RIGHT_MARG_ARGS TOP_MARG_ARGS BOTTOM_MARG_ARGS
-get_marg_args PHANDLE TOP_MARG_ARGS RIGHT_MARG_ARGS BOTTOM_MARG_ARGS LEFT_MARG_ARGS
-
+# Use trap/signal to handle possible abrupt exits
 trap exit_trap EXIT SIGINT SIGABRT
 
+# For print_top contents
+declare BASIC_TOP_NAME="PWB ACTIONS TEMPLATE"
+declare BASIC_TOP_PROMPT=$'Press "\e[32;1m?\e[39;22m"'`
+        `$' or "\e[32;1mf1\e[39;22m" for help,'`
+        `$' or "\e[32;1mq\e[39;22m" to quit.'
+
 pwb init
-pwb start PHANDLE
-pwb restore
+pwb start PHANDLE -a KEYMAP
 
 ## BEGIN_DOC
-## The essential bare minimum script that
-## allows a user to browse a dataset, in this
-## case, the files in the current directory.
+## This script introduces good behavior features.
+## Second in a progression of template scripts.
+##
+## 1. Margins are used to divide the screen
+##    into sections.  Top margin for info,
+##    side margins for centering content, left
+##    margin for scrollbar, if needed.
+## 2. Using trap/signal to restore the terminal
+##    in case of early exit due to an error.
+## 3. Introduce pwb_sources, a library of
+##    utilities for doing common useful things.
 ## END_DOC
