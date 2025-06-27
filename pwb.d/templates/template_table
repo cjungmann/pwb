@@ -52,15 +52,15 @@ get_column_sizes()
     done
 }
 
-get_content_size()
+predict_rendered_line_size()
 {
-    local -n gfs_return="$1"
-    local -n gfs_columns="$2"
+    local -n prls_return="$1"
+    local -n prls_columns="$2"
 
-    gfs_return=$(( gfs_gutter_size * ( ${#gfs_columns[*]} - 1 ) ))
+    prls_return=$(( prls_gutter_size * ( ${#prls_columns[*]} - 1 ) ))
 
-    for size in "${gfs_columns[@]}"; do
-        (( gfs_return += size ))
+    for size in "${prls_columns[@]}"; do
+        (( prls_return += size ))
     done
 }
 
@@ -219,7 +219,7 @@ exec_inspect()
     done
 
     # Get label-correlating array of attributes
-    local DELIM="|"
+
     printf -v format "%s${DELIM}" "${tokens[@]}"
     format="${format:0: -1}"
     IFS="$DELIM" read -ra attributes <<< $( stat -c "$format" "$filename" )
@@ -253,16 +253,16 @@ set_margins()
    local -i sm_content_size="$2"
 
    pwb get_dimensions
-   local -i left right
    local -i columns="${PWB_ASSOC[screen_cols]}"
 
+   # Always leave 2 spaces for left scrollbar:
+   local -i to_distribute=$(( columns - sm_content_size - 2 ))
+   local -i left=2 right=0
+
    # Only center if more than 2 spare spaces
-   if (( columns > sm_content_size+2 )); then
-       (( columns -= 2 ))
-       (( right = (columns - sm_content_size) / 2 ))
-       (( left = columns - sm_content_size - right ))
-   else
-       (( left = 2, right = 0 ))
+   if (( columns > to_distribute )); then
+       (( right = to_distribute / 2 ))
+       (( left += to_distribute - right ))
    fi
 
    pwb set_margins "$sm_handle" 4 "$right" 1 "$left"
@@ -320,7 +320,7 @@ declare PRINT_LINE_FORMAT
 printf -v PRINT_LINE_FORMAT "%%-%ds  " "${COLUMN_SIZES[@]}"
 PRINT_LINE_FORMAT="${PRINT_LINE_FORMAT:0: -2}"
 declare -i CONTENT_WIDTH
-get_content_size CONTENT_WIDTH COLUMN_SIZES
+predict_rendered_line_size CONTENT_WIDTH COLUMN_SIZES
 
 # Declare Handle
 declare -a DECLARE_ARGS=(
@@ -338,8 +338,8 @@ pwb declare PHANDLE "${DECLARE_ARGS[@]}"
 # Divide the screen using margins
 set_margins PHANDLE "$CONTENT_WIDTH"
 # Set global margin-printing argument arrays
-declare -a TOP_MARG_ARGS BOTTOM_MARG_ARGS
-pwb_get_margin_args PHANDLE TOP_MARG_ARGS "" BOTTOM_MARG_ARGS
+declare -a TOP_MARG_ARGS BOTTOM_MARG_ARGS LEFT_MARG_ARGS
+pwb_get_margin_args PHANDLE TOP_MARG_ARGS "" BOTTOM_MARG_ARGS LEFT_MARG_ARGS
 # Set to use or not use a left-margin scrollbar
 declare print_left_func=print_left_empty
 if content_needs_scrollbar PHANDLE; then

@@ -13,17 +13,17 @@ get_data()
    shopt -u nullglob
 }
 
-get_content_size()
+predict_rendered_line_size()
 {
-    local -n gfs_return="$1"
-    local -n gfs_content="$2"
+    local -n prls_return="$1"
+    local -n prls_content="$2"
 
-    gfs_return=0
+    prls_return=0
 
-    for el in "${gfs_content[@]}"; do
+    for el in "${prls_content[@]}"; do
         local -i curlen="${#el}"
-        if (( curlen > gfs_return )); then
-            (( gfs_return = curlen ))
+        if (( curlen > prls_return )); then
+            (( prls_return = curlen ))
         fi
     done
 }
@@ -35,7 +35,6 @@ get_content_size()
 
 print_line()
 {
-    # Skip naming 'index' and 'char_count' for basic print
     local -n pl_dsource="$2"
     printf "%-*.*s" "$3" "$3" "${pl_dsource[$1]}"
 }
@@ -214,16 +213,16 @@ set_margins()
    local -i sm_content_size="$2"
 
    pwb get_dimensions
-   local -i left right
    local -i columns="${PWB_ASSOC[screen_cols]}"
 
+   # Always leave 2 spaces for left scrollbar:
+   local -i to_distribute=$(( columns - sm_content_size - 2 ))
+   local -i left=2 right=0
+
    # Only center if more than 2 spare spaces
-   if (( columns > sm_content_size+2 )); then
-       (( columns -= 2 ))
-       (( right = (columns - sm_content_size) / 2 ))
-       (( left = columns - sm_content_size - right ))
-   else
-       (( left = 2, right = 0 ))
+   if (( columns > to_distribute )); then
+       (( right = to_distribute / 2 ))
+       (( left += to_distribute - right ))
    fi
 
    pwb set_margins "$sm_handle" 4 "$right" 1 "$left"
@@ -275,7 +274,7 @@ get_data PDATA
 
 # Measure data for formatting
 declare -i CONTENT_WIDTH
-get_content_size CONTENT_WIDTH PDATA
+predict_rendered_line_size CONTENT_WIDTH PDATA
 
 # Declare Handle
 declare -a DECLARE_ARGS=(
@@ -293,8 +292,8 @@ pwb declare PHANDLE "${DECLARE_ARGS[@]}"
 # Divide the screen using margins
 set_margins PHANDLE "$CONTENT_WIDTH"
 # Set global margin-printing argument arrays
-declare -a TOP_MARG_ARGS BOTTOM_MARG_ARGS
-pwb_get_margin_args PHANDLE TOP_MARG_ARGS "" BOTTOM_MARG_ARGS
+declare -a TOP_MARG_ARGS BOTTOM_MARG_ARGS LEFT_MARG_ARGS
+pwb_get_margin_args PHANDLE TOP_MARG_ARGS "" BOTTOM_MARG_ARGS LEFT_MARG_ARGS
 # Set to use or not use a left-margin scrollbar
 declare print_left_func=print_left_empty
 if content_needs_scrollbar PHANDLE; then
