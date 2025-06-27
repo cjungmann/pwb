@@ -42,20 +42,10 @@ print_line()
 
 print_top()
 {
-    # Generate progress info string
-    local -i total index="$1"
-    local handle_name="$5"
-    pwb get_data_count "$handle_name" -v total
-    printf -v progress_line \
-           $'Item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
-           $(( index+1 )) "$total"
-
-    # Create array for printing
+    # create array for printing
     local -a pt_lines=(
         "$BASIC_TOP_NAME"
         "$BASIC_TOP_PROMPT"
-        ""
-        "$progress_line"
     )
 
     printf $'\e[48;5;235m'
@@ -63,6 +53,20 @@ print_top()
     printf $'\e[49m'
 }
 
+print_bottom()
+{
+    local -i total index="$1"
+    local handle_name="$5"
+    local -a pb_lines
+
+    pwb get_data_count "$handle_name" -v total
+    printf -v pb_lines[0] \
+           $'item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
+           $(( index+1 )) "$total"
+    printf $'\e[48;5;235m'
+    pwb_print_array pb_lines "${BOTTOM_MARG_ARGS[@]}"
+    printf $'\e[49m'
+}
 
 print_left()
 {
@@ -279,6 +283,7 @@ declare -a DECLARE_ARGS=(
     "${#PDATA[*]}"
     print_line
     -t print_top
+    -b print_bottom
     -l print_left
     -e execute_line
 )
@@ -288,8 +293,8 @@ pwb declare PHANDLE "${DECLARE_ARGS[@]}"
 # Divide the screen using margins
 set_margins PHANDLE "$CONTENT_WIDTH"
 # Set global margin-printing argument arrays
-declare -a TOP_MARG_ARGS
-pwb_get_margin_args PHANDLE TOP_MARG_ARGS
+declare -a TOP_MARG_ARGS BOTTOM_MARG_ARGS
+pwb_get_margin_args PHANDLE TOP_MARG_ARGS "" BOTTOM_MARG_ARGS
 # Set to use or not use a left-margin scrollbar
 declare print_left_func=print_left_empty
 if content_needs_scrollbar PHANDLE; then
