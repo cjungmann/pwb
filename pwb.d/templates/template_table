@@ -14,11 +14,11 @@ get_data()
    shopt -u nullglob
 
    # Get name / filetype / size from stat:
-   local format="%n${DELIM}%F${DELIM}%s"
+   local -a format=( %n %F %s )
 
    while read -r; do
        gd_return+=( "$REPLY" )
-   done < <( stat -c "$format" "${gd_files[@]}" )
+   done < <( IFS="$DELIM"; stat -c "${format[*]}" "${gd_files[@]}" )
 }
 
 get_column_sizes()
@@ -57,7 +57,7 @@ predict_rendered_line_size()
     local -n prls_return="$1"
     local -n prls_columns="$2"
 
-    prls_return=$(( prls_gutter_size * ( ${#prls_columns[*]} - 1 ) ))
+    prls_return=$(( 2 * ( ${#prls_columns[*]} - 1 ) ))
 
     for size in "${prls_columns[@]}"; do
         (( prls_return += size ))
@@ -350,7 +350,7 @@ fi
 trap exit_trap EXIT SIGINT SIGABRT
 
 # For print_top contents
-declare BASIC_TOP_NAME="PWB ACTIONS TEMPLATE"
+declare BASIC_TOP_NAME="PWB TABLE TEMPLATE"
 declare BASIC_TOP_PROMPT=$'Press "\e[32;1m?\e[39;22m"'`
         `$' or "\e[32;1mf1\e[39;22m" for help,'`
         `$' or "\e[32;1mq\e[39;22m" to quit.'
@@ -359,15 +359,13 @@ pwb init
 pwb start PHANDLE -a KEYMAP
 
 ## BEGIN_DOC
-## This script introduces good behavior features.
-## Second in a progression of template scripts.
+## This simple upgrade from template_actions
+## uses joined arrays as elements of a data
+## source to preserve associations to be used
+## in different contexts.
 ##
-## 1. Margins are used to divide the screen
-##    into sections.  Top margin for info,
-##    side margins for centering content, left
-##    margin for scrollbar, if needed.
-## 2. Using trap/signal to restore the terminal
-##    in case of early exit due to an error.
-## 3. Introduce pwb_sources, a library of
-##    utilities for doing common useful things.
+## The data collection no longer trivial.
+##
+## This script includes code for formatting
+## the table contents with justified lines.
 ## END_DOC
