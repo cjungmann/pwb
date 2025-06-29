@@ -52,6 +52,16 @@ get_column_sizes()
     done
 }
 
+get_print_line_format()
+{
+    local gplf_return_name="$1"
+    local -n gplf_return="$1"
+    local -n gplf_columns="$2"
+
+    printf -v "$gplf_return_name" "%%-%ds  " "${COLUMN_SIZES[@]}"
+    gplf_return="${gplf_return:0: -2}"
+}
+
 predict_rendered_line_size()
 {
     local -n prls_return="$1"
@@ -317,8 +327,7 @@ declare -a COLUMN_SIZES
 get_column_sizes COLUMN_SIZES PDATA
 
 declare PRINT_LINE_FORMAT
-printf -v PRINT_LINE_FORMAT "%%-%ds  " "${COLUMN_SIZES[@]}"
-PRINT_LINE_FORMAT="${PRINT_LINE_FORMAT:0: -2}"
+get_print_line_format PRINT_LINE_FORMAT COLUMN_SIZES
 declare -i CONTENT_WIDTH
 predict_rendered_line_size CONTENT_WIDTH COLUMN_SIZES
 
