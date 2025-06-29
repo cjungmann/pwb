@@ -208,7 +208,8 @@ pwb start PHANDLE
 ## 1. Margins are used to divide the screen
 ##    into sections.  Top margin for info,
 ##    side margins for centering content, left
-##    margin for scrollbar, if needed.
+##    margin for scrollbar, if needed.  The
+##    bottom margin for a progress statement.
 ## 2. Using trap/signal to restore the terminal
 ##    in case of early exit due to an error.
 ## 3. Introduce pwb_sources, a library of
