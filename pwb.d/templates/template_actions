@@ -313,15 +313,18 @@ pwb init
 pwb start PHANDLE -a KEYMAP
 
 ## BEGIN_DOC
-## This script introduces good behavior features.
-## Second in a progression of template scripts.
+## Introduction of keystroke-initiated defined
+## actions.
 ##
-## 1. Margins are used to divide the screen
-##    into sections.  Top margin for info,
-##    side margins for centering content, left
-##    margin for scrollbar, if needed.
-## 2. Using trap/signal to restore the terminal
-##    in case of early exit due to an error.
-## 3. Introduce pwb_sources, a library of
-##    utilities for doing common useful things.
+## Developer-defined actions are the primary
+## benefit offered in pwb, pager-with-benefits.
+##
+## This script uses the pwb_keybinder source
+## script to simplify the tasks of binding
+## keys to script functions and generating a
+## descriptive help page.
+##
+## Refer to pwb(1) for the declare_keymap
+## function and the exec_function callback
+## for API method of keybinding.
 ## END_DOC
