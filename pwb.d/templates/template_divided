@@ -119,6 +119,11 @@ set_margins()
    pwb get_dimensions
    local -i columns="${PWB_ASSOC[screen_cols]}"
 
+   # Adjust if content size it would overflow:
+   if (( sm_content_size > columns - 2 )); then
+       (( sm_content_size = columns - 2 ))
+   fi
+
    # Always leave 2 spaces for left scrollbar:
    local -i to_distribute=$(( columns - sm_content_size - 2 ))
    local -i left=2 right=0
