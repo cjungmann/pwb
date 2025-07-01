@@ -58,8 +58,10 @@ get_print_line_format()
     local -n gplf_return="$1"
     local -n gplf_columns="$2"
 
-    printf -v "$gplf_return_name" "%%-%ds  " "${gplf_columns[@]}"
-    gplf_return="${gplf_return:0: -2}"
+    local gplf_gutter="  "
+
+    printf -v "$gplf_return_name" "%%-%ds${gplf_gutter}" "${gplf_columns[@]}"
+    gplf_return="${gplf_return:0: -${#gplf_gutter}}"
 }
 
 predict_rendered_line_size()
