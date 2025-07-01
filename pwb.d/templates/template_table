@@ -57,10 +57,18 @@ get_print_line_format()
     local gplf_return_name="$1"
     local -n gplf_return="$1"
     local -n gplf_columns="$2"
+    local gplf_gutter="${3:-  }"
 
-    local gplf_gutter="  "
+    # Using '%-x.xs' to force an exact width, padding
+    # or truncating as necessary.
 
-    printf -v "$gplf_return_name" "%%-%ds${gplf_gutter}" "${gplf_columns[@]}"
+    # double-up sizes to be consumed two-at-a-time by %%-%d.%ds
+    local -a gplf_dup
+    for size in "${gplf_columns[@]}"; do
+        gplf_dup+=( "$size" "$size" )
+    done
+
+    printf -v "$gplf_return_name" "%%-%d.%ds${gplf_gutter}" "${gplf_dup[@]}"
     gplf_return="${gplf_return:0: -${#gplf_gutter}}"
 }
 
@@ -68,8 +76,9 @@ predict_rendered_line_size()
 {
     local -n prls_return="$1"
     local -n prls_columns="$2"
+    local prls_gutter="${3:-  }"
 
-    prls_return=$(( 2 * ( ${#prls_columns[*]} - 1 ) ))
+    prls_return=$(( ${#prls_gutter} * ( ${#prls_columns[*]} - 1 ) ))
 
     for size in "${prls_columns[@]}"; do
         (( prls_return += size ))
