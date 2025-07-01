@@ -670,7 +670,7 @@ pick_file()
     # the filename as the tag, and an empty string as the "item":
     local -a file_entries
     for file in *; do
-        if [[ "$file" =~ ^.*\.(xml|ptx)$ ]]; then
+        if [[ "$file" =~ ^.*\.(xml|ptx|qfx)$ ]]; then
             file_entries+=( "$file" "" )
         fi
     done
