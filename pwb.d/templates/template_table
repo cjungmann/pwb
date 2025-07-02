@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1090,SC2034
 
 ##########################
 ###   DATA FUNCTIONS   ###
@@ -94,6 +95,7 @@ print_line()
 {
     local -n pl_dsource="$2"
     IFS="$DELIM" read -ra pl_row <<< "${pl_dsource[$1]}"
+    # shellcheck disable=SC2059
     printf -v tline "$PRINT_LINE_FORMAT" "${pl_row[@]}"
     printf "%-*.*s" "$3" "$3" "$tline"
 }
@@ -243,7 +245,7 @@ exec_inspect()
 
     printf -v format "%s${DELIM}" "${tokens[@]}"
     format="${format:0: -1}"
-    IFS="$DELIM" read -ra attributes <<< $( stat -c "$format" "$filename" )
+    IFS="$DELIM" read -ra attributes <<< "$( stat -c "$format" "$filename" )"
 
     local -a ex_lines
 
@@ -376,6 +378,7 @@ trap exit_trap EXIT SIGINT SIGABRT
 
 # For print_top contents
 declare BASIC_TOP_NAME="PWB TABLE TEMPLATE"
+# shellcheck disable=SC2155
 declare BASIC_TOP_PROMPT=$'Press "\e[32;1m?\e[39;22m"'`
         `$' or "\e[32;1mf1\e[39;22m" for help,'`
         `$' or "\e[32;1mq\e[39;22m" to quit.'
