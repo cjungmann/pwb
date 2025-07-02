@@ -392,8 +392,9 @@ pwb start PHANDLE -a KEYMAP
 ## source to preserve associations to be used
 ## in different contexts.
 ##
-## The data collection no longer trivial.
+## Collecting data is slightly more complicated
+## due to acquiring extra data points per item.
 ##
 ## This script includes code for formatting
-## the table contents with justified lines.
+## the table contents with justified columns.
 ## END_DOC
