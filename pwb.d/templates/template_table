@@ -373,9 +373,6 @@ if content_needs_scrollbar PHANDLE; then
     print_left_func=print_left_scrollbar
 fi
 
-# Use trap/signal to handle possible abrupt exits
-trap exit_trap EXIT SIGINT SIGABRT
-
 # For print_top contents
 declare BASIC_TOP_NAME="PWB TABLE TEMPLATE"
 # shellcheck disable=SC2155
@@ -383,7 +380,10 @@ declare BASIC_TOP_PROMPT=$'Press "\e[32;1m?\e[39;22m"'`
         `$' or "\e[32;1mf1\e[39;22m" for help,'`
         `$' or "\e[32;1mq\e[39;22m" to quit.'
 
+# Use trap/signal to handle possible abrupt exits
+trap exit_trap EXIT SIGINT SIGABRT
 pwb init
+
 pwb start PHANDLE -a KEYMAP
 
 ## BEGIN_DOC
