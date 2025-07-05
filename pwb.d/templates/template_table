@@ -106,7 +106,6 @@ print_top()
     # create array for printing
     local -a pt_lines=(
         "$BASIC_TOP_NAME"
-        "$BASIC_TOP_PROMPT"
     )
 
     printf $'\e[48;5;235m'
@@ -196,7 +195,8 @@ exec_help()
 
     # Recursively call execution_manager with exit key from kebinder
     # in case it's one that should initiate another action
-    execution_manager "$eh_keyp" "${@:1}"
+    shift
+    execution_manager "$eh_keyp" "$@"
     local -i ecode="$?"
     if [[ "$eh_keyp" == 'q' ]]; then
         ecode=1
@@ -329,9 +329,8 @@ source <( pwb_sources "${SOURCE_ARGS[@]}" )
 
 ### KEYBINDING ###
 declare -a KEYBINDINGS=(
-    "?"      exec_help    "Show help"
-    "key_f1" exec_help    "Show help"
-    "i"      exec_inspect "Inspect file"
+    "h" exec_help    "Show help"
+    "i" exec_inspect "Inspect file"
 )
 declare KEYMAP
 declare -a KEYFUNCS

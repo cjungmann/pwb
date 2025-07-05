@@ -170,8 +170,6 @@ print_top()
     local -a pt_lines=(
         "$BASIC_TOP_NAME"
         ""
-        ""
-        "$BASIC_TOP_PROMPT"
     )
     printf -v pt_lines[1] $'Filter: \e[32;1m%s\e[39;22m' "$SA_FILTER"
 
@@ -262,7 +260,8 @@ exec_help()
 
     # Recursively call execution_manager with exit key from kebinder
     # in case it's one that should initiate another action
-    execution_manager "$eh_keyp" "${@:1}"
+    shift
+    execution_manager "$eh_keyp" "$@"
     local -i ecode="$?"
     if [[ "$eh_keyp" == 'q' ]]; then
         ecode=1
@@ -487,10 +486,9 @@ source <( pwb_sources "${SOURCE_ARGS[@]}" )
 
 ### KEYBINDING ###
 declare -a KEYBINDINGS=(
-    "?"      exec_help    "Show help"
-    "key_f1" exec_help    "Show help"
-    "f"      exec_filter  "Filter contents"
-    "i"      exec_inspect "Inspect file"
+    "h" exec_help    "Show help"
+    "f" exec_filter  "Filter contents"
+    "i" exec_inspect "Inspect file"
 )
 declare KEYMAP
 declare -a KEYFUNCS
@@ -498,10 +496,6 @@ pwb_keybinder prep KEYBINDINGS -v KEYMAP -f KEYFUNCS
 
 # For print_top contents
 declare BASIC_TOP_NAME="PWB FILTER TEMPLATE"
-# shellcheck disable=SC2155
-declare BASIC_TOP_PROMPT=$'Press "\e[32;1m?\e[39;22m"'`
-        `$' or "\e[32;1mf1\e[39;22m" for help,'`
-        `$' or "\e[32;1mq\e[39;22m" to quit.'
 
 # Use trap/signal to handle possible abrupt exits
 trap exit_trap EXIT SIGINT SIGABRT
