@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090,SC2034
+# derived from "template_divided"
 
 ##########################
 ###   DATA FUNCTIONS   ###
@@ -111,18 +112,18 @@ print_left_scrollbar()
 ###   EXEC SECTION   ###
 ########################
 
-execute_line()
+execution_manager()
 {
     local keyp="$1"
-    local el_psource="$4"
+    local em_psource="$4"
 
     local -i ecode=0
-    local el_func
-    if pwb_keybinder func KEYFUNCS -v el_func -k "$keyp"; then
-        "$el_func" "$@"
+    local em_func
+    if pwb_keybinder func KEYFUNCS -v em_func -k "$keyp"; then
+        "$em_func" "$@"
         ecode="$?"
         printf $'\e[H\e[2J'
-        pwb print_all "$el_psource"
+        pwb print_all "$em_psource"
     fi
 
     return "$ecode"
@@ -133,9 +134,9 @@ exec_help()
     local eh_keyp
     pwb_keybinder help KEYBINDINGS -v eh_keyp
 
-    # Recursively call execute_line with exit key from kebinder
+    # Recursively call execution_manager with exit key from kebinder
     # in case it's one that should initiate another action
-    execute_line "$eh_keyp" "${@:1}"
+    execution_manager "$eh_keyp" "${@:1}"
     local -i ecode="$?"
     if [[ "$eh_keyp" == 'q' ]]; then
         ecode=1
@@ -290,7 +291,7 @@ declare -a DECLARE_ARGS=(
     -t print_top
     -b print_bottom
     -l print_left
-    -e execute_line
+    -e execution_manager
 )
 declare PHANDLE
 pwb declare PHANDLE "${DECLARE_ARGS[@]}"

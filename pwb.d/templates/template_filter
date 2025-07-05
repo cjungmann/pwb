@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC1090,SC2034
-# derived from "template_actions"
+# derived from "template_table"
 
 ##########################
 ###   DATA FUNCTIONS   ###
@@ -8,19 +8,32 @@
 
 get_data()
 {
-   local -n gd_return="$1"
-   gd_return=()
+    local -n gd_return="$1"
+    gd_return=()
 
-   shopt -s nullglob
-   local -a gd_files=( * )
-   shopt -u nullglob
+    local -a re_parts=(
+        ^declare[[:space:]]+  # discard ubiquitous 'declare'
+        \([^[:space:]]+\)     # capture 1, attributes
+        [[:space:]]
+        \([^=]+\)             # capture 2, variable name
+        \(                    # capture 3 conditional
+            "="
+            \(.*\)            # capture 4, value
+        \)?
+    )
+    IFS="" printf -v regex "%s" "${re_parts[@]}"
 
-   # Get name / filetype / size from stat:
-   local -a format=( %n %F %s )
-
-   while read -r; do
-       gd_return+=( "$REPLY" )
-   done < <( IFS="$DELIM"; stat -c "${format[*]}" "${gd_files[@]}" )
+    while read -r; do
+        if [[ "$REPLY" =~ $regex ]]; then
+            local name="${BASH_REMATCH[2]}"
+            local attr="${BASH_REMATCH[1]}"
+            local value="${BASH_REMATCH[4]}"
+            if [[ "$value" =~ ^\"(.*)\"$ ]]; then
+                value="${BASH_REMATCH[1]}"
+            fi
+            gd_return+=( "$name$DELIM$attr$DELIM$value" )
+        fi
+    done < <( declare -p )
 }
 
 get_column_sizes()
@@ -87,6 +100,56 @@ predict_rendered_line_size()
     done
 }
 
+#####################
+###   FILTERING   ###
+#####################
+
+# Test functions to match filter options:
+test_array()
+{
+    IFS="$DELIM" read -ra ta_row <<< "$1"
+    [[ "${ta_row[1]}" =~ a ]]
+}
+
+test_export()
+{
+    IFS="$DELIM" read -ra ta_row <<< "$1"
+    [[ "${ta_row[1]}" =~ x ]]
+}
+
+test_hash()
+{
+    IFS="$DELIM" read -ra ta_row <<< "$1"
+    [[ "${ta_row[1]}" =~ A ]]
+}
+
+test_integer()
+{
+    IFS="$DELIM" read -ra ta_row <<< "$1"
+    [[ "${ta_row[1]}" =~ i ]]
+}
+
+test_read-only()
+{
+    IFS="$DELIM" read -ra ta_row <<< "$1"
+    [[ "${ta_row[1]}" =~ r ]]
+}
+
+get_filtered_data()
+{
+    local -n gfd_target="$1"
+    local -n gfd_data="$2"
+    local gfd_filter_test="test_$3"
+
+    for el in "${gfd_data[@]}"; do
+        if "$gfd_filter_test" "$el"; then
+            gfd_target+=( "$el" )
+        fi
+    done
+}
+
+
+
 
 ##################################
 ###   PWB CALLBACK FUNCTIONS   ###
@@ -106,8 +169,11 @@ print_top()
     # create array for printing
     local -a pt_lines=(
         "$BASIC_TOP_NAME"
+        ""
+        ""
         "$BASIC_TOP_PROMPT"
     )
+    printf -v pt_lines[1] $'Filter: \e[32;1m%s\e[39;22m' "$SA_FILTER"
 
     printf $'\e[48;5;235m'
     pwb_print_array pt_lines "${TOP_MARG_ARGS[@]}"
@@ -209,60 +275,75 @@ exec_inspect()
 {
     local -n ex_dsource="$3"
     IFS="$DELIM" read -ra ex_row <<< "${ex_dsource[$2]}"
-    local filename="${ex_row[0]}"
-
-    # Paired specs to align for presentation
-    local -a STAT_FIELDS=(
-        "name"        "%n"  # must be first element
-        "file type"   "%F"  # must be second element
-        "size"        "%s"
-        "owner"       "%U"
-        "permissions" "%A"
-        "last change" "%y"
-    )
-
-    # measure labels for formatting
-    local -i len_label=0
-    local -i cur_len
-
-    # compile tokens list to build format string
-    local -a tokens=()
-
-    # Track index to detect field
-    local -i index=0
-    for el in "${STAT_FIELDS[@]}"; do
-        if (( index % 2 == 0 )); then
-            cur_len="${#el}"
-            if (( cur_len > len_label )); then
-                len_label="$cur_len"
-            fi
-        else
-            tokens+=( "$el" )
-        fi
-        (( ++index ))
-    done
-
-    # Get label-correlating array of attributes
-
-    printf -v format "%s${DELIM}" "${tokens[@]}"
-    format="${format:0: -1}"
-    IFS="$DELIM" read -ra attributes <<< "$( stat -c "$format" "$filename" )"
+    local varname="${ex_row[0]}"
 
     local -a ex_lines
+    printf -v ex_lines[${#ex_lines[*]}] \
+           $'\e[48;5;238m    Variable \e[32;1m%s    \e[49;39;22m' "$varname"
 
-    index=0
-    for el in "${STAT_FIELDS[@]}"; do
-        if (( index % 2 == 0 )); then
-            printf -v ex_lines[${#ex_lines[*]}] \
-                   $'%*s: \e[32;1m%s\e[39;22m'  \
-                   "$len_label" \
-                   "$el"        \
-                   "${attributes[$(( index / 2 ))]}"
-        fi
-        (( ++index ))
-    done
+    if pwb audit_var -ac "$varname"; then
+        read -ra ei_row <<< "$PWB_VALUE"
+        printf -v ex_lines[${#ex_lines[*]}] \
+               $'      type: \e[32;1m%s\e[39;22m' "${ei_row[0]}"
+        printf -v ex_lines[${#ex_lines[*]}] \
+               $'   context: \e[32;1m%s\e[39;22m' "${ei_row[1]}"
+        printf -v ex_lines[${#ex_lines[*]}] \
+               $'attributes: \e[32;1m%s\e[39;22m' "${ei_row[2]}"
+    else
+        ex_lines+=( "$PWB_ERROR" )
+    fi
 
     pwb_conduct_dialog ex_lines
+}
+
+exec_filter()
+{
+    local ef_handle="$4"
+
+    local -a options=(
+        none
+        array
+        export
+        hash
+        integer
+        read-only
+    )
+
+    # Convert selected filter to start_selections argument string:
+    local -a flags_arr
+    for opt in "${options[@]}"; do
+        if [[ "$opt" == "$SA_FILTER" ]]; then
+            flags_arr+=( 1 )
+        else
+            flags_arr+=( 0 )
+        fi
+    done
+    local flags
+    printf -v flags "%d" "${flags_arr[@]}"
+
+    local -a hlines=(
+        "Select one of the following filters."
+        ""
+    )
+
+    local keyp
+
+    local -a selargs=(
+        options
+        "$ef_handle"
+        -h hlines
+        -jc
+        -kkeyp
+        -tnumbers
+        -sflags
+    )
+
+    if pwb_selector "${selargs[@]}"; then
+        SA_FILTER="${options[$SELECTED]}"
+        return 1
+    fi
+
+    return 0
 }
 
 
@@ -307,6 +388,82 @@ content_needs_scrollbar()
 # Trap signal to handle abrupt exits
 exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb restore; }
 
+is_app_exit_key()
+{
+    local keyp="$1"
+    [[ "$keyp" =~ ('q'|$'\e') ]]
+}
+
+start_instance()
+{
+    local si_keyp_name="$1"
+    local si_data_name="$2"
+
+    local -n SI_DATA="$si_data_name"
+
+    # Measure data for formatting
+    local -a COLUMN_SIZES
+    get_column_sizes COLUMN_SIZES "$si_data_name"
+
+    local PRINT_LINE_FORMAT
+    get_print_line_format PRINT_LINE_FORMAT COLUMN_SIZES
+    local -i CONTENT_WIDTH
+    predict_rendered_line_size CONTENT_WIDTH COLUMN_SIZES
+
+    # Declare Handle
+    declare -a DECLARE_ARGS=(
+        SI_DATA
+        "${#SI_DATA[*]}"
+        print_line
+        -t print_top
+        -b print_bottom
+        -l print_left
+        -e execution_manager
+    )
+    declare SI_HANDLE
+    pwb declare SI_HANDLE "${DECLARE_ARGS[@]}"
+
+    # Divide the screen using margins
+    set_margins SI_HANDLE "$CONTENT_WIDTH"
+    # Set global margin-printing argument arrays
+    declare -a TOP_MARG_ARGS BOTTOM_MARG_ARGS LEFT_MARG_ARGS
+    pwb_get_margin_args SI_HANDLE TOP_MARG_ARGS "" BOTTOM_MARG_ARGS LEFT_MARG_ARGS
+    # Set to use or not use a left-margin scrollbar
+    declare print_left_func=print_left_empty
+    if content_needs_scrollbar SI_HANDLE; then
+        print_left_func=print_left_scrollbar
+    fi
+
+    pwb start SI_HANDLE -a KEYMAP -k "$si_keyp_name"
+}
+
+start_application()
+{
+    # Prepare data source
+    local -a SA_DATA
+    get_data SA_DATA
+
+    local -a SA_FILTERED_DATA
+
+    local SA_FILTER="none"
+    local cur_data_name="bogus"
+
+    local sa_keyp
+
+    while ! is_app_exit_key "$sa_keyp"; do
+        if [[ "$SA_FILTER" == "none" ]]; then
+            cur_data_name="SA_DATA"
+        else
+            SA_FILTERED_DATA=()
+            get_filtered_data SA_FILTERED_DATA SA_DATA "$SA_FILTER"
+            cur_data_name=SA_FILTERED_DATA
+        fi
+
+        printf $'\e[2J'
+        start_instance sa_keyp "$cur_data_name"
+    done
+}
+
 
 ###########################
 ###   BEGIN EXECUTION   ###
@@ -324,6 +481,7 @@ declare -a SOURCE_ARGS=(
     pwb_get_scroll_bar
     pwb_conduct_dialog
     pwb_keybinder
+    pwb_selector
 )
 source <( pwb_sources "${SOURCE_ARGS[@]}" )
 
@@ -331,51 +489,15 @@ source <( pwb_sources "${SOURCE_ARGS[@]}" )
 declare -a KEYBINDINGS=(
     "?"      exec_help    "Show help"
     "key_f1" exec_help    "Show help"
+    "f"      exec_filter  "Filter contents"
     "i"      exec_inspect "Inspect file"
 )
 declare KEYMAP
 declare -a KEYFUNCS
 pwb_keybinder prep KEYBINDINGS -v KEYMAP -f KEYFUNCS
 
-# Prepare data source
-declare -a PDATA
-get_data PDATA
-
-# Measure data for formatting
-declare -a COLUMN_SIZES
-get_column_sizes COLUMN_SIZES PDATA
-
-declare PRINT_LINE_FORMAT
-get_print_line_format PRINT_LINE_FORMAT COLUMN_SIZES
-declare -i CONTENT_WIDTH
-predict_rendered_line_size CONTENT_WIDTH COLUMN_SIZES
-
-# Declare Handle
-declare -a DECLARE_ARGS=(
-    PDATA
-    "${#PDATA[*]}"
-    print_line
-    -t print_top
-    -b print_bottom
-    -l print_left
-    -e execution_manager
-)
-declare PHANDLE
-pwb declare PHANDLE "${DECLARE_ARGS[@]}"
-
-# Divide the screen using margins
-set_margins PHANDLE "$CONTENT_WIDTH"
-# Set global margin-printing argument arrays
-declare -a TOP_MARG_ARGS BOTTOM_MARG_ARGS LEFT_MARG_ARGS
-pwb_get_margin_args PHANDLE TOP_MARG_ARGS "" BOTTOM_MARG_ARGS LEFT_MARG_ARGS
-# Set to use or not use a left-margin scrollbar
-declare print_left_func=print_left_empty
-if content_needs_scrollbar PHANDLE; then
-    print_left_func=print_left_scrollbar
-fi
-
 # For print_top contents
-declare BASIC_TOP_NAME="PWB TABLE TEMPLATE"
+declare BASIC_TOP_NAME="PWB FILTER TEMPLATE"
 # shellcheck disable=SC2155
 declare BASIC_TOP_PROMPT=$'Press "\e[32;1m?\e[39;22m"'`
         `$' or "\e[32;1mf1\e[39;22m" for help,'`
@@ -385,17 +507,15 @@ declare BASIC_TOP_PROMPT=$'Press "\e[32;1m?\e[39;22m"'`
 trap exit_trap EXIT SIGINT SIGABRT
 pwb init
 
-pwb start PHANDLE -a KEYMAP
+start_application
 
 ## BEGIN_DOC
-## This simple upgrade from template_actions
-## uses joined arrays as elements of a data
-## source to preserve associations to be used
-## in different contexts.
+## Showing the collection of Bash shell
+## variables for a diverse dataset suitable
+## for filtering.
 ##
-## Collecting data is slightly more complicated
-## due to acquiring extra data points per item.
-##
-## This script includes code for formatting
-## the table contents with justified columns.
+## The code is optimized for use as a template,
+## grouping and segregating code into functions
+## with the goal of making it easier to modify
+## derived scripts.
 ## END_DOC
