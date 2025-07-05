@@ -46,7 +46,6 @@ print_top()
     # create array for printing
     local -a pt_lines=(
         "$BASIC_TOP_NAME"
-        "$BASIC_TOP_PROMPT"
     )
 
     printf $'\e[48;5;235m'
@@ -200,7 +199,6 @@ fi
 
 # For print_top contents
 declare BASIC_TOP_NAME="PWB DIVIDED TEMPLATE"
-declare BASIC_TOP_PROMPT=$'Press "\e[32;1mq\e[39;22m" to quit'
 
 # Use trap/signal to handle possible abrupt exits
 trap exit_trap EXIT SIGINT SIGABRT
