@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+show_usage()
+{
+    cat <<EOF
+Use 'mydiff' one of two ways:
+
+1. The easiest is to call with a single derived template
+   name.  'mydiff' will display the base and derived templates
+   side-by-side to illustrate the differences.
+
+   Example:
+      ./mydiff template_actions
+
+2. Call with two file names to display a side-by-side diff
+   of the two files.
+
+   Example:
+      ./mydiff template_divided template_actions
+EOF
+}
+
+get_derived_file_name()
+{
+    local -n gdfn_return="$1"
+    local source="$2"
+    local derline
+    if derline=$( grep -m1 "derived from \"" "$source" ); then
+        if [[ "$derline" =~ derived\ from\ \"([^\"]+)\"$ ]]; then
+            gdfn_return="${BASH_REMATCH[1]}"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+declare -a diffargs=(
+    -y
+    --left-column
+    --color=always
+)
+
+declare -a fileargs
+
+if [ "$#" -eq 0 ]; then
+    show_usage
+    exit 0
+elif [ "$#" -eq 1 ]; then
+    if get_derived_file_name left_file "$1"; then
+        fileargs=( "$left_file" "$1" )
+    fi
+else
+    fileargs=( "$1" "$2" )
+fi
+
+if [ "${#fileargs[*]}" -gt 1 ]; then
+    printf -v tline $'About to show differences between '`
+           `$'\e[32;1m%s\e[39;22m and \e[32;1m%s\e[39;22m.\n' \
+               "${fileargs[@]}"
+    read -n1 -p "$tline"
+    diffargs+=( "${fileargs[@]}" )
+    diff "${diffargs[@]}" | less -R
+else
+    echo "Failed to find files to differentiate."
+fi
