@@ -59,9 +59,6 @@ pwb_print_message()
             pwb measure_string -v curlen "$ppm_line"
             if [[ "$jletter" == "c" ]]; then
                 (( indent = (maxlen - curlen) / 2 ))
-                if (( indent % 2 )); then
-                    (( --indent ))
-                fi
             else
                 (( indent = (maxlen - curlen) ))
             fi
