@@ -149,9 +149,7 @@ else
     if [ "$#" -eq 0 ]; then
         pwb_scripts_browser SLIST "$PWB_SAMPLES_PATH"
     elif name_is_eligible "$1"; then
-        if ! run_sample_with_args "$@"; then
-            read -n1 -p "Ooops.  Something went wrong."
-        fi
+        run_sample_with_args "$@"
     else
         announce_missing_script "$2"
     fi
