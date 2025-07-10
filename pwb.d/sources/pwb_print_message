@@ -13,12 +13,12 @@
 source <( pwb_sources pwb_read_args )
 
 
-declare PSM_CHAR_HORZ=$'\u2500'
-declare PSM_CHAR_VERT=$'\u2502'
-declare PSM_CHAR_UL=$'\u250C'
-declare PSM_CHAR_UR=$'\u2510'
-declare PSM_CHAR_LL=$'\u2514'
-declare PSM_CHAR_LR=$'\u2518'
+declare PSM_CHAR_HORZ=$'\u2550'
+declare PSM_CHAR_VERT=$'\u2551'
+declare PSM_CHAR_UL=$'\u2554'
+declare PSM_CHAR_UR=$'\u2557'
+declare PSM_CHAR_LL=$'\u255A'
+declare PSM_CHAR_LR=$'\u255D'
 
 pwb_print_message()
 {
