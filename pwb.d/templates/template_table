@@ -329,8 +329,8 @@ source <( pwb_sources "${SOURCE_ARGS[@]}" )
 
 ### KEYBINDING ###
 declare -a KEYBINDINGS=(
-    "h" exec_help    "Show help"
-    "i" exec_inspect "Inspect file"
+    "h"         exec_help           "Show help"
+    "i"         exec_inspect        "Inspect file"
 )
 declare KEYMAP
 declare -a KEYFUNCS
