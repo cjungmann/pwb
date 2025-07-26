@@ -104,6 +104,19 @@ predict_rendered_line_size()
 ###   FILTERING   ###
 #####################
 
+get_filtered_data()
+{
+    local -n gfd_target="$1"
+    local -n gfd_data="$2"
+    local gfd_filter_test="test_$3"
+
+    for el in "${gfd_data[@]}"; do
+        if "$gfd_filter_test" "$el"; then
+            gfd_target+=( "$el" )
+        fi
+    done
+}
+
 # Test functions to match filter options:
 test_array()
 {
@@ -134,22 +147,6 @@ test_read-only()
     IFS="$DELIM" read -ra ta_row <<< "$1"
     [[ "${ta_row[1]}" =~ r ]]
 }
-
-get_filtered_data()
-{
-    local -n gfd_target="$1"
-    local -n gfd_data="$2"
-    local gfd_filter_test="test_$3"
-
-    for el in "${gfd_data[@]}"; do
-        if "$gfd_filter_test" "$el"; then
-            gfd_target+=( "$el" )
-        fi
-    done
-}
-
-
-
 
 ##################################
 ###   PWB CALLBACK FUNCTIONS   ###
