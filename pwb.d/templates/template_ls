@@ -256,6 +256,7 @@ exec_dir_enter()
 
 exec_dir_return()
 {
+    # terminate pwb instance to exit current stack frame:
     return 1
 }
 
@@ -274,9 +275,12 @@ exec_show_manpage()
         man -l "${ex_row[0]}"
         printf $'\e[2J'
 
-        pwb set_margins "${ex_margins[@]}"
+        pwb set_margins "$ex_phandle" "${ex_margins[@]}"
+        pwb_exit_on_error
     fi
-    }
+
+    return 0
+}
 
 exec_inspect()
 {
@@ -392,6 +396,7 @@ exit_trap()
     cd "$ENTERING_DIR";
 }
 
+# Initiate a directory view in a new stack frame:
 view_directory()
 {
     local VD_PATH="$1"
@@ -485,16 +490,17 @@ declare -a SOURCE_ARGS=(
     pwb_get_scroll_bar
     pwb_conduct_dialog
     pwb_keybinder
+    pwb_get_margins
 )
 source <( pwb_sources "${SOURCE_ARGS[@]}" )
 
 ### KEYBINDING ###
 declare -a KEYBINDINGS=(
-    "h"         exec_help         "Show help"
-    "i"         exec_inspect      "Inspect file"
-    "key_left"  exec_dir_return   "Return from directory"
-    "key_right" exec_dir_enter    "Enter directory"
-    "m"         exec_show_manpage "Show Manpage"
+    "h"         exec_help           "Show help"
+    "i"         exec_inspect        "Inspect file"
+    "key_left"  exec_dir_return     "Return from directory"
+    "key_right" exec_dir_enter      "Enter directory"
+    "m"         exec_show_manpage   "Show Manpage"
 )
 declare KEYMAP
 declare -a KEYFUNCS
