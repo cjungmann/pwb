@@ -104,7 +104,7 @@ int get_var_parameters(char *buffer,
       else if (integer_p(sv))
          attr_str = "integer";
       else if (assoc_p(sv))
-         attr_str = "associative";
+         attr_str = "hash";
       else if (function_p(sv))
          attr_str = "function";
 

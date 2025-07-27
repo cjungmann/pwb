@@ -41,11 +41,12 @@ read -r -a audit_arr <<< \(dq\(Do{PWB_VALUE}\(dq
 .PP
 The returned string will always start with the variable type.
 The reported variable types are:
-.BR generic ", " integer ", " array ", and " "associative array" .
-An associative array will be identified as simply
-.RB \(lq associative \(rq.
+.BR array ", " function ", "  generic ", " hash ", and " integer .
+The type
+.B hash
+refers to an associative array, which is implemented as a hash table.
 If the variable cannot be found, the exit code with be 1 and the
-returned string will be 
+returned string will be
 .RB \(lq missing \(rq.
 .PP
 Using options
