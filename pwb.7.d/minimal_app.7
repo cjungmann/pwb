@@ -1,0 +1,47 @@
+.if !(\[main_page] = 1) .TH bogus 7
+.SS MINIMAL
+.PP
+This is an efficient and terse implementation of a basic
+.B pwb
+application that reads the contents of the current working
+directory.
+.PP
+.EX
+#!/usr/bin/env bash
+
+get_data()
+{
+   local -n gd_data=\(dq\(Do1\(dq
+   gd_data=( * )
+}
+
+print_line()
+{
+   local -n pl_data=\(dq\(Do2\(dq
+   printf \(dq%-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Do{pl_data[\(Do1]}\(dq
+}
+
+start_app()
+{
+   local -a DATA
+   get_data DATA
+   local PHANDLE
+   pwb declare PHANDLE DATA \(dq\(Do{#DATA[*]}\(dq print_line
+   pwb start PHANDLE
+}
+
+exit_trap() { pwb restore; }
+
+###################
+# BEGIN EXECUTION #
+###################
+
+enable pwb
+declare -a PWB_SOURCES=( pwb_sources )
+source <( pwb_sources \(dq\(Dq{PWB_SOURCES[@]}\(dq )
+
+trap exit_trap EXIT SIGINT SIGABRT
+pwb init
+
+start_app
+.EE

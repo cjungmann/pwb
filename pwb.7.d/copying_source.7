@@ -1,0 +1,40 @@
+.if !(\n[main_page] = 1) .TH isolated_section 7
+.SH COPYING SOURCE CODE
+.PP
+The best way to copy source code from this document:
+.TS
+tab(|);
+l lx.
+1|T{
+Open a script file with Emacs.
+T}
+2|T{
+Request the
+.BR pwb .7
+man page:
+.EX
+M-x man,  man.7
+.EE
+T}
+3|T{
+Switch to the man page pane:
+.EE
+C-x o
+.EE
+T}
+4|T{
+Select the desired source sample and
+.IR copy-region-as-kill :
+.EX
+M-w
+.EE
+T}
+5|T{
+Switch back to the source pane and
+.B yank
+the copied region into it:
+.EX
+C-y
+.EE
+T}
+.TE
