@@ -22,9 +22,14 @@ get_scripts_inventory()
     gs_list=()
     for file in ${SOURCES_PATH}/*; do
         if ! [ -d "$file" ]; then
+            # remove page
             file="${file##*/}"
-            if ! [[ "$file" =~ .*\.7 ]]; then
-                gs_list+=( "$file" )
+            # accept only prefix 'pwb_' without any extension:
+            if [[ "$file" =~ pwb_[^.]+$ ]]; then
+                # discard unincludable script
+                if [[ "$file" != "pwb_browser" ]]; then
+                    gs_list+=( "$file" )
+                fi
             fi
         fi
     done
@@ -46,6 +51,9 @@ Display this usage message:
 
 Display a browsable list of all available sources:
    $sname
+
+Display man page for a source:
+   $sname man ${APP_PREFIX}_exit_on_error
 
 Sourcing files
    Include the following line in your Bash script:
@@ -128,6 +136,17 @@ elif [[ "$1" == "help" ]]; then
         else
             printf $'Unrecognized scriptlet "\e[32;1m%s\e[m"\n' "$func"
         fi
+    fi
+elif [[ "$1" == "man" ]]; then
+    declare path_manfile="${SOURCES_PATH}/${2}.7"
+    if ! [ -f "$path_manfile" ]; then
+        path_manfile="${SOURCES_PATH}/pwb_${2}.7"
+    fi
+    if [ -f "$path_manfile" ]; then
+        man -l "$path_manfile"
+    else
+        printf "Can't find man page for '%s'.\n" "$2"
+        read -sn1
     fi
 elif [[ "$1" == "all" ]]; then
     declare -a SOURCES_INVENTORY
