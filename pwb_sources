@@ -16,6 +16,20 @@ declare PWB_PATH="${PREFIX}/share/pwb/sources"
 
 declare SOURCES_PATH="$PWB_PATH"
 
+get_scripts_inventory()
+{
+    local -n gs_list="$1"
+    gs_list=()
+    for file in ${SOURCES_PATH}/*; do
+        if ! [ -d "$file" ]; then
+            file="${file##*/}"
+            if ! [[ "$file" =~ .*\.7 ]]; then
+                gs_list+=( "$file" )
+            fi
+        fi
+    done
+}
+
 script_exists()   { [ -f "${SOURCE_PATH}/$1" ]; }
 function_loaded() { [[ $( type -f "$1" 2>/dev/null ) == "function" ]]; }
 
@@ -33,15 +47,19 @@ Display this usage message:
 Display a browsable list of all available sources:
    $sname
 
-The final format returns a code fragment that will load and
-of the listed sources that haven't already been loaded:
+Sourcing files
+   Include the following line in your Bash script:
+      source <( $sname ${APP_PREFIX}_exit_on_error )
 
-Use this form in a script like this, omitting the '...'
-or replacing it with a continuing list of sources:
-   $sname ${APP_PREFIX}_exit_on_error ...
+   Any number of sources can be added after $sname.
+   Sources will not be loaded twice, and dependencies
+   will be automatically loaded.
 
-An example of using the final form in a script:
-   source <( $sname ${APP_PREFIX}_exit_on_error )
+Sourcing all available files
+   source <( $sname all )
+
+   This will load all of the available sources in the
+   script
 EOF
     }
 
@@ -111,6 +129,10 @@ elif [[ "$1" == "help" ]]; then
             printf $'Unrecognized scriptlet "\e[32;1m%s\e[m"\n' "$func"
         fi
     fi
+elif [[ "$1" == "all" ]]; then
+    declare -a SOURCES_INVENTORY
+    get_scripts_inventory SOURCES_INVENTORY
+    return_sources_script "${SOURCES_INVENTORY[@]}"
 else
     return_sources_script "$@"
 fi
