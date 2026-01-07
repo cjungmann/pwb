@@ -1,47 +1,77 @@
 .if !(\[main_page] = 1) .TH bogus 7
 .SS MINIMAL
 .PP
-This is an efficient and terse implementation of a basic
-.B pwb
-application that reads the contents of the current working
-directory.
+Within this document, this code section is the basis for all
+add-ons.
+It is a no-frills directory scanner that works as-is, but is
+designed to easily accommodate the add-ons included later in this
+document.
+.PP
+Add-on code should be copied after the
+.B "PUT ADD-ON CODE HERE"
+line in the source code.
+.PP
+See the
+.B COPYING SOURCE CODE
+section near the bottom of this document for hints on how to
+copy large blocks of code out of a man page.
+
 .PP
 .EX
-#!/usr/bin/env bash
+\fB#!/usr/bin/env bash\fP
+
+enable pwb
+source <( pwb_sources all )
+# Explicit preferred form:
+# declare \-a PWB_SOURCES=( pwb_exit_on_error )
+# source <( pwb_sources \(dq\(Do{PWB_SOURCES[@]}\(dq )
+
+\fB# Add-ons will add to these arrays according to their needs:\fP
+declare \-a DECLARE_ARGS=()
+declare \-a START_ARGS=()
+
+\fB# PUT ADD-ON CODE HERE:\fP
 
 get_data()
 {
-   local -n gd_data=\(dq\(Do1\(dq
+   local \-n gd_data=\(dq\(Do1\(dq
    gd_data=( * )
 }
 
 print_line()
 {
-   local -n pl_data=\(dq\(Do2\(dq
-   printf \(dq%-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Do{pl_data[\(Do1]}\(dq
+   local \-n pl_data=\(dq\(Do2\(dq
+   printf \(dq%\-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Do{pl_data[\(Do1]}\(dq
 }
 
 start_app()
 {
-   local -a DATA
+   local \-a DATA
    get_data DATA
+
    local PHANDLE
-   pwb declare PHANDLE DATA \(dq\(Do{#DATA[*]}\(dq print_line
-   pwb start PHANDLE
+   local \-a declare_args=(
+      DATA
+      \(dq\(Do{#DATA[*]}\(dq
+      print_line
+      \(dq\(Do{DECLARE_ARGS[@]}\(dq
+   )
+   pwb declare PHANDLE \(dq\(Do{declare_args[@]}\(dq
+   pwb start PHANDLE \(dq\(Do{START_ARGS[@]}\(dq
 }
 
 exit_trap() { pwb restore; }
 
+\fB
 ###################
 # BEGIN EXECUTION #
 ###################
-
-enable pwb
-declare -a PWB_SOURCES=( pwb_sources )
-source <( pwb_sources \(dq\(Dq{PWB_SOURCES[@]}\(dq )
+\fP
 
 trap exit_trap EXIT SIGINT SIGABRT
 pwb init
 
 start_app
+
+\&\fB# END OF MINIMAL APP\fP
 .EE

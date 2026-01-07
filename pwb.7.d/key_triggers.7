@@ -1,0 +1,75 @@
+.if !(\[main_page] = 1) .TH bogus 7
+.SS ADD-ON KEY TRIGGERS
+.PP
+Customizing keystroke triggers is a primary benefit of
+.BR pwb .
+In this example, we are activating three buttons, the
+.B Escape
+key to exit, the
+.B Enter
+key to display the file name, and the
+.B v
+key to view the file using
+.BR less .
+
+.PP
+.EX
+\&\fB# BEGIN 'KEY TRIGGERS' FRAGMENT\fP
+show_help()
+{
+   printf $\(aq\(rse[2J\(rse[H\(aq
+   local -a lines=(
+      \(dqPress \(aqh\(aq to get help.\(dq
+      \(dqPress \(aqENTER\(aq to show the file name.\(dq
+      \(dqPress \(aqv\(aq to view the file contents (using \(aqless\(aq).\(dq
+   )
+   local IFS=\(Do\(aq\(rsn\(aq
+   echo \(dq\(Do{lines[*]}\(dq
+   read \-sn1
+}
+
+show_file_name()
+{
+   printf $\(aq\(rse[2J\(rse[H\(aq
+   printf \(dqThe file name is \(aq%s\(aq.\(rsn\(dq \(dq\(Do1\(dq
+   read \-sn1
+}
+
+view_file()
+{
+   printf \(Do\(aq\(rse[2J\(rse[H\(aq
+   less \(dq\(Do1\(dq
+}
+
+exec_keys()
+{
+   local keyp=\(dq\(Do1\(dq
+   local \-n ek_data=\(dq\(Do3\(dq
+   local val=\(dq\(Do{ek_data[\(Do2]}\(dq
+   local pwb_handle=\(dq\(Do4\(dq
+
+   case \(dq\(Dokeyp\(dq in
+      \(dqh\(dq)      show_help ;;
+      \(Do\(aq\(rscm\(aq)   show_file_name \(dq\(Doval\(dq ;;
+      \(dqv\(dq)      view_file      \(dq\(Doval\(dq ;;
+   esac
+
+   pwb print_all \(dq\(Dopwb_handle\(dq
+}
+
+declare \-a ACTIVE_KEYS=(
+   \(Do\(aq\(rsc[\(aq       0     # ESC key
+   \(dqh\(dq          7     # help
+   \(Do\(aq\(rscm\(aq       7     # control\-m (ENTER key)
+   \(dqv\(dq          7     # view
+)
+declare KEYMAP
+pwb declare_keymap KEYMAP ACTIVE_KEYS
+
+DECLARE_ARGS+=( \-e exec_keys )
+START_ARGS+=( \-a KEYMAP )
+
+\&\fB# END OF 'KEY TRIGGERS' FRAGMENT\fP
+
+.EE
+
