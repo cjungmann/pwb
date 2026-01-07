@@ -32,8 +32,8 @@ pwb_scripts_browser()
         pwb set_margins PSB_PHANDLE 0
         pwb_exit_on_error
 
-        local TERMCAP_ti=""
-        local TERMCAP_te=""
+        local LESS_TERMCAP_ti=""
+        local LESS_TERMCAP_te=""
         printf $'\e[2J'
 
         local path="${1}.7"
@@ -44,24 +44,59 @@ pwb_scripts_browser()
         fi
 
         printf $'\e[2J'
-        TERMCAP_te="$OLD_te"
-        TERMCAP_ti="$OLD_ti"
+        LESS_TERMCAP_te="$OLD_te"
+        LESS_TERMCAP_ti="$OLD_ti"
 
         pwb set_margins PSB_PHANDLE "${saved_margins[@]}"
     }
 
+    show_file_in_pager()
+    {
+        local path="$1"
+
+        app_installed() { type "$1" >/dev/null 2>&1; }
+
+        local -a arglist
+        if app_installed "bat"; then
+            arglist=( bat )
+        elif app_installed "batcat"; then
+            arglist=( batcat )
+        fi
+
+        if [ "${#arglist[*]}" -eq 0 ]; then
+            arglist=( less )
+        else
+            arglist+=(
+                --paging "always"
+                --style "plain,header-filename,grid"
+            )
+        fi
+
+        "${arglist[@]}" "$path"
+    }
+
     default_show_source()
     {
-        local TERMCAP_ti=""
-        local TERMCAP_te=""
-        printf $'\e[2J'
-
         local path="$1"
-        less "$path"
 
+        # Clear screen
         printf $'\e[2J'
-        TERMCAP_te="$OLD_te"
-        TERMCAP_ti="$OLD_ti"
+
+        # Save margins
+        local handle="$2"
+        local -a cur_margins
+        pwb_get_margins cur_margins "$handle"
+
+        # Remove margins:
+        pwb set_margins "$handle" 0
+
+        show_file_in_pager "$path"
+
+        # clear again
+        printf $'\e[2J'
+        # restore margins
+        pwb set_margins "${cur_margins[@]}"
+        pwb print_all "$handle"
     }
 
     default_run_script()
@@ -366,8 +401,8 @@ pwb_scripts_browser()
 
     # Save original "cup mode" values to prevent
     # nesting of initializations:
-    local OLD_ti="$TERMCAP_ti"
-    local OLD_te="$TERMCAP_te"
+    local OLD_ti="$LESS_TERMCAP_ti"
+    local OLD_te="$LESS_TERMCAP_te"
 
     local -a PSB_DEFAULT_KEYS_ARRAY=(
         $'\cm' default_run_script    "Run the script"
