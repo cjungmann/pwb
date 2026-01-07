@@ -72,6 +72,7 @@ pwb_keybinder()
 
     pk_prepare_keymap()
     {
+        local -i ecode=1
         local ppk_infocmp=$( infocmp -L )
 
         if pk_confirm_output "$1"; then
@@ -79,11 +80,11 @@ pwb_keybinder()
             local -n pkpk_keybindings="$2"
 
             # Use array if name provided, or bogus anonymous one if not:
-            local -a empty
+            local -a empty=()
             local -n pkpk_keyfuncs="${3:-empty}"
             pkpk_keyfuncs=()
 
-            local -a bindarr
+            local -a bindarr=()
             local -n bkey=bindarr[0]
             local -n bfunc=bindarr[1]
             local -n bdesc=bindarr[2]
@@ -117,11 +118,11 @@ pwb_keybinder()
 
             if [ "${#pkpk_keymap[*]}" -gt 0 ]; then
                 pwb declare_keymap "$pkpk_new_keymap_name" pkpk_keymap
-                pwb_exit_on_error
+                ecode="$?"
             fi
         fi
 
-        return 1
+        return "$ecode"
     }
 
     pk_get_help_array()
