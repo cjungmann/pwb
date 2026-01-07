@@ -148,7 +148,7 @@ pwb_read_args()
         for arg in "${pra_command_args[@]}"; do
             # If previous pass identified an option that sets a value,
             # set the value and clear the pra_var_name variable.
-            if [ -n "$pra_var_name" ]; then
+            if [[ -v "pra_var_name" ]] && [ -n "$pra_var_name" ]; then
                 local -n pra_tvar="$pra_var_name"
                 pra_tvar="$arg"
                 pra_var_name=""
@@ -185,7 +185,7 @@ pwb_read_args()
     local leftovers_array="${4:-pra_empty_array}"
 
     # Show usage and return if environment var is set:
-    if [ -n "$READ_ARGS_SHOW_USAGE" ]; then
+    if [[ -v "READ_ARGS_SHOW_USAGE" ]]; then
         # Prevent recursion when pwb_get_synopsis call pwb_read_args
         unset READ_ARGS_SHOW_USAGE
 
