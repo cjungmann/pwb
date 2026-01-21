@@ -55,6 +55,11 @@ PWB_VERB verbs [] = {
      "pwb get_keystroke",
      pwb_action_get_keystroke },
 
+   { "audit_var",
+     "Return information about variable",
+     "pwb audit_var",
+     pwb_action_audit_var },
+
    { "get_dimensions",
      "get screen, margin, and window dimensions",
      "pwb git_dimensions handle_name [associative_array_name]",
@@ -110,10 +115,25 @@ PWB_VERB verbs [] = {
      "pwb get_data_count handle_name [-v varname]",
      pwb_action_get_data_count },
 
-   { "update_data_count",
+   { "set_data_count",
      "Set new value for number of rows in data source",
      "pwb update_data_count handle_name new_count",
-     pwb_action_update_data_count },
+     pwb_action_set_data_count },
+
+   { "get_top_row",
+     "Get row index of top line in content area",
+     "pwb get_top_row handle_name [-v varname]",
+     pwb_action_get_top_row },
+
+   { "get_focus_row",
+     "Get row index of focus line in content area",
+     "pwb get_focus_row handle_name [-v varname]",
+     pwb_action_get_focus_row },
+
+   { "set_focus_row",
+     "Set row index of focus and/or top line in content area",
+     "pwb get_focus_row handle_name [-f focus_row] [-t top_row]",
+     pwb_action_set_focus_row },
 
    // Move the focus row by relative amount (+/- N) or to
    // to an absolute data-row index

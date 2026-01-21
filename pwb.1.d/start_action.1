@@ -1,0 +1,72 @@
+.so fork.tmac
+.SS START ACTION
+.PP
+The
+.B start
+action sets
+.B pwb
+in motion.
+From this point,
+.B pwb
+will call script functions to construct the screen and
+respond to user input.
+.PP
+.pt_start
+.PP
+.B OPTIONS
+.RS 4
+.TP
+.I handle
+is the name of a declared
+.B pwb
+handle.
+.TP
+.BI "-t " top_row
+Integer value specifying the table index of the starting top row
+in the content area.  The default value is 0.
+.TP
+.BI "-f " focus_row
+Integer value specifying the table index of the starting focus row
+in the content area.  The default value is 0.
+.TP
+.BI "-b " base_keymap
+Use the option to specify an alternative to the builtin keymap.
+The default keymap handles navigation between rows, pages, and the
+document using arrow, page, home, and end keys, and terminates upon
+detecting the 'q' key.
+.TP
+.BI "-a " auxiliary_keymap
+Is an optional second keymap that can act on defined keystrokes
+to execute the users' wishes.
+.TP
+.BI "-k " ending_keypress
+If provided,
+.B pwb
+will set this named variable with the keystroke that terminated
+the interaction.
+.RE
+.B NOTES
+.RS 4
+.TP
+.B Margins
+If setting margins, it is advised to set the margins before calling
+the
+.B start
+action.
+If the margins are changed after calling
+.BR "pwb start" ,
+follow
+.BR "pwb set_margins " with " pwb print_all"
+to align the content to the updated settings.
+See
+.B SET_MARGINS ACTION
+below.
+.TP
+.B Empty Data Source
+Calling
+.B pwb start
+with an empty data source will result in a blank screen.  The best
+practice, if an empty data source is possible, is to recognize the
+empty data and display a explanation instead of calling
+.BR "pwb start" .
+.RE

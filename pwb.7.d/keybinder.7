@@ -1,0 +1,92 @@
+.if !(\[main_page] = 1) .TH bogus 7
+.SS ADD-ON KEYBINDER
+.PP
+Using the
+.B pwb_sources pwb_keybinder
+source fragment to manage basic keymapping makes the task a
+bit easier and more functional.
+.PP
+The
+.B pwb_keybinder
+command plays different roles depending on the value of the
+first argument passed to it.
+.PP
+Along with the code below,
+refer to the
+.B keybinder
+man page by typing:
+.PP
+.RS 4
+.EX
+pwb_sources man pwb_keybinder
+.EE
+.RE
+.PP
+.EX
+\&\fB# BEGIN KEYBINDER FRAGMENT\fP
+exec_help()
+{
+   \fBpwb_keybinder help\fP KEYBINDINGS
+}
+
+exec_show_name()
+{
+   local -n ex_data=\(dq\(Do3\(dq
+   local fname=\(dq\(Do{ex_data[\(Do2]}\(dq
+   printf \(Do\(aq\(rse[H\(rse[2J%s\(aq \(dq\(Dofname\(dq
+   read -sn1
+}
+
+exec_view()
+{
+   local -n ex_data=\(dq\(Do3\(dq
+   local fname=\(dq\(Do{ex_data[\(Do2]}\(dq
+   less \(dq\(Dofname\(dq
+}
+
+exec_edit()
+{
+   local -n ex_data=\(dq\(Do3\(dq
+   local fname=\(dq\(Do{ex_data[\(Do2]}\(dq
+   emacs \(dq\(Dofname\(dq
+}
+
+delegate_execution()
+{
+   local keyp=\(dq\(Do1\(dq
+   local pwb_handle=\(dq\(Do4\(dq
+
+   local \-i ecode
+   local el_func
+   if \fBpwb_keybinder func\fP KEYFUNCS \-v el_func -k \(dq\(Dokeyp\(dq; then
+      \(dq\(Doel_func\(dq \(dq\(Do@\(dq
+      ecode=\(dq\(Do?\(dq
+      printf \(Do\(aq\(rse[H\(rse[2J\(aq
+      pwb print_all \(dq\(Dopwb_handle\(dq
+   fi
+
+   return \(dq\(Doecode\(dq
+}
+
+declare \-a KEYBINDINGS=(
+   \(dqh\(dq     exec_help        \(dqShow help display\(dq
+   \(Do\(aq\(rscm\(aq  exec_show_name   \(dqDisplay name of selected file\(dq
+   \(dqv\(dq     exec_view        \(dqView file contents using less\(dq
+   \(dqe\(dq     exec_edit        \(dqOpen file in Emacs editor\(dq
+)
+
+declare KEYMAP
+declare -a KEYFUNCS
+\fBpwb_keybinder prep\fP KEYBINDINGS -v KEYMAP -f KEYFUNCS
+
+if ! declare -p START_ARGS &>/dev/null; then
+   echo \(dqIn the absence of START_ARGS code mechanism, adding\(dq
+   echo \(dqarguments to declare and start must be addressed.\(dq
+   exit
+fi
+
+DECLARE_ARGS+=( -e delegate_execution )
+START_ARGS+=( -a KEYMAP )
+
+\&\fB# END OF KEYBINDER FRAGMENT\fP
+.EE

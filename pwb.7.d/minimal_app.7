@@ -1,0 +1,77 @@
+.if !(\[main_page] = 1) .TH bogus 7
+.SS MINIMAL
+.PP
+Within this document, this code section is the basis for all
+add-ons.
+It is a no-frills directory scanner that works as-is, but is
+designed to easily accommodate the add-ons included later in this
+document.
+.PP
+Add-on code should be copied after the
+.B "PUT ADD-ON CODE HERE"
+line in the source code.
+.PP
+See the
+.B COPYING SOURCE CODE
+section near the bottom of this document for hints on how to
+copy large blocks of code out of a man page.
+
+.PP
+.EX
+\fB#!/usr/bin/env bash\fP
+
+enable pwb
+source <( pwb_sources all )
+# Explicit preferred form:
+# declare \-a PWB_SOURCES=( pwb_exit_on_error )
+# source <( pwb_sources \(dq\(Do{PWB_SOURCES[@]}\(dq )
+
+\fB# Add-ons will add to these arrays according to their needs:\fP
+declare \-a DECLARE_ARGS=()
+declare \-a START_ARGS=()
+
+\fB# PUT ADD-ON CODE HERE:\fP
+
+get_data()
+{
+   local \-n gd_data=\(dq\(Do1\(dq
+   gd_data=( * )
+}
+
+print_line()
+{
+   local \-n pl_data=\(dq\(Do2\(dq
+   printf \(dq%\-*.*s\(dq \(dq\(Do3\(dq \(dq\(Do3\(dq \(dq\(Do{pl_data[\(Do1]}\(dq
+}
+
+start_app()
+{
+   local \-a DATA
+   get_data DATA
+
+   local PHANDLE
+   local \-a declare_args=(
+      DATA
+      \(dq\(Do{#DATA[*]}\(dq
+      print_line
+      \(dq\(Do{DECLARE_ARGS[@]}\(dq
+   )
+   pwb declare PHANDLE \(dq\(Do{declare_args[@]}\(dq
+   pwb start PHANDLE \(dq\(Do{START_ARGS[@]}\(dq
+}
+
+exit_trap() { pwb restore; }
+
+\fB
+###################
+# BEGIN EXECUTION #
+###################
+\fP
+
+trap exit_trap EXIT
+pwb init
+
+start_app
+
+\&\fB# END OF MINIMAL APP\fP
+.EE

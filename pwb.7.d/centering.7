@@ -1,0 +1,47 @@
+.if !(\[main_page] = 1) .TH bogus 7
+.SS CENTERING CONTENT
+.PP
+.EX
+\&\fB# ADD-ON CENTERING CONTENT\fP
+
+get_content_width()
+{
+   local \-n gcw_width=\(dq\(Do1\(dq
+   local \-n gcw_data=\(dq\(Do2\(dq
+
+   gcw_width=0
+   local \-i cur_width
+   for file in \(dq\(Do{gcw_data[@]}\(dq; do
+      cur_width=\(dq\(Do{#file}\(dq
+      if (( cur_width > gcw_width )); then
+         (( gcw_width = cur_width ))
+      fi
+   done
+}
+
+\fB# Use this function between pwb declare and pwb start:\fP
+\fB# set_handle_margins PHANDLE DATA\fP
+set_handle_margins()
+{
+   local shm_handle=\(dq\(Do1\(dq
+   local \-n shm_data=\(dq\(Do2\(dq
+
+   local \-i content_width
+   get_content_width content_width \(dq\(Do2\(dq
+
+   local \-A dims
+   pwb get_dimensions \-A dims
+
+   local \-i non_content=$(( dims[screen_cols] \- content_width ))
+   local \-i m_top=5 m_bottom=2 m_left m_right
+   (( m_right = non_content / 2 ))
+   (( m_left = non_content \- m_right ))
+
+   local \-a margins=( \(dq\(Dom_top\(dq \(dq\(Dom_right\(dq \(dq\(Dom_bottom\(dq \(dq\(Dom_left\(dq )
+   pwb set_margins \(dq\(Doshm_handle\(dq \(dq\(Do{margins[@]}\(dq
+}
+
+
+
+
+\&\fB# END OF CENTERING CONTENT\fP

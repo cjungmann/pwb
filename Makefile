@@ -9,7 +9,7 @@ PREFIX ?= /usr/local
 SRC = .
 
 # These will be set by ./configure
-LIB_FLAGS =
+LIB_FLAGS = -largeater -lpager -lcontools
 LIB_MODULES =
 
 ifndef LIB_FLAGS
@@ -63,12 +63,17 @@ install:
 	rm -f $(PREFIX)/bin/$(SOURCER)
 	sed -e s^#PREFIX#^$(PREFIX)^ -e s^#BUILTIN#^$(BUILTIN)^ $(SOURCER) > $(PREFIX)/bin/$(SOURCER)
 	chmod a+x $(PREFIX)/bin/$(SOURCER)
+	sed -e s^#PREFIX#^$(PREFIX)^ pwb_samples > $(PREFIX)/bin/pwb_samples
+	chmod a+x $(PREFIX)/bin/pwb_samples
 # If 'ate' installed, Change link so pwb_sources is used for ate_sources
 	@if [ -f $(PREFIX)/bin/ate_sources ]; then \
-	   echo "Replacing ate_sources link with line to pwb_sources."; \
+	   echo "Replacing ate_sources link with link to pwb_sources."; \
 	   cp -fs $(PREFIX)/bin/$(SOURCER) $(PREFIX)/bin/ate_sources; \
 	fi
-	install -D $(BUILTIN)_sources.d/$(BUILTIN)_* -t$(PREFIX)/lib/$(BUILTIN)_sources
+	mkdir -p $(PREFIX)/share/$(BUILTIN)
+	cp -r $(BUILTIN).d/* $(PREFIX)/share/$(BUILTIN)
+	# Overwrite pwb_browser with directory-corrected version:
+	sed -e s^#PREFIX#^$(PREFIX)^ $(BUILTIN).d/sources/pwb_browser> $(PREFIX)/share/$(BUILTIN)/sources/pwb_browser
 
 uninstall:
 	rm -f $(PREFIX)/lib/bash/$(TARGET)
@@ -76,8 +81,9 @@ uninstall:
 	rm -f $(PREFIX)/share/man/man1/$(TARGET_ROOT).1.gz
 	rm -f $(PREFIX)/share/man/man7/$(TARGET_ROOT).7.gz
 # uninstall SOURCER stuff:
-	rm -rf $(PREFIX)/lib/$(BUILTIN)_sources
+	rm -rf $(PREFIX)/share/$(BUILTIN)
 	rm -f $(PREFIX)/bin/$(SOURCER)
+	rm -f $(PREFIX)/bin/pwb_samples
 # If ate still installed, update link to point to original ate_sources_impl
 	@if [ -f $(PREFIX)/bin/ate_sources_impl ]; then \
 	   echo "Restoring orignal link to ate_sources."; \

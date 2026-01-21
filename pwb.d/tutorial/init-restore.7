@@ -1,0 +1,42 @@
+.TH init-restore 7
+.SH NAME
+.PP
+.BR init-restore :
+Discussion of Terminal Courtesy
+.SH DESCRIPTION
+.PP
+.B pwb
+uses cursor addressing terminal commands that often leave the
+terminal in an unsettled state when the application terminates.
+.PP
+Terminfo includes strings that, when sent to the terminal, can
+preserve terminal settings while an application is running so they
+can be restored when the application is finished.
+.PP
+.BR pwb " actions " init " and " restore
+use this terminfo strings, and most
+.B pwb
+applications should use
+.BR init " and " restore
+for the benefit of their users.
+.SS TRAPPING SIGNALS
+.PP
+Since a disorderly exit from
+.B pwb
+can leave the terminal unusable, the examples in the tutorial
+attempt to increase the probability that the exit will pass through
+a call to
+.BR "pwb restore" .
+.IP
+.EX
+exit_trap() { pwb restore; }
+trap exit_trap EXIT SIGINT SIGABRT
+
+pwb init
+pwb start PHANDLE
+.EE
+.PP
+The code establishes a signal trap that restores the terminal before
+saving the terminal state and starting
+.BR pwb .
+

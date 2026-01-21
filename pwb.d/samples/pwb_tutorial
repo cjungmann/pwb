@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+declare SPATH=$( readlink -f "$0" ) # path to script
+declare RPATH="${SPATH%/*}/"        # path to directory
+
+enable pwb
+
+source <( pwb_sources pwb_scripts_browser )
+
+declare -a slist=(
+    introduction
+    init-restore
+    margins
+    print_functions
+    keymap
+    sources
+    special_actions
+)
+
+exit_trap() { printf $'\e[2J'; pwb restore; }
+trap exit_trap EXIT SIGINT SIGABRT
+
+pwb init
+
+pwb_scripts_browser slist "$RPATH../tutorial"

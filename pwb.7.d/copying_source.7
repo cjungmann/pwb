@@ -1,0 +1,58 @@
+.if !(\n[main_page] = 1) .TH isolated_section 7
+.SH COPYING SOURCE CODE
+.PP
+While there is more than one way to extract source code from
+this document, one very effective way to copy the code is to
+access this man page from Emacs.
+.PP
+The following is a list of instructions for copying a portion
+of a man page to the Emacs kill-buffer:
+.TS
+tab(|);
+l lx.
+1|T{
+Open a script file with Emacs.
+T}
+2|T{
+Request the
+.BR pwb .7
+man page:
+.EX
+M-x man,  man.7
+.EE
+T}
+3|T{
+Switch to the man page pane:
+.EE
+C-x o
+.EE
+T}
+4|T{
+Select the desired source sample and
+.IR copy-region-as-kill :
+.EX
+M-w
+.EE
+T}
+5|T{
+Switch back to the source pane and
+.B yank
+the copied region into it:
+.EX
+C-y
+.EE
+T}
+.TE
+.TP
+.B Other Copy Methods
+.PP
+Other ways to copy the text of a man page may be available.
+Check the available commands of your man pager program.
+.PP
+If using
+.BR less ,
+typing
+.RB \(dq s \(dq
+triggers a \(dqlog file:\(dq prompt for a file name into which the
+contents will be copied.  Having done that, the source code can be
+cut out of that log file.

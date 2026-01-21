@@ -1,0 +1,8 @@
+[pwb_txscan]
+Groceries      38;5;46
+Housing        38;5;57
+Utilities      38;5;27
+Entertainment  38;5;167
+Recurring      38;5;63
+This and that  38;5;226
+This-n-that    38;5;190

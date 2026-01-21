@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+
+read_node()
+{
+   local -i rn_indent="${1:-0}"
+   local -i dispose_len
+
+   if [[ "$OG_WORK" =~ ^(\<([^>]+)>)[[:space:]]* ]]; then
+       local tag_match="${BASH_REMATCH[2]}"
+       local tag_name="${tag_match,,}"
+       dispose_len="${#BASH_REMATCH[0]}"
+       OG_WORK="${OG_WORK:$dispose_len}"
+       printf $'%*s<%s>' "$rn_indent" "" "$tag_name"
+
+       while [ "${#OG_WORK}" -gt 0 ]; do
+           # '<' after <..> introduces a child element
+           if [ "${OG_WORK:0:1}" == '<' ]; then
+               printf $'\n'
+               if [[ "$OG_WORK" =~ ^\</"$tag_match"\>[[:space:]]* ]]; then
+                   printf $'%*s</%s>' "$rn_indent" "" "$tag_name"
+                   dispose_len="${#BASH_REMATCH[0]}"
+                   OG_WORK="${OG_WORK:$dispose_len}"
+                   break
+               else
+                   read_node $(( rn_indent+1 ))
+               fi
+           else
+               # echo $'\e[31;1mOG_WORK:0:1 is NOT <\e[39;22m'
+               if [[ "$OG_WORK" =~ ^([^<]+)[[:space:]]*(\</"$tag_match"\>)? ]]; then
+                   dispose_len="${#BASH_REMATCH[0]}"
+                   OG_WORK="${OG_WORK:$dispose_len}"
+                   local value=""
+                   if [[ "${BASH_REMATCH[1]}" =~ ^(.*)([^[:space:]])[[:space:]]*$ ]]; then
+                       value="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+                   else
+                       value=$'\e[31;1mREGEX FAILED\e[39;22m'
+                   fi
+                   printf $'%s</%s>' "$value" "$tag_name"
+               fi
+               break
+           fi
+       done
+       # printf $'\e[37;1mreturning from read_node (%d)\e[39;22m\n' "$rn_indent"
+   fi
+}
+
+process_file()
+{
+    local -a parts
+    while IFS= read -r || [ -n "$REPLY" ]; do
+        parts+=( "$REPLY" )
+    done < "$1"
+
+    # Prepare global variable containing pertinent OFX data:
+    IFS=$'\n'
+    declare OG_WORK="${parts[*]}"
+
+    # Trim off header if found
+    if [[ "$OG_WORK" =~ ^([^\<]+)\< ]]; then
+        local -i mlen="${#BASH_REMATCH[1]}"
+        OG_WORK="${OG_WORK:$mlen}"
+    fi
+
+    if [[ "$OG_WORK" =~ ^\<OFX\> ]]; then
+        echo "<?xml version=\"1.0\" ?>"
+        read_node
+        echo
+    else
+        printf $'\e[31;1mUnrecognized file contents.\e[39;22m\n' >&2
+        exit 1
+    fi
+}
+
+declare xmldoc ptxdoc
+# read -n1 -p "Begin first conversion step, ofx to xml ($PWD)"
+if xmldoc=$( process_file "${1:-/dev/stdin}" ); then
+    declare SPATH=$( readlink -f "$0" )
+    declare xsl_path="${SPATH%/*}/ofx2ptx.xsl"
+    # read -n1 -p "Second step, convert fixed odx to ptx"
+    xsltproc "$xsl_path" - <<< "$xmldoc"
+    exit 0
+else
+    echo "Failed to convert" >&2
+    exit 1
+fi

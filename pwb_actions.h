@@ -12,6 +12,7 @@ PWB_RESULT pwb_action_version(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_limit_print(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_measure_string(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_get_keystroke(PWBH *handle, ACLONE *args);
+PWB_RESULT pwb_action_audit_var(PWBH *handle, ACLONE *args);
 
 PWB_RESULT pwb_action_init(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_restore(PWBH *handle, ACLONE *args);
@@ -25,7 +26,10 @@ PWB_RESULT pwb_action_plot_screen(PWBH *handle, ACLONE *args);
 
 PWB_RESULT pwb_action_get_data_source(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_get_data_count(PWBH *handle, ACLONE *args);
-PWB_RESULT pwb_action_update_data_count(PWBH *handle, ACLONE *args);
+PWB_RESULT pwb_action_set_data_count(PWBH *handle, ACLONE *args);
+PWB_RESULT pwb_action_get_top_row(PWBH *handle, ACLONE *args);
+PWB_RESULT pwb_action_get_focus_row(PWBH *handle, ACLONE *args);
+PWB_RESULT pwb_action_set_focus_row(PWBH *handle, ACLONE *args);
 
 PWB_RESULT pwb_action_erase_head(PWBH *handle, ACLONE *args);
 PWB_RESULT pwb_action_erase_foot(PWBH *handle, ACLONE *args);

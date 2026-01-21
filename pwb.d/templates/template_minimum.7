@@ -1,0 +1,30 @@
+.TH template_minimum 7
+.SH NAME
+.PP
+.B template_minimum
+\- A minimum implementation of a
+.B pwb
+application.
+.SH SUMMARY
+.PP
+The first stop on the roadmap is a script with the minimum necessary
+code to implement a complete working
+.B pwb
+application.
+.SH DESCRIPTION
+.PP
+Basic minimum steps:
+.TS
+tab(|);
+l l.
+1.|Prepare a data source.
+2.|Prepare a line print callback function.
+3.|Declare a \fBpwb\fR handle.
+4.|Prepare the terminal
+5.|Start the \fBpwb\fR interaction.
+6.|Restore the terminal
+.TE
+.PP
+In this most minimal version, the user must know that pressing
+.RB \(lq q \(rq
+exits the script.

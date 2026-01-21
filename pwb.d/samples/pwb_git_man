@@ -1,0 +1,1057 @@
+#!/usr/bin/env bash
+
+##########################
+###   DATA FUNCTIONS   ###
+##########################
+
+# Reverses names if name change detected,
+# otherwise leave it alone.
+massage_git_status_name()
+{
+    local -n mgsm_name="$1"
+
+    if [[ "$mgsm_name" =~ ^(.*)\ -\>\ (.*)$ ]]; then
+        mgsm_name="${BASH_REMATCH[2]} <- ${BASH_REMATCH[1]}"
+    fi
+}
+
+record_from_status_line()
+{
+    local -n rfsl_record="$1"
+    local rfsl_line="$2"
+
+    if [[ "$rfsl_line" =~ (..)[[:space:]](.*)$ ]]; then
+        local rfsl_status="${BASH_REMATCH[1]}"
+        local rfsl_name="${BASH_REMATCH[2]}"
+        massage_git_status_name rfsl_name
+
+        rfsl_record="${rfsl_name}${DELIM}$rfsl_status"
+        return 0
+    fi
+
+    return 1
+}
+
+get_context_data()
+{
+    local -n gcd_return="$1"
+
+    local -a gcd_unordered
+
+    # Start with list of TRACKED files, with a contrived empty status
+    while read -r; do
+        gcd_unordered+=( "$REPLY${DELIM}  " )
+    done < <( git ls-files )
+
+    local gcd_record
+
+    # Add STATUS files, including untracked and ignored files
+    while read -r; do
+        if record_from_status_line gcd_record "$REPLY"; then
+            gcd_unordered+=( "$gcd_record" )
+        fi
+    done < <( git status -s -u --ignored --porcelain )
+
+    # The full list will include duplicates that are files that
+    # are in the TRACKED list and the STATUS list.  Sorting will
+    # group duplicates, with the STATUS instance sorting after
+    # the assumed clean TRACKED instance.  Discard the first
+    # if there are two instances.
+
+    local lastrow
+    local curname lastname
+
+    while read -r; do
+        curname="${REPLY%%${DELIM}*}"
+        if [ -z "$lastname" ]; then
+            lastname="$curname"
+            lastrow="$REPLY"
+            continue
+        fi
+
+        if [[ "$curname" == "$lastname" ]]; then
+            gcd_return+=( "$REPLY" )
+            lastname=""
+        else
+            gcd_return+=( "$lastrow" )
+            lastrow="$REPLY"
+            lastname="$curname"
+        fi
+    done < <( IFS=$'\n'; sort -i -t"$DELIM" -k1,1 <<< "${gcd_unordered[*]}" )
+    # For possible future reference: to get ONLY the first field with 'sort',
+    # you must specify both the beginning and end of the field, so -k1,1
+    # will sort the string starting at field 1 (1-based indexes), and ENDS
+    # with the end of field 1.  Without the end specification (-k1,x), the
+    # field value is deemed to extend to the end of the line.
+
+    if [ -n "$lastname" ]; then
+        gcd_return+=( "$lastrow" )
+    fi
+}
+
+# filter test functions for apply_filter function
+af_clean()     { [[ "$1" == "  " ]]; }
+af_modified()  { [[ "$1" != "  " ]]; }
+af_staged()    { [[ "${1:0:1}" =~ [MTADRCU] ]]; }
+af_ignored()   { [[ "$1" == "!!" ]]; }
+af_untracked() { [[ "$1" == "??" ]]; }
+
+apply_filters()
+{
+    local -n af_output="$1"
+    local -n af_source="$2"
+    local filter_type="$3"
+
+    local ffunc="af_${filter_type}"
+    local -a af_row
+    local IFS="$DELIM"
+
+    for gfile in "${af_source[@]}"; do
+        read -r -a af_row <<< "$gfile"
+
+        local ftype="${af_row[1]}"
+        local -i type_index=-1
+
+        if af_untracked "$ftype"; then
+            type_index=4
+        elif af_ignored "$ftype"; then
+            type_index=3
+        elif af_staged "$ftype"; then
+            type_index=2
+        elif af_modified "$ftype"; then
+            type_index=1
+        elif af_clean "$ftype"; then
+            type_index=0
+        else
+            read -n1 -p "Unexpected type value of '$ftype'"
+        fi
+
+        if [ "$type_index" -ge 0 ] && [ "${PGM_FILTERS[$type_index]}" -ne 0 ]; then
+            af_output+=( "$gfile" )
+        fi
+    done
+}
+
+get_filters_used()
+{
+    local -n gfu_return="$1"
+    local -a parts
+    local -i flag index=0
+    for flag in "${PGM_FILTERS[@]}"; do
+        if [ "$flag" -ne 0 ]; then
+            printf -v parts[${#parts[*]}] \
+                   $' \e[32;1m%s\e[39;22m' \
+                   "${PGM_FILTER_LABELS[$index]}"
+        fi
+        (( ++index ))
+    done
+    if [ "${#parts[*]}" -eq 0 ]; then
+        gfu_return="No file types to show"
+    else
+        local -a arrline=(
+            "Active filters:${parts[0]}"
+            "${parts[@]:1}"
+        )
+        local IFS=", "
+        gfu_return="${arrline[*]}"
+    fi
+}
+
+run_filter_dialog()
+{
+    local rfd_phandle="$1"
+    local -a exec_row
+
+    local -a head_lines=(
+        "Enable sets of files to include in your view."
+        $'Press \e[32;1m+\e[39;22m to select all. '
+        $'Press \e[32;1m-\e[39;22m to select none.'
+        ""
+    )
+
+    local -a exit_keys=( $'\e' 'q' 'Q' '+' '-' '=' )
+    local pgm_exit_key
+    local -a ef_opt_filters=( "${PGM_FILTERS[@]}" )
+    local -a ef_new_filters
+
+    local -a sel_args=(
+        -m
+        -h head_lines
+        -j c
+        -s ef_opt_filters
+        -t flags
+        -v ef_new_filters
+        -x exit_keys
+        -k pgm_exit_key
+    )
+
+    while :; do
+        if pwb_selector PGM_FILTER_LABELS "${sel_args[@]}"; then
+            PGM_FILTERS=( "${ef_new_filters[@]}" )
+            # trigger termination of pwb instance
+            return 1
+        else
+            case "$pgm_exit_key" in
+                +|=) ef_opt_filters=( 1 1 1 1 1 ) ;;
+                -  ) ef_opt_filters=( 0 0 0 0 0 ) ;;
+                q  ) exit ;;
+                *  ) break ;;
+            esac
+        fi
+    done
+
+    if [ -n "$rfd_phandle" ]; then
+        printf $'\e[H\e[2J'
+        pwb print_all "$rfd_phandle"
+    fi
+
+    return 0
+}
+
+###########################
+###   BOUND FUNCTIONS   ###
+###########################
+
+exec_help()
+{
+    local eh_keyp
+    pwb_keybinder help KBINDINGS -v eh_keyp
+
+    shift
+    exec_line "$eh_keyp" "$@"
+    local -i ecode="$?"
+    printf $'\eH\e[2J'
+    pwb print_all "$3"
+
+    if [[ "$eh_keyp" == 'q' ]] || [ "$ecode" -ne 0 ]; then
+        return 1
+    fi
+}
+
+exec_template()
+{
+    local -n exec_data="$3"
+    local exec_phandle="$4"
+    local -a exec_row
+    IFS="$DELIM" read -r -a exec_row <<< "${exec_data[$2]}"
+    local name="${exec_row[0]}"
+    local status="${exec_row[1]}"
+
+    # Restore screen
+    printf $'\eH\e[2J'
+    pwb print_all "$4"
+}
+
+exec_add()
+{
+    local -n exec_data="$3"
+    local exec_phandle="$4"
+    local -a exec_row
+    IFS="$DELIM" read -r -a exec_row <<< "${exec_data[$2]}"
+    local name="${exec_row[0]}"
+    local status="${exec_row[1]}"
+
+    if [[ "${status:0:1}" == "${status:1:1}" ]]; then
+        if git add "$name"; then
+            refresh_line_from_git_status "$name" "$2" "$3" "$4"
+        fi
+    fi
+}
+
+exec_diff()
+{
+    local -n exec_data="$3"
+    local exec_phandle="$4"
+    local -a exec_row
+    IFS="$DELIM" read -r -a exec_row <<< "${exec_data[$2]}"
+    local name="${exec_row[0]}"
+    local status="${exec_row[1]}"
+
+    if [[ "${status:1:1}" != " " ]]; then
+        local -a cur_margins
+        pwb_get_margins cur_margins "$exec_phandle"
+        pwb set_margins "$exec_phandle" 0
+
+        "${VIEW_CALL_ARGS[@]}" < <( git diff "$name" )
+
+        pwb set_margins "$exec_phandle" "${cur_margins[@]}"
+    fi
+
+    # Restore screen
+    printf $'\eH\e[2J'
+    pwb print_all "$exec_phandle"
+
+    return 0
+}
+
+exec_stage()
+{
+    local -n exec_data="$3"
+    local exec_phandle="$4"
+    local -a exec_row
+    IFS="$DELIM" read -r -a exec_row <<< "${exec_data[$2]}"
+    local name="${exec_row[0]}"
+    local status="${exec_row[1]}"
+    if [[ "$status" =~ ^.(M|T|A|D|R|C)$ ]]; then
+        if git add "$name"; then
+            refresh_line_from_git_status "$name" "$2" "$3" "$4"
+        else
+            read -n1 -p "Failed to stage the file"
+        fi
+    fi
+
+    return 0
+}
+
+exec_unstage()
+{
+    local -n exec_data="$3"
+    local exec_phandle="$4"
+    local -a exec_row
+    IFS="$DELIM" read -r -a exec_row <<< "${exec_data[$2]}"
+    local name="${exec_row[0]}"
+    local status="${exec_row[1]}"
+
+    read -n1 -p About\ to\ unstage\ for\ "'$status'"
+
+    if [[ "$status" =~ R. ]]; then
+        local name_new="${name%% <-*}"
+        local name_old="${name##* <- }"
+        if git mv "$name_new" "$name_old"; then
+            # unstaging rename creates two actions, so
+            # we gotta update the full list
+            SP_REFRESH_FLAG=1
+            return 1
+        fi
+    elif [[ "$status" =~ ^[MTADC].$ ]]; then
+        if git restore --staged "$name"; then
+            refresh_line_from_git_status "$name" "$2" "$3" "$4"
+        else
+            read -n1 -p "Some kind of error restoring '$name'"
+        fi
+    fi
+
+    return 0
+}
+
+exec_commit_name()
+{
+    local -n exec_data="$3"
+    local exec_phandle="$4"
+    local -a exec_row
+    IFS="$DELIM" read -r -a exec_row <<< "${exec_data[$2]}"
+    local name="${exec_row[0]}"
+    local status="${exec_row[1]}"
+
+    local -a file_list
+
+    if [[ "$status" =~ R. ]]; then
+        local name_new="${name%% <-*}"
+        local name_old="${name##* <- }"
+        file_list+=( "$name_old" "$name_new" )
+    elif ! [[ "${status:0:1}" == "${status:1:1}" ]]; then
+        file_list+=( "$name" )
+    fi
+
+    if [ "${#file_list[*]}" -ne 0 ]; then
+        local IFS=","
+        local commitstr="${file_list[*]}"
+        commitstr="${commitstr//,/, }"
+        IFS=$' \t\n'
+
+        declare -a ecn_lines=( $'Pending \e[32;1mCommit Selected File \e[39;22m Action' "" )
+        printf -v ecn_lines["${#ecn_lines[*]}"] \
+               $'About to commit \e[32;1m%s\e[39;22m' "$commitstr"
+        printf -v ecn_lines["${#ecn_lines[*]}"] \
+               $'Command: \e[34;1m%s\e[39;22m' "git commit ${file_list[*]}"
+
+        if confirm_dialog ecn_lines "$exec_phandle"; then
+            if git commit "${file_list[@]}"; then
+                if [ "${#file_list[*]}" -gt 1 ]; then
+                    SP_REFRESH_FLAG=1
+                    return 1
+                else
+                    refresh_line_from_git_status "$name" "$2" "$3" "$4"
+                fi
+            fi
+        fi
+        printf $'\e[J\e2J'
+        pwb print_all "$exec_phandle"
+    fi
+
+    return 0
+}
+
+exec_commit_staged()
+{
+    local exec_phandle="$4"
+
+    local -a ecs_staged
+    local -i ecs_refresh=0
+
+    if get_staged_indexes ecs_staged ecs_refresh; then
+        declare -a ecn_lines=( $'Pending \e[32;1mCommit Staged Files\e[39;22m Action' "" )
+        printf -v ecn_lines["${#ecn_lines[*]}"] \
+               $'Command: \e[34;1m%s\e[39;22m' "git commit"
+
+        if confirm_dialog ecn_lines "$exec_phandle"; then
+            if git commit; then
+                if [ "$ecs_refresh" -ne 0 ]; then
+                    SP_REFRESH_FLAG=1
+                    return 1
+                else
+                    refresh_lines_by_index_array ecs_staged "$exec_phandle"
+                fi
+            fi
+        fi
+        printf $'\e[J\e2J'
+        pwb print_all "$exec_phandle"
+    fi
+
+    return 0
+}
+
+exec_view()
+{
+    local -n exec_data="$3"
+    local exec_phandle="$4"
+    local -a exec_row
+    IFS="$DELIM" read -r -a exec_row <<< "${exec_data[$2]}"
+    local name="${exec_row[0]}"
+    local status="${exec_row[1]}"
+
+    # Don't view if deleted
+    if [[ "${status:0:1}" != "D" ]]; then
+        local -a cur_margins
+        pwb_get_margins cur_margins "$exec_phandle"
+        pwb set_margins "$exec_phandle" 0
+
+        "${VIEW_CALL_ARGS[@]}" "$name"
+
+        pwb set_margins "$exec_phandle" "${cur_margins[@]}"
+    fi
+
+    # Restore screen
+    printf $'\eH\e[2J'
+    pwb print_all "$exec_phandle"
+
+    return 0
+}
+
+exec_filter()
+{
+    run_filter_dialog "$4"
+}
+
+exec_checkout_file()
+{
+    local -n exec_data="$3"
+    local exec_phandle="$4"
+    local -a exec_row
+    IFS="$DELIM" read -r -a exec_row <<< "${exec_data[$2]}"
+    local name="${exec_row[0]}"
+    local status="${exec_row[1]}"
+
+    if ! [[ "${status:0:1}" == "${status:1:1}" ]]; then
+        declare -a ecn_lines=( $'Pending \e[32;1mUndo (Checkout) Selected File\e[39;22m Action' "" )
+        printf -v ecn_lines["${#ecn_lines[*]}"] \
+               $'About to undo changes to \e[32;1m%s\e[39;22m' "$name"
+        printf -v ecn_lines["${#ecn_lines[*]}"] \
+               $'Command: \e[34;1m%s\e[39;22m' "git checkout $name"
+
+        if confirm_dialog ecn_lines "$exec_phandle"; then
+            if git checkout "$name"; then
+                refresh_line_from_git_status "$name" "$2" "$3" "$4"
+            else
+                read -n1 -p "Oops, failed to checkout '$name'"
+                return 1
+            fi
+        fi
+        printf $'\e[J\e2J'
+        pwb print_all "$exec_phandle"
+    fi
+
+    return 0
+}
+
+#########################
+###   PWB CALLBACKS   ###
+#########################
+
+print_line()
+{
+    local -n pl_dsource="$2"
+    local -a pl_row
+    IFS="$DELIM" read -r -a pl_row <<< "${pl_dsource[$1]}"
+
+    local status="${pl_row[1]}"
+
+    local color="39;22"
+    if [[ "$status" == "  " ]]; then
+        color="$PGM_CLEAN"
+    elif [[ "$status" =~ ^.(M|T|A|D|R|C)$ ]]; then
+        color="$PGM_MODIFIED"
+    elif [[ "$status" =~ ^(M|T|A|D|R|C)[[:space:]]$ ]]; then
+        color="$PGM_STAGED"
+    elif [[ "$status" =~ \!\! ]]; then
+        color="$PGM_IGNORED"
+    elif [[ "$status" =~ \?\? ]]; then
+        color="$PGM_UNTRACKED"
+    fi
+
+    printf "$color"
+    printf "%-*.*s" "$3" "$3" "${pl_row[0]}"
+    printf $'\e[39;22m'
+}
+
+# Choice of two left-print functions, used according
+# to whether or not a scroll-bar is called for:
+noop_print_left() { :; }
+scrollbar_print_left()
+{
+    local -i index="$1"
+    local -i chars_count="$3"
+    local pl_handle="$5"
+
+    local -i left=$(( chars_count - 2 ))
+
+    local -i rows top
+    pwb get_data_count "$pl_handle" -v rows
+    pwb get_top_row "$pl_handle" -v top
+
+    local -a scrollbar_args=(
+        -s "$rows"
+        -t "$top"
+        -v "${SP_REGIONS[LM_LINES]}"
+    )
+
+    local -a pl_scrollbar
+    pwb_get_scroll_bar pl_scrollbar "${scrollbar_args[@]}"
+
+    for block in "${pl_scrollbar[@]}"; do
+        printf $'\e[%dG%s\e[1D\e[1E' "$left" "$block"
+    done
+}
+
+print_top()
+{
+    local -n pt_dsource="$2"
+    local -a pt_row
+    IFS="$DELIM" read -r -a pt_row <<< "${pt_dsource[$1]}"
+
+    local -a pt_lines=( "PWB GIT MANAGER" )
+    printf -v pt_lines[${#pt_lines[*]}] $'Branch \e[34;1m%s\e[39;22m' "$SP_BRANCH_NAME"
+    get_filters_used pt_lines[${#pt_lines[*]}]
+    add_status_analysis_to_header pt_lines "${pt_row[1]}"
+    pt_lines["${#pt_lines[*]}"]="Status is '${pt_row[1]}'"
+
+
+    printf $'\e[48;5;235m'
+    pwb_print_array pt_lines "${ARGS_PRINT_TOP[@]}"
+    printf $'\e[49m'
+}
+
+print_bottom()
+{
+    local -i index="$1"
+    local -i total="${#SP_DATA[*]}"
+    local -a pb_lines
+    printf -v pb_lines[0] $'Record \e[33;1m%d\e[39;22m out of \e[33;1m%d\e[39;22m' \
+           $(( index+1 )) "$total"
+    printf -v pb_lines["${#pb_lines[*]}"] "Press F1 for help"
+
+    pwb_print_array pb_lines "${ARGS_PRINT_BOTTOM[@]}"
+}
+
+
+exec_line()
+{
+    local keyp="$1"
+    local el_handle="$4"
+
+    local -i ecode=0
+    local el_func
+    if pwb_keybinder func KEYFUNCS -v el_func -k "$keyp"; then
+        "$el_func" "$@"
+        ecode="$?"
+    fi
+
+    return "$ecode"
+}
+
+
+###################################
+###   INSTANCE PREP FUNCTIONS   ###
+###################################
+
+get_content_width()
+{
+    local -n gcw_wide="$1"
+    local -n gcw_array="$2"
+
+    local -i cur_wide
+    gcw_wide=0
+    for line in "${gcw_array[@]}"; do
+        # Subtract delimiter and 2-character status value:
+        cur_wide=$(( ${#line} - 3 ))
+
+        (( gcw_wide = ( cur_wide >gcw_wide ? cur_wide : gcw_wide ) ))
+    done
+}
+
+set_instance_margins()
+{
+    local sim_handle="$1"
+    local sim_data="$2"
+
+    local -i data_width
+    get_content_width data_width "$sim_data"
+
+    local -A sim_dims
+    pwb get_dimensions -A sim_dims
+
+    local -i non_content=$(( sim_dims[screen_cols] - data_width ))
+    local -i left right
+    (( right = non_content / 2 ))
+    (( left = right + (non_content % 2) ))
+
+    local -a sim_margins=( 5 "$right" 2 "$left" )
+
+    pwb set_margins "$sim_handle" "${sim_margins[@]}"
+}
+
+# Break out the global-array-setting code from start_program()
+set_print_args()
+{
+    local -n spa_top="$1"
+    local -n spa_bottom="$2"
+    local -n spa_regions="$3"
+
+    spa_top=(
+        -t "${spa_regions[TM_TOP]}"
+        -c "${spa_regions[TM_LINES]}"
+        -l "${spa_regions[SC_LEFT]}"
+        -w "${spa_regions[SC_WIDE]}"
+    )
+
+    spa_bottom=(
+        -t "${spa_regions[BM_TOP]}"
+        -c "${spa_regions[BM_LINES]}"
+        -l "${spa_regions[SC_LEFT]}"
+        -w "${spa_regions[SC_WIDE]}"
+    )
+
+    spa_left=(
+        -t "${spa_regions[LM_TOP]}"
+        -c "${spa_regions[LM_LINES]}"
+        -l "${spa_regions[LM_LEFT]}"
+        -w "${spa_regions[LM_WIDE]}"
+    )
+}
+
+filter_include_all()
+{
+    for filter in "${PGM_FILTERS[@]}"; do
+        if [ "$filter" -eq 0 ]; then
+            return 1
+        fi
+    done
+    return 0
+}
+
+start_program()
+{
+    local SP_FILTER=""
+    local -a FILTER_TABLE
+
+    local SP_BRANCH_NAME
+    get_branch_name SP_BRANCH_NAME
+
+    local -a SP_FULL_DATA
+    local -i SP_REFRESH_FLAG=0
+
+    while :; do
+        # Prepare Static Data
+        SP_FULL_DATA=()
+        get_context_data SP_FULL_DATA
+        SP_REFRESH_FLAG=0
+
+        local arr_name=SP_FULL_DATA
+
+        while [ "$SP_REFRESH_FLAG" -eq 0 ]; do
+            if filter_include_all; then
+                arr_name="SP_FULL_DATA"
+            else
+                FILTER_TABLE=()
+                apply_filters FILTER_TABLE SP_FULL_DATA
+                arr_name="FILTER_TABLE"
+            fi
+
+            local -n SP_DATA="$arr_name"
+            local -i SP_DATA_COUNT="${#SP_DATA[*]}"
+
+            if [ "$SP_DATA_COUNT" -eq 0 ]; then
+                local -a no_data=(
+                    "Error: no files using the current filter."
+                    "Adjust the filter to show more records."
+                )
+                pwb_conduct_dialog no_data
+                run_filter_dialog
+            else
+                local p_print_left=scrollbar_print_left
+                print_left() { "$p_print_left" "$@"; }
+
+                local -a pwb_args=(
+                    SP_DATA
+                    "$SP_DATA_COUNT"
+                    print_line
+                    -e exec_line
+                    -b print_bottom
+                    -t print_top
+                    -l print_left
+                )
+
+                local SP_HANDLE
+                pwb declare SP_HANDLE "${pwb_args[@]}"
+                pwb_exit_on_error
+
+                set_instance_margins SP_HANDLE SP_DATA
+
+                local -A SP_REGIONS
+                pwb_get_regions SP_REGIONS SP_HANDLE
+
+                # Globally set array-printing args
+                local -a ARGS_PRINT_TOP ARGS_PRINT_BOTTOM
+                set_print_args ARGS_PRINT_TOP ARGS_PRINT_BOTTOM SP_REGIONS
+
+                # Install print_left according to scrollbar need:
+                if [ "$SP_DATA_COUNT" -gt "${SP_REGIONS[CO_LINES]}" ]; then
+                    p_print_left=scrollbar_print_left
+                else
+                    p_print_left=noop_print_left
+                fi
+
+                # erase screen in case we're looping back from filter change:
+                printf $'\e[2J'
+
+                local ending_keyp
+                pwb start SP_HANDLE -a KEYMAP -k ending_keyp
+                pwb_exit_on_error
+
+                if [[ "$ending_keyp" =~ ^Q|q$ ]]; then
+                    exit 0
+                fi
+            fi
+        done
+    done
+}
+
+#########################
+###   MISCELLANEOUS   ###
+#########################
+
+# Erase top row, write message there using printf-like
+# arguments, pause 1 second, then erase top row again.
+flash_message()
+{
+    local msg
+    printf -v msg "$1" "${@:1}"
+    printf $'\e[H\e[2K%s' "$msg"
+    read -t1
+    printf $'\e[H\e[2K'
+}
+
+# Update array data and, if visible, the affected content line.
+refresh_line_from_git_status()
+{
+    local rlfg_name="$1"
+
+    local -i rlfg_index="$2"
+    local rlfg_dhandle="$3"
+    local rlfg_phandle="$4"
+
+    local new_rec
+    local status=$( git status -s "$rlfg_name" )
+    if [ -n "$status" ]; then
+        if ! record_from_status_line new_rec "$status"; then
+            read -n1 -p "Unexpected failure to get status record."
+        fi
+    else
+        new_rec="${rlfg_name}${DELIM}  "
+    fi
+
+    local -n rlfg_array="$rlfg_dhandle"
+    rlfg_array["$rlfg_index"]="$new_rec"
+    pwb print_row "$rlfg_phandle" "$rlfg_index"
+}
+
+refresh_lines_by_index_array()
+{
+    local -n rlbia_array="$1"
+    local flbia_phandle="$2"
+
+    local IFS="$DELIM"
+    local -a row
+    local -i index
+    for index in "${rlbia_array[@]}"; do
+        read -r -a row <<< "${SP_FULL_DATA[$index]}"
+        refresh_line_from_git_status "${row[0]}" "$index" SP_FULL_DATA "$flbia_phandle"
+    done
+}
+
+get_branch_name()
+{
+    local -n gbn_name="$1"
+    while read -r; do
+        if [[ "${REPLY:0:2}" == '* ' ]]; then
+            gbn_name="${REPLY:2}"
+            break
+        fi
+    done < <( git branch )
+}
+
+get_status_type()
+{
+    local -n gst_type="$1"
+    local gst_char="$2"
+    case "$gst_char" in
+        M) gst_type="modified" ;;
+        T) gst_type="file type changed" ;;
+        A) gst_type="added" ;;
+        D) gst_type="deleted" ;;
+        R) gst_type="renamed" ;;
+        C) gst_type="copied" ;;
+        U) gst_type="updated unmerged" ;;
+        *) gst_type="n/a" ;;
+    esac
+}
+
+get_staged_indexes()
+{
+    local -n gsi_indexes="$1"
+
+    local -n gsi_refresh_required="$2"
+    gsi_refresh_required=0
+
+    local -a gsi_row
+    local raw_row
+    local staging_char
+    local IFS="$DELIM"
+    local -i index=0
+    for raw_row in "${SP_FULL_DATA[@]}"; do
+        IFS="$DELIM" read -r -a gsi_row <<< "$raw_row"
+        staging_char="${gsi_row[1]:0:1}"
+        if ! [[ "$staging_char" =~ ^!|\?|\ $ ]]; then
+            gsi_indexes+=( "$index" )
+            if ! [[ "$staging_char" =~ ^R|A|D$ ]]; then
+                (( ++gsi_refresh_required ))
+            fi
+        fi
+        (( ++index ))
+    done
+
+    [ "${#gsi_indexes[*]}" -gt 0 ]
+}
+
+# From info found in the two-character XY status string,
+# add descriptive lines to an existing array.
+add_status_analysis_to_header()
+{
+    local -n gsa_report="$1"
+    local gsa_status="$2"
+
+    local asath_line
+
+    if [[ "$gsa_status" == "  " ]]; then
+        printf -v asath_line \
+               $'The file is %s%s\e[39;22m.' "${PGM_CLEAN}" "clean"
+    elif [[ "$gsa_status" == "!!" ]]; then
+        printf -v asath_line \
+               $'The file is %s%s\e[39;22m with .gitignore.' "$PGM_IGNORED" "ignored"
+    elif [[ "$gsa_status" == "??" ]]; then
+        printf -v asath_line \
+               $'The file is %s%s\e[39;22m by git.' "$PGM_UNTRACKED" "not tracked"
+    else
+        local staging_char="${gsa_status:0:1}"
+        local working_char="${gsa_status:1:1}"
+
+        if [[ "$staging_char" == " " ]]; then
+            if [[ "$working_char" == " " ]]; then
+               $'The file is %s%s\e[39;22m.' "$PGM_CLEAN" "clean"
+            else
+                local change_status
+                get_status_type change_status "$working_char"
+                printf -v asath_line \
+                       $'The file is %s%s\e[39;22m (%s) but not staged.' \
+                       "$PGM_MODIFIED" "modified" \
+                       "$change_status"
+            fi
+        else
+            if [[ "$working_char" == " " ]]; then
+                printf -v asath_line \
+                       $'The file is %s%s\e[39;22m for commit.' "$PGM_STAGED" "staged"
+            else
+                local change_status
+                get_status_type change_status "$working_char"
+                printf -v asath_line \
+                       $'The file was %s%s\e[39;22m, then %s%s\e[39;22m (%s).' \
+                       "$PGM_STAGED" "staged" \
+                       "$PGM_MODIFIED" "modified" \
+                       "$change_status"
+            fi
+        fi
+    fi
+
+    if [ -n "$asath_line" ]; then
+        gsa_report+=( "$asath_line" )
+    fi
+}
+
+set_filter()
+{
+    SP_FILTER="$1"
+}
+
+# Return true(0)/false(!0) user response to content in an array of lines.
+confirm_dialog()
+{
+    local -n cd_lines="$1"
+    local cd_pwb_handle="$2"
+    cd_lines+=( "Type 'y' to confirm; type 'n' or ESC to abort." )
+    local -a allowed_keys=( y Y n N $'\e' )
+    local keyp
+
+    pwb_conduct_dialog "$1" "$2" -a allowed_keys -r keyp
+
+    [[ "yY" =~ "$keyp" ]]
+}
+
+prepare_view_call_args()
+{
+    app_installed() { type "$1" >/dev/null 2>&1; }
+
+    local -a bat_args=(
+        --paging always
+        --style plain,header-filename,grid
+    )
+    local -n pvca_return="$1"
+    if app_installed "bat"; then
+        pvca_return=( "bat" "${bat_args[@]}" )
+    elif app_installed "batcat"; then
+        pvca_return=( "batcat" "${bat_args[@]}" )
+    else
+        pvca_return=( less )
+    fi
+}
+
+get_git_dir()
+{
+    local tpath
+    if tpath=$( git rev-parse --show-toplevel 2>/dev/null ); then
+        local -n ggd_path="$1"
+        ggd_path="$tpath"
+        return 0
+    else
+        return 1
+    fi
+}
+
+exit_trap() { printf $'\e[H\e[2J'; pwb restore; cd "$PGM_OG_DIR"; }
+
+############################
+###   EXECUTION BEGINS   ###
+############################
+
+declare PGM_GIT_DIR
+if ! get_git_dir PGM_GIT_DIR; then
+    echo "Not a git repository, exiting."
+    exit 1
+fi
+
+declare DELIM=$'|'
+
+enable pwb
+
+declare -a PSOURCES=(
+    pwb_exit_on_error
+    pwb_get_regions
+    pwb_get_margins
+    pwb_conduct_dialog
+    pwb_print_array
+    pwb_get_scroll_bar
+    pwb_keybinder
+    pwb_run_menu
+    pwb_selector
+)
+
+source <( pwb_sources "${PSOURCES[@]}" )
+
+# Get best available file viewer:
+declare -a VIEW_CALL_ARGS
+prepare_view_call_args VIEW_CALL_ARGS
+
+declare -a KBINDINGS=(
+    "key_f1"  exec_help          "Show help"
+    a         exec_add           "Add file to work tree"
+    c         exec_commit_name   "Commit selected file"
+    C         exec_commit_staged "Commit staged files"
+    d         exec_diff          "View changes (diff)"
+    f         exec_filter        "Filter files by type"
+    s         exec_stage         "Stage file"
+    u         exec_unstage       "Unstage file"
+    U         exec_checkout_file "Undo file changes (checkout)"
+    v         exec_view          "View file"
+)
+
+declare -a PGM_FILTER_LABELS=(
+    Clean
+    Modified
+    Staged
+    Ignored
+    Untracked
+)
+
+declare -a PGM_FILTERS=(
+    1       # show clean
+    1       # show modified
+    1       # show staged
+    0       # show_ignored
+    0       # show_untracked
+)
+
+declare -a PGM_COLORS=(
+    $'\e[38;5;46m'    # clean     (green)
+    $'\e[38;5;208m'   # modified  (orange)
+    $'\e[38;5;33m'    # staged    (blue)
+    $'\e[38;5;252m'   # ignored   (light grey)
+    $'\e[38;5;243m'   # untracked (dark grey)
+)
+
+declare -n PGM_CLEAN="PGM_COLORS[0]"
+declare -n PGM_MODIFIED=PGM_COLORS[1]
+declare -n PGM_STAGED=PGM_COLORS[2]
+declare -n PGM_IGNORED="PGM_COLORS[3]"
+declare -n PGM_UNTRACKED=PGM_COLORS[4]
+
+declare KEYMAP
+declare -a KEYFUNCS
+pwb_keybinder prep KBINDINGS -v KEYMAP -f KEYFUNCS
+
+# Move to the root of the git repository to fix file access:
+cd "$PGM_GIT_DIR"
+
+trap exit_trap EXIT SIGINT SIGABRT
+pwb init
+
+start_program
+
+## BEGIN_DOC
+## A git file manager that highlights different
+## classes of files and provides a set of actions
+## that can be taken on the files.
+##
+## This script implements a filter procedure
+## using pwb_selector to present a subordinate
+## options selector when the user triggers a
+## filter interaction.
+## END_DOC

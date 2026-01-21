@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2034
+
+# 0. Enable use of pwb builtin module
+enable pwb
+
+# 1. Prepare data source
+shopt -s nullglob
+declare -a PDATA=( * )
+shopt -u nullglob
+
+# 2. Prepare line print callback
+print_line()
+{
+    local -i index="$1"
+    local -n pl_dsource="$2"
+    local -i char_count="$3"
+    printf "%-*.*s" "$char_count" "$char_count" "${pl_dsource[$index]}"
+}
+
+# 3. Declare handle
+declare PHANDLE
+pwb declare PHANDLE PDATA "${#PDATA[*]}" print_line
+
+# 4. Prepare terminal
+pwb init
+# 5. Start
+pwb start PHANDLE
+# 6. Restore terminal
+pwb restore
+
+## BEGIN_DOC
+## This script introduces the pwb script.
+## First in a progression of template scripts.
+## 
+## The essential bare minimum script that
+## allows a user to browse a dataset, in this
+## case, the files in the current directory.
+## END_DOC

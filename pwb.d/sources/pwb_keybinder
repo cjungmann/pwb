@@ -1,0 +1,282 @@
+# -*- mode:shell-script; sh-shell:bash  -*-
+# shellcheck shell=bash
+# shellcheck disable=SC2317
+
+## BEGIN_DOC
+## This script includes three utilties using a
+## keybindings array to:
+## - make a keymap
+## - display a help message
+## - execute the keybinding
+## END_DOC
+
+source <( pwb_sources pwb_read_args pwb_print_message pwb_exit_on_error )
+
+pwb_keybinder()
+{
+    pk_confirm_output()
+    {
+        if [ -z "$1" ]; then
+            read -n1 -p "pwb_keybinder, missing output variable name."
+            return 1
+        fi
+        return 0
+    }
+
+    pk_control_to_letter()
+    {
+        local octval
+        printf -v octval "\\%03o" $(( $2 + 64 ))
+        printf -v "$1" "%b" "$octval"
+    }
+
+    pk_get_key_name()
+    {
+        local -n pkgkn_name="$1"
+        local keystr="$2"
+
+        local -i keylen="${#keystr}"
+        if [ "$keylen" -eq 1 ]; then
+            local -i keyval
+            printf -v keyval "%d" "'$keystr"
+
+            if (( keyval < 32 )); then
+                local ctrl_letter
+                pk_control_to_letter ctrl_letter "$keyval"
+                # Tweak control character
+                case "$ctrl_letter" in
+                    M) pkgkn_name="ENTER" ;;
+                    ]) pkgkn_name="ESCAPE" ;;
+                    I) pkgkn_name="TAB" ;;
+                    H) pkgkn_name="Backspace" ;;
+                    *) pkgkn_name="Ctrl-$ctrl_letter" ;;
+                esac
+            elif (( keyval == 127 )); then
+                pkgkn_name="DEL"
+            else
+                pkgkn_name="$keystr"
+            fi
+        elif [[ "$bkey" =~ ^key_(.*)$ ]]; then
+            pkgkn_name="${BASH_REMATCH[1]^^*} key"
+        fi
+    }
+
+    pk_add_help_line()
+    {
+        local -n pkahl_lines="$1"
+        # $2: keystroke string
+        # $3  label
+        printf -v tline $'\e[32;1m%-5s\e[39;22m %s' "$2" "$3"
+        pkahl_lines+=( "$tline" )
+    }
+
+    pk_prepare_keymap()
+    {
+        local -i ecode=1
+        local ppk_infocmp=$( infocmp -L )
+
+        if pk_confirm_output "$1"; then
+            local pkpk_new_keymap_name="$1"
+            local -n pkpk_keybindings="$2"
+
+            # Use array if name provided, or bogus anonymous one if not:
+            local -a empty=()
+            local -n pkpk_keyfuncs="${3:-empty}"
+            pkpk_keyfuncs=()
+
+            local -a bindarr=()
+            local -n bkey=bindarr[0]
+            local -n bfunc=bindarr[1]
+            local -n bdesc=bindarr[2]
+            local -a pkpk_keymap
+
+            for el in "${pkpk_keybindings[@]}"; do
+                case "${#bindarr[*]}" in
+                    0) bindarr+=( "$el" ) ;;
+                    1) bindarr+=( "$el" ) ;;
+                    2) bindarr+=( "$el" )
+                       if [[ "${bkey:0:4}" == "key_" ]]; then
+                           if [[ "$bkey" == "key_escape" ]]; then
+                               bkey=$'\e'
+                           elif [[ "$ppk_infocmp" =~ [[:space:]]"$bkey"=([^,]+), ]]; then
+                               bkey="${BASH_REMATCH[1]}"
+                               if [[ "${bkey:0:2}" == "\\E" ]]; then
+                                   printf -v bkey $'\e%s' "${bkey:2}"
+                               fi
+                           else
+                               read -n1 -p "Unrecognized key name '$bkey'"
+                           fi
+                       fi
+
+                       pkpk_keymap+=( "$bkey" 7 )
+                       # Append record for keybindings substitute
+                       pkpk_keyfuncs+=( "$bkey" "$bfunc" "" )
+                       bindarr=()
+                       ;;
+                esac
+            done
+
+            if [ "${#pkpk_keymap[*]}" -gt 0 ]; then
+                pwb declare_keymap "$pkpk_new_keymap_name" pkpk_keymap
+                ecode="$?"
+            fi
+        fi
+
+        return "$ecode"
+    }
+
+    pk_get_help_array()
+    {
+        if pk_confirm_output "$1"; then
+            local -n pkgha_lines="$1"
+            local -n pkgha_keybindings="$2"
+
+            local -a bindarr
+            local -n bkey=bindarr[0]
+            local -n bfunc=bindarr[1]
+            local -n bdesc=bindarr[2]
+
+            # First through to get sizes:
+            local -i cur_len max_len=0
+            local bkeyname
+            for el in "${pkgha_keybindings[@]}"; do
+                case "${#bindarr[*]}" in
+                    0) bindarr+=( "$el" ) ;;
+                    1) bindarr+=( "$el" ) ;;
+                    2) bindarr+=( "$el" )
+                       pk_get_key_name bkeyname "$bkey"
+                       cur_len="${#bkeyname}"
+                       (( max_len = ( cur_len > max_len ? cur_len : max_len ) ))
+                       bindarr=()
+                       ;;
+                esac
+            done
+
+            local format
+            printf -v format $'\e[32;1m%%-%ds\e[39;22m %%s' "$max_len"
+
+            bindarr=()
+            for el in "${pkgha_keybindings[@]}"; do
+                case "${#bindarr[*]}" in
+                    0) bindarr+=( "$el" ) ;;
+                    1) bindarr+=( "$el" ) ;;
+                    2) bindarr+=( "$el" )
+                       pk_get_key_name bkeyname "$bkey"
+                       printf -v tline "$format" "$bkeyname" "$bdesc"
+                       pkgha_lines+=( "$tline" )
+                       bindarr=()
+                       ;;
+                esac
+            done
+        fi
+    }
+
+    pk_show_help()
+    {
+        local -n pksh_keybindings="$1"
+        local -a pksh_lines=()
+
+        local -a pksh_duplicate=( "${pksh_keybindings[@]}" )
+        pksh_duplicate+=( 'q' "" "Exit" )
+
+        pk_get_help_array pksh_lines pksh_duplicate
+
+        pwb_print_message pksh_lines
+
+        if [ "$#" -gt 1 ]; then
+            pwb get_keystroke -v "$2"
+        else
+            pwb get_keystroke
+        fi
+    }
+
+    pk_get_function()
+    {
+        if pk_confirm_output "$1"; then
+            local -n pkgf_func="$1"
+            local -n pkgf_keybindings="${4:-$2}"
+            local pkgf_keyp="$3"
+
+            local -a bindarr
+            local -n bkey=bindarr[0]
+            local -n bfunc=bindarr[1]
+            local -n bdesc=bindarr[2]
+
+            for el in "${pkgf_keybindings[@]}"; do
+                case "${#bindarr[*]}" in
+                    0) bindarr+=( "$el" ) ;;
+                    1) bindarr+=( "$el" ) ;;
+                    2) bindarr+=( "$el" )
+                       if [[ "$bkey" == "$pkgf_keyp" ]]; then
+                           pkgf_func="$bfunc"
+                           return 0
+                       fi
+                       bindarr=()
+                       ;;
+                esac
+            done
+        fi
+
+        return 1
+    }
+
+    pk_warn_unrecognized()
+    {
+        local func_name="$1"
+
+        local -a lines=( "Unrecognized Keybinder Function" )
+        printf -v lines[1] $'\e[31;1m%s\e[39;22m' "$func_name"
+        pwb_print_message lines
+        read -n1
+    }
+
+    ############################
+    ###   EXECUTION BEGINS   ###
+    ############################
+
+    local subfunction keybindings_name keyfuncs_name
+    local output_variable keypress
+    local -a cmd_args=( "$@" )
+    local -a arg_names=( subfunction keybindings_name )
+    local -a opts_list=(
+        v+ output_variable
+        f+ keyfuncs_name
+        k+ keypress
+    )
+
+    if pwb_read_args cmd_args arg_names opts_list; then
+        case "$subfunction" in
+            help)
+                pk_show_help \
+                    "$keybindings_name" \
+                    "$output_variable"
+                ;;
+
+            hlines)
+                pk_get_help_array \
+                    "$output_variable" \
+                    "$keybindings_name"
+                ;;
+
+            prep)
+                pk_prepare_keymap \
+                    "$output_variable" \
+                    "$keybindings_name" \
+                    "$keyfuncs_name"
+                ;;
+
+            func)
+                pk_get_function \
+                    "$output_variable" \
+                    "$keybindings_name" \
+                    "$keypress" \
+                    "$keyfuncs_name"
+                ;;
+
+            * )
+                pk_warn_unrecognized \
+                    "$subfunction"
+                ;;
+        esac
+    fi
+}

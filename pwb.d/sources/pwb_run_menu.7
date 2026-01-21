@@ -1,0 +1,39 @@
+.TH pwb_run_menu 7
+.mso gproto.tmac
+.SH NAME
+.PP
+.B pwb_run_menu
+\- Run a menu-like dialog to get a user's indication.
+.SH SYNOPSIS
+.PP
+.B pwb_run_menu
+.cli_prototype @options_array ?@handle_name ?!-h:head_lines ?!-j:l|c|r
+.PP
+.EX
+declare -a options_array=(
+   \(dqoption &1\(dq   exec_first
+   \(dqoption &2\(dq   exec_second
+)
+.EE
+.SH DESCRIPTION
+.PP
+The
+.IR options_array ,
+the first argument of
+.BR pwb_run_menu ,
+contains paired entries, matching a label with a function.
+.PP
+There will be a trigger letter for each entry.  If the label includes
+an ampersand
+.RB ( & ),
+the letter following the ampersand will be the trigger.  If there is
+no ampersand
+.RB ( & ),
+the first non-space letter of the label will be used as the trigger.
+.PP
+The trigger letter will be highlighted in the displayed label, and
+when the user presses the keyboard key represented by the trigger,
+the function part of the
+.I options_array
+entry will be run.
+

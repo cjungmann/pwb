@@ -1,0 +1,609 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC1090,SC2034
+# derived from "template_actions"
+
+##########################
+###   DATA FUNCTIONS   ###
+##########################
+
+get_files()
+{
+   local -n gd_return="$1"
+   local -a files
+
+   shopt -s nullglob
+   files=( * )
+   shopt -u nullglob
+
+   for file in "${files[@]}"; do
+       local type
+       get_file_type type "$file"
+
+       gd_return+=( "$file$DELIM$type" )
+   done
+}
+
+predict_rendered_line_size()
+{
+    local -n prls_return="$1"
+    local -n prls_content="$2"
+
+    prls_return=0
+    local IFS="$DELIM"
+
+    for el in "${prls_content[@]}"; do
+        read -ra prls_row <<< "$el"
+        local value="${prls_row[0]}"
+        local -i curlen="${#value}"
+        if (( curlen > prls_return )); then
+            (( prls_return = curlen ))
+        fi
+    done
+}
+
+
+#############################
+###   FILE SUPPLEMENTAL   ###
+#############################
+
+catalog_dircolors()
+{
+    local -n cd_catalog="$1"
+
+    local ls_colors
+    if [ -n "$LS_COLORS" ]; then
+        ls_colors="$LS_COLORS"
+    else
+        local raw_colors=$( dircolors -c )
+        if [[ "$raw_colors" =~ ^[^\']+\'([^\']+)$ ]]; then
+            ls_colors="${BASH_REMATCH[0]}"
+        fi
+    fi
+
+    IFS=":" read -ra cd_entries <<< "$ls_colors"
+    local IFS="="
+    for entry in "${cd_entries[@]}"; do
+        read -ra cd_entry <<< "$entry"
+        if [[ "${cd_entry[0]}" =~ ^[[:alpha:]]{2}$ ]]; then
+            cd_catalog+=( "${cd_entry[0]}" "${cd_entry[1]}" )
+        fi
+    done
+}
+
+test_markdown()
+{
+    [[ "${1##*.}" =~ (md|markdown) ]]
+}
+
+test_manpage()
+{
+    [[ "$1" =~ ^.*\.[[:digit:]][^.]*(\.gz)?$ ]]
+}
+
+get_file_type()
+{
+    local -n af_return="$1"
+    local af_path="$2"
+
+    local af_test af_prefix af_agent
+    for el in "${FILE_TYPE_TESTS[@]}"; do
+        if [ -z "$af_test" ]; then
+            af_test="$el"
+        else
+            af_prefix="${af_test:0:1}"
+            if [[ "$af_prefix" == "-" ]]; then
+                if [ $af_test "$af_path" ]; then
+                    af_return="$el"
+                    return 0
+                fi
+            else
+                af_agent="${TYPE_TEST_AGENTS[$af_test]}"
+                if [ -n "$af_agent" ] && $af_agent "$af_path"; then
+                    af_return="$el"
+                    return 0
+                fi
+            fi
+            af_test=""
+        fi
+    done
+    af_return="rs"
+}
+
+get_type_color()
+{
+    local -n gtc_return="$1"
+    local type="$2"
+    gtc_return="${DIR_COLORS[$type]}"
+}
+
+prepare_file_type_refs()
+{
+    local -n pftr_colors="$1"
+    local -n pftr_agents="$2"
+    local -n pftr_tests="$3"
+
+    pwb audit_var "$1" 
+
+    # - file type token: two-character string identifying
+    #        a file type.  'dircolors' defines a standard
+    #        set, we will add custom tokens.
+    #
+    # - test operator: The builtin 'test' function recognizes
+    #        several operators that identify file characteristics.
+    #        We will add operators to identify new file types.
+
+    # 'dircolors' returns a list of strings linked to colors,
+    # some strings are file type tokens (see above), and others
+    # are globs.  We use a subset of what 'dircolors' returns,
+    # then add custom tokens with new colors.
+    catalog_dircolors "pftr_colors"
+    pftr_colors+=(
+        "md" "48;5;21"      # markdown token/color
+        "mp" "38;5;208"     # manpage token/color
+    )
+
+    # This lookup table associates each custom test operator,
+    # which must begin with a non-hyphen character, with a
+    # function that identifies the file type.
+    pftr_agents+=(
+        "^m"   test_markdown
+        "^M"   test_manpage
+    )
+
+    # Populate table linking builtin operators that begin with
+    # a hyphen (-) and that work directly with the 'test' command,
+    # then adding custom tokens that DO NOT start with hyphen.
+    #
+    # It's not a lookup table, but a list that will be read
+    # sequentially by 'get_file_type' to tag files with their file
+    # type token.
+    pftr_tests
+        "-d"  "di"   # directory
+        "-x"  "ex"   # executable (or searchable, like -d?)
+        "-h"  "ln"   # symbolic link
+        "-b"  "bd"   # block special
+        "-c"  "cd"   # char special
+        "-g"  "sg"   # set group-id
+        "-k"  "st"   # sticky
+        "-p"  "pi"   # named pipe
+        "-S"  "so"   # socket
+        "-u"  "su"   # set user-id
+
+        # custom test operators begin with non-hyphen character:
+        "^m"  "md"   # markdown
+        "^M"  "mp"   # man page
+    )
+
+
+    # The tests array is used sequentially by function get_file_type
+    # to assign the file type 
+}
+
+
+##################################
+###   PWB CALLBACK FUNCTIONS   ###
+##################################
+
+print_line()
+{
+    local -n pl_dsource="$2"
+    IFS="$DELIM" read -ra pl_row <<< "${pl_dsource[$1]}"
+    local col tline
+    get_type_color col "${pl_row[1]}"
+    if [[ "$col" =~ ^0+$ ]]; then
+        printf -v tline "%-*.*s" "$3" "$3" "${pl_row[0]}"
+    else
+        printf -v tline $'\e[%sm%-*.*s\e[49;39;22m' "$col" "$3" "$3" "${pl_row[0]}"
+    fi
+    printf "%s" "$tline"
+}
+
+print_top()
+{
+    # create array for printing
+    local -a pt_lines=(
+        "$BASIC_TOP_NAME"
+    )
+
+    printf -v pt_lines[${#pt_lines[*]}] \
+           $'Location: \e[32;1m%s\e[39;22m' "$PWD"
+
+    printf $'\e[48;5;235m'
+    pwb_print_array pt_lines "${TOP_MARG_ARGS[@]}"
+    printf $'\e[49m'
+}
+
+print_bottom()
+{
+    local -i total index="$1"
+    local handle_name="$5"
+    local -a pb_lines
+
+    pwb get_data_count "$handle_name" -v total
+    printf -v pb_lines[0] \
+           $'item \e[32;1m%d\e[39;22m of \e[32;1m%d\e[39;22m.' \
+           $(( index+1 )) "$total"
+    printf $'\e[48;5;235m'
+    pwb_print_array pb_lines "${BOTTOM_MARG_ARGS[@]}"
+    printf $'\e[49m'
+}
+
+print_left()
+{
+    # will be either print_left_empty or print_left_scrollbar
+    "$print_left_func" "$@"
+}
+
+# No-scrollbar left margin printer
+print_left_empty()
+{
+    local -a ple_lines=()
+    pwb_print_array ple_lines "${LEFT_MARG_ARGS[@]}"
+}
+
+# Scrollbar left margin printer
+print_left_scrollbar()
+{
+    local handle_name="$5"
+    pwb get_dimensions "$handle_name"
+
+    local -i width="${PWB_ASSOC[margin_left]}"
+    local -i left=$(( width - 2 ))
+
+    local -a pls_chars
+
+    local -a SB_ARGS=(
+        -t "${PWB_ASSOC[row_top]}"
+        -s "${PWB_ASSOC[data_rows]}"
+        -v "${PWB_ASSOC[pager_lines]}"
+        -c "${PWB_ASSOC[pager_lines]}"
+    )
+
+    pwb_get_scroll_bar pls_chars "${SB_ARGS[@]}"
+
+    for char in "${pls_chars[@]}"; do
+        printf $'\e[%dX\e[%dG%s\e[1E' "$width" "$left" "$char"
+    done
+}
+
+
+########################
+###   EXEC SECTION   ###
+########################
+
+execution_manager()
+{
+    local keyp="$1"
+    local em_psource="$4"
+
+    local -i ecode=0
+    local em_func
+    if pwb_keybinder func KEYFUNCS -v em_func -k "$keyp"; then
+        "$em_func" "$@"
+        ecode="$?"
+        printf $'\e[H\e[2J'
+        pwb print_all "$em_psource"
+    fi
+
+    return "$ecode"
+}
+
+exec_help()
+{
+    local eh_keyp
+    pwb_keybinder help KEYBINDINGS -v eh_keyp
+
+    # Recursively call execution_manager with exit key from kebinder
+    # in case it's one that should initiate another action
+    shift
+    execution_manager "$eh_keyp" "$@"
+    local -i ecode="$?"
+    if [[ "$eh_keyp" == 'q' ]]; then
+        ecode=1
+    fi
+
+    return "$ecode"
+}
+
+exec_dir_enter()
+{
+    local -n ex_dsource="$3"
+    IFS="$DELIM" read -ra ex_row <<< "${ex_dsource[$2]}"
+    if [[ "${ex_row[1]}" == "di" ]]; then
+        local saved_dir="$PWD"
+        cd "${ex_row[0]}"
+        view_directory "$PWD"
+        cd "$saved_dir"
+    fi
+}
+
+exec_dir_return()
+{
+    # terminate pwb instance to exit current stack frame:
+    return 1
+}
+
+exec_show_manpage()
+{
+    local -n ex_dsource="$3"
+    IFS="$DELIM" read -ra ex_row <<< "${ex_dsource[$2]}"
+    local ex_phandle="$4"
+
+    if [[ "${ex_row[1]}" == "mp" ]]; then
+        local ex_margins
+        pwb_get_margins ex_margins "$ex_phandle"
+        pwb set_margins "$ex_phandle" 0
+
+        printf $'\e[2J'
+        man -l "${ex_row[0]}"
+        printf $'\e[2J'
+
+        pwb set_margins "$ex_phandle" "${ex_margins[@]}"
+        pwb_exit_on_error
+    fi
+
+    return 0
+}
+
+exec_inspect()
+{
+    local -n ex_dsource="$3"
+    IFS="$DELIM" read -ra ex_row <<< "${ex_dsource[$2]}"
+    local filename="${ex_row[0]}"
+
+    # Paired specs to align for presentation
+    local -a STAT_FIELDS=(
+        "name"        "%n"  # must be first element
+        "file type"   "%F"  # must be second element
+        "size"        "%s"
+        "owner"       "%U"
+        "permissions" "%A"
+        "last change" "%y"
+    )
+
+    # measure labels for formatting
+    local -i len_label=0
+    local -i cur_len
+
+    # compile tokens list to build format string
+    local -a tokens=()
+
+    # Track index to detect field
+    local -i index=0
+    for el in "${STAT_FIELDS[@]}"; do
+        if (( index % 2 == 0 )); then
+            cur_len="${#el}"
+            if (( cur_len > len_label )); then
+                len_label="$cur_len"
+            fi
+        else
+            tokens+=( "$el" )
+        fi
+        (( ++index ))
+    done
+
+    # Get label-correlating array of attributes
+    printf -v format "%s${DELIM}" "${tokens[@]}"
+    format="${format:0: -1}"
+    IFS="$DELIM" read -ra attributes <<< "$( stat -c "$format" "$filename" )"
+
+    local -a ex_lines
+
+    index=0
+    for el in "${STAT_FIELDS[@]}"; do
+        if (( index % 2 == 0 )); then
+            printf -v ex_lines[${#ex_lines[*]}] \
+                   $'%*s: \e[32;1m%s\e[39;22m'  \
+                   "$len_label" \
+                   "$el"        \
+                   "${attributes[$(( index / 2 ))]}"
+        fi
+        (( ++index ))
+    done
+
+    pwb_conduct_dialog ex_lines
+}
+
+
+###########################
+###   SETUP FUNCTIONS   ###
+###########################
+
+# Set top margin for info, side margins for centering
+set_margins()
+{
+   local sm_handle="$1"
+   local -i sm_content_size="$2"
+
+   pwb get_dimensions
+   local -i columns="${PWB_ASSOC[screen_cols]}"
+
+   # Adjust if content size it would overflow:
+   if (( sm_content_size > columns - 2 )); then
+       (( sm_content_size = columns - 2 ))
+   fi
+
+   # Always leave 2 spaces for left scrollbar:
+   local -i to_distribute=$(( columns - sm_content_size - 2 ))
+   local -i left=2 right=0
+
+   # Only center if more than 2 spare spaces
+   if (( columns > to_distribute )); then
+       (( right = to_distribute / 2 ))
+       (( left += to_distribute - right ))
+   fi
+
+   pwb set_margins "$sm_handle" 4 "$right" 1 "$left"
+}
+
+content_needs_scrollbar()
+{
+    local cns_handle="$1"
+    pwb get_dimensions "$cns_handle"
+    (( PWB_ASSOC[data_rows] > 0 && PWB_ASSOC[data_rows] > PWB_ASSOC[pager_lines] ))
+}
+
+quick_message()
+{
+    local -a gm_args=( "$@" )
+    gm_args+=( "" "Press any key to continue." )
+
+    pwb_conduct_dialog gm_args
+}
+
+# Trap signal to handle abrupt exits
+exit_trap()
+{
+    printf $'\e[39;49;22m\e[H\e[2J';
+    pwb restore;
+    cd "$ENTERING_DIR";
+}
+
+# Initiate a directory view in a new stack frame:
+view_directory()
+{
+    local VD_PATH="$1"
+
+    local -a VD_FILES
+    get_files VD_FILES "$VD_PATH"
+
+    printf $'\e[2J'
+
+    if (( ${#VD_FILES[*]} == 0 )); then
+        quick_message "$VD_PATH is an empty directory."
+        return 0
+    else
+        # Measure data for formatting
+        declare -i CONTENT_WIDTH
+        predict_rendered_line_size CONTENT_WIDTH VD_FILES
+
+        # Declare Handle
+        declare -a DECLARE_ARGS=(
+            VD_FILES
+            "${#VD_FILES[*]}"
+            print_line
+            -t print_top
+            -b print_bottom
+            -l print_left
+            -e execution_manager
+        )
+        declare VD_HANDLE
+        pwb declare VD_HANDLE "${DECLARE_ARGS[@]}"
+
+        # Divide the screen using margins
+        set_margins VD_HANDLE "$CONTENT_WIDTH"
+        # Set global margin-printing argument arrays
+        declare -a TOP_MARG_ARGS BOTTOM_MARG_ARGS LEFT_MARG_ARGS
+        pwb_get_margin_args VD_HANDLE TOP_MARG_ARGS "" BOTTOM_MARG_ARGS LEFT_MARG_ARGS
+        # Set to use or not use a left-margin scrollbar
+        declare print_left_func=print_left_empty
+        if content_needs_scrollbar VD_HANDLE; then
+            print_left_func=print_left_scrollbar
+        fi
+
+        local exit_key
+        pwb start VD_HANDLE -a KEYMAP -k exit_key
+        if [[ "$exit_key" == 'q' ]]; then
+            exit 0
+        fi
+    fi
+}
+
+###########################
+###   BEGIN EXECUTION   ###
+###########################
+
+enable pwb
+
+declare DELIM="|"
+
+declare -A DIR_COLORS
+declare -A TYPE_TEST_AGENTS
+declare -a FILE_TYPE_TESTS
+
+prepare_file_type_refs "DIR_COLORS" "TYPE_TEST_AGENTS" "FILE_TYPE_TESTS"
+
+
+# Standard test operators begin with '-' and 
+
+# Correlate custom test operator with function that identifies it:
+declare -A TYPE_TEST_AGENTS=(
+    "^m"   test_markdown
+    "^M"   test_manpage
+)
+
+# Paired entries, file test operators and file category label:
+declare -a FILE_TYPE_TESTS=(
+    "-d"  "di"   # directory
+    "-x"  "ex"   # executable (or searchable, like -d?)
+    "-h"  "ln"   # symbolic link
+    "-b"  "bd"   # block special
+    "-c"  "cd"   # char special
+    "-g"  "sg"   # set group-id
+    "-k"  "st"   # sticky
+    "-p"  "pi"   # named pipe
+    "-S"  "so"   # socket
+    "-u"  "su"   # set user-id
+
+    # custom test operators begin with non-hyphen character:
+    "^m"  "md"   # markdown
+    "^M"  "mp"   # man page
+)
+
+declare -A DIR_COLORS
+catalog_dircolors DIR_COLORS
+DIR_COLORS+=(
+    "md" "48;5;21"
+    "mp" "38;5;208"
+)
+
+# Using source scripts
+declare -a SOURCE_ARGS=(
+    pwb_exit_on_error
+    pwb_get_margin_args
+    pwb_print_array
+    pwb_get_scroll_bar
+    pwb_conduct_dialog
+    pwb_keybinder
+    pwb_get_margins
+)
+source <( pwb_sources "${SOURCE_ARGS[@]}" )
+
+### KEYBINDING ###
+declare -a KEYBINDINGS=(
+    "h"         exec_help           "Show help"
+    "i"         exec_inspect        "Inspect file"
+    "key_left"  exec_dir_return     "Return from directory"
+    "key_right" exec_dir_enter      "Enter directory"
+    "m"         exec_show_manpage   "Show Manpage"
+)
+declare KEYMAP
+declare -a KEYFUNCS
+pwb_keybinder prep KEYBINDINGS -v KEYMAP -f KEYFUNCS
+
+# For print_top contents
+declare BASIC_TOP_NAME="PWB LS TEMPLATE"
+
+# Save current directory to be restored on exit:
+declare ENTERING_DIT="$PWB"
+
+# Use trap/signal to handle possible abrupt exits
+trap exit_trap EXIT SIGINT SIGABRT
+pwb init
+
+declare STARTING_DIR="${1:- $PWB}"
+
+view_directory "$STARTING_DIR"
+
+## BEGIN_DOC
+## This template can be the basis for a custom
+## file manager.  It handles collecting and
+## categorizing file and navigating directories.
+## Make a copy of this template and add
+## keybindings to perform actions or or about
+## files.
+##
+## This template also features recursion that
+## occurs when entering directories and unwinds
+## when exiting directories.
+## END_DOC

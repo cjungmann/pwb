@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+
+## BEGIN_DOC
+## This script introduces the basics of pwb margins.
+##
+## Margins are used to establish areas around the main
+## content area.  The areas can be left empty as spacing,
+## or used as supplemental content areas for instructions
+## or context information.
+##
+## The script contains:
+##
+## - 'set_margins' function to calculate and establish
+##   margins that center the content.
+##
+## - 'print_top' function to use the top margin to display
+##   a simple usage message about how to exit.
+##
+## - improved 'print_line' function that pays attention to
+##   specified line length.
+## END_DOC
+
+print_line()
+{
+    # retrieve data
+    local -i index="$1"
+    local -n pl_dsource="$2"
+    local line="${pl_dsource[$index]}"
+
+    # print data, now using field width and precision
+    # format values to safely print full-width lines:
+    local -i len="$3"
+    printf "%-*.*s" "$len" "$len" "$line"
+}
+
+# Calculate appropriate margins for centering the content
+set_margins()
+{
+    # Get max content width that must be contained
+    local -n sm_array="$1"
+    local -i maxlen=0
+    for line in "${sm_array[@]}"; do
+        local -i len="${#line}"
+        (( maxlen = ( len > maxlen ? len : maxlen ) ))
+    done
+
+    # Get screen width
+    pwb get_dimensions
+    local -i screen_cols="${PWB_ASSOC[screen_cols]}"
+
+    # Split non-content space into two for margin widths
+    local -i lr_margin=$(( (screen_cols - maxlen ) / 2 ))
+
+    local sm_pname="$2"
+    pwb set_margins "$sm_pname" 3 "$lr_margin"
+}
+
+
+# Print static information in the top margin using pwb
+# action 'get_dimensions' to identify screen coordinates
+# and console codes for postioning the cursor appropriately.
+print_top()
+{
+    pwb get_dimensions "$1"
+    local mleft="${PWB_ASSOC[margin_left]}"
+    local -a print_args=(
+        2                   # starting row
+        $(( mleft + 1 ))    # align margin text with content
+        "Press 'q' to exit" # message to print
+    )
+    printf $'\e[%d;%dH%s' "${print_args[@]}"
+}
+
+############################
+###   EXECUTION BEGINS   ###
+############################
+
+enable pwb
+
+declare -a DIR_FILES=( * )
+pwb declare PHANDLE DIR_FILES "${#DIR_FILES[*]}" print_line
+
+set_margins DIR_FILES PHANDLE
+
+exit_trap() { pwb restore; }
+trap exit_trap EXIT SIGINT SIGABRT
+
+# Save and erase terminal before any cursor addressing
+pwb init
+
+# After 'set_margins' establish margin coordinates, and after
+#'pwb init' clears the screen, print the top margin:
+print_top PHANDLE
+
+pwb start PHANDLE
+

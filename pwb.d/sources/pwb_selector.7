@@ -1,0 +1,153 @@
+.TH pwb_selector 7
+.mso gproto.tmac
+.SH NAME
+.PP
+.B pwb_selector
+\- Allow user to select one or more items from a list.
+.SH SYNOPSIS
+.PP
+.B pwb_selector
+.cli_prototype @options_array \
+   ?@handle_name \
+   ?!-cm \
+   ?!-h:head_lines \
+   ?!-j:justification \
+   ?!-k:exit_key \
+   ?!-s:start_selections \
+   ?!-t:numbers|flags \
+   ?!-v:output_name \
+   ?!-x:exit_key_array
+.SH DESCRIPTION
+.PP
+Flexible item selector, can work as single-selection with immediate
+response, or as a multi-selection list.
+.SS RUNNING THE DIALOG
+.PP
+Upon calling the function, the provided options will be parsed for
+access key values, formatted to highlight the access key and to pad
+to a common length for centered output.
+.PP
+The source function
+.B pwb_print_message
+will be used to generate a dialog from an array containing the
+.IR head_lines ,
+if provided, and the padded copies of the options.
+.PP
+The user can use the up- and down-arrows to change focus to different
+options, pressing the spacebar to toggle options in multiple-selection
+mode, or ENTER to select the focus option or to submit the flagged
+options.
+.PP
+For both single- and multiple-select modes, pressing an access key
+will put the focus on the appropriate option.  If there are more
+than one option with the same access key,
+.B pwb_selector
+will cycle through the equivalently-keyed options.
+In single-selection mode, matching a unique access key will
+immediately complete the interaction.
+For both single- and multiple-select, pressing ENTER will also
+complete the interaction.
+.SS RETURN INFORMATION
+.PP
+There are a few ways the information is returned to the calling
+process.  First, the
+.B exit code
+will indicate how the dialog finished, either with a selection
+(return value 0/true) or because of an exit key (return value
+1/false).
+.PP
+The user's choices will be found in either an array variable named
+.BR SELECTED ,
+or in the variable named with the
+.B -v
+option.
+The contents of the selection array will be the indexes of the
+selection(s) or, if the
+.B -t
+option sets it, the variable specified by the command arguments.
+.PP
+The final optional return infomation is the terminating keystroke,
+which will be found in the
+.I exit_key
+variable if the
+.B -k
+option was used.
+.SH OPTIONS
+.TP
+.I options_array
+Is an array of option names.  Each array member will be included in
+the dialog as an option.  Every option indicate its access key by
+highlighting a letter in the label.  The highlighted character will
+be the first character unless another character is indicated by being
+prefaced with an
+ampersand
+.RB (\(lq & \(rq).
+.TP
+.I handle_name
+Optional
+.B pwb
+handle that will be used to restore the display after the dialog.
+.TP
+.B -c
+This flag enables case-sensitive processing.  The default behavior
+is for access keys to match either upper- and lower-case.
+.TP
+.B -m
+This flag enables multiple selection.  Each option will include
+a selection indicator that can be toggled with the space bar or
+by typing its access key.
+.TP
+.BI -h " head_lines"
+An array of strings what will be presented above the options
+when the dialog opens.  Note that they will follow the justification
+directive, so pad and format accordingly.
+.TP
+.BI -k " exit_key"
+if used, should be the name of a variable.  The key that triggers the
+exit from the dialog will be assigned to the
+.I exit_key
+variable.
+.TP
+.BR -j " [\fIc\fR|\fIl\fR|\fIr\fR]"
+Specify test justification as
+.IR c  " for center-, " l " for left-, and " r " for right-justified."
+Note that options will be formatted as equal-length strings that will
+format neatly for a center-justified presentation.
+.IP
+The default justification is
+.IR l ,
+left-justified.
+.TP
+.BI -s " start_selections"
+is an array of 1s and 0s, representing on and off states of the
+options.
+.TP
+.BI -t " output_type"
+Sets how the output array variable represents the result.  The default
+output type is
+.IR numbers ,
+where the array will contain the indexes of the set options.  The
+alternative output type is
+.IR flags ,
+where the array will contain a 1 or 0  for each option, 1 if the
+option is selected, 0 if not.
+.IP
+The
+.I flags
+output type can be fed back into
+.B pwb_selector
+with option
+.B -s
+.IR start_selections .
+.TP
+.BI -v " output_name"
+Returns the array of selections to the named variable,
+.IR output_name .
+If not specified, the results of the interaction will be found in an
+array named
+.BR SELECTED .
+.TP
+.BI -x " exit_key_array"
+is an array of characters and/or keystroke strings that should be
+recognized to abort the dialog.
+

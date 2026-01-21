@@ -1,0 +1,93 @@
+.TH pwb_template_divided 7
+.SH NAME
+.PP
+.B pwb_template_divided
+\- Using margins to center content and host context info.
+.SH DESCRIPTION
+.PP
+The spartan
+.B pwb_template_minimum
+demonstrates the fundamental operation of a
+.B pwb
+script, but doesn't look very nice and it leaves a naive user
+without guidance as to how to exit the application.
+.PP
+This upgrade over
+.B pwb_template_minimum
+introduces several features and techniques that will contribute
+to more user-friendly designs and faster development..
+.TP
+.B Margins
+are used to allocate areas on the screen for spacing and for
+related content.  This template uses side margins to center the
+content, a top margin for context information and user
+instructions.  The left margin also hosts a scrollbar if the
+content exceeds the size of the content window.
+.IP
+Look at function
+.B set_margins()
+to see how it uses
+.B pwb get_dimensions
+and the content size to calculate appropriate margin.
+.TP
+.B Margin-print callbacks
+Like the line-print callbacks,
+.B pwb
+calls back to script functions to print margin areas of which
+it has been informed.  Unlike line-print calls that simply print a
+limited number of characters without regard to the cursor position,
+margin-print callbacks must determine the margin boundaries and
+print accordingly.
+.IP
+Look at margin-print function
+.B print_top
+and notice the
+.B pwb declare
+command where the
+.B print_top " and " print_left
+functions are registered.
+.TP
+.B pwb_sources
+is a script that provides access to a library of source scripts
+designed as resources for performing common needs.  This template
+uses
+.B pwb_sources
+to load source scripts for generating the scrollbar, calculating
+the location and dimensions of margins, and to print string arrays
+to defined areas.
+.IP
+Look for the
+.B pwb_sources
+call and the array defined just above it to see what source
+modules are being loaded.
+.IP
+Source script
+.B pwb_print_array
+prints characters to the entire region specified in its
+argument list.  Where available, it writes the contents of
+the specified array, but fills the rest with spaces, thus
+erasing any previous margin contents.
+.IP
+.B pwb_get_margin_args
+prepares an array with the region-defining arguments
+expected by
+.BR pwb_print_array .
+.IP
+.B pwb_get_scroll_bar
+returns an array of character strings which are for printing
+consecutively to display an appropriate scrollbar.
+Look at function
+.B print_left_scrollbar
+to see how to use the array contents.
+.TP
+.B Scrollbars and print_left
+Scrollbars are only necessary if the size of the contents
+exceeds the area in which they are to be printed.
+This template compares the two values and sets a global
+variable,
+.BR print_left_func ,
+to either
+.B print_left_scrollbar
+if a scrollbar is needed, or
+.B print_left_empty
+if not.

@@ -11,8 +11,29 @@ if [[ "$APP_PREFIX" != "pwb" ]] && [[ "$APP_PREFIX" != "ate" ]]; then
     exit 1
 fi
 
-declare ATE_PATH="${PREFIX}/lib/ate_sources"
-declare PWB_PATH="${PREFIX}/lib/pwb_sources"
+# declare ATE_PATH="${PREFIX}/lib/ate_sources"
+declare PWB_PATH="${PREFIX}/share/pwb/sources"
+
+declare SOURCES_PATH="$PWB_PATH"
+
+get_scripts_inventory()
+{
+    local -n gs_list="$1"
+    gs_list=()
+    for file in ${SOURCES_PATH}/*; do
+        if ! [ -d "$file" ]; then
+            # remove page
+            file="${file##*/}"
+            # accept only prefix 'pwb_' without any extension:
+            if [[ "$file" =~ pwb_[^.]+$ ]]; then
+                # discard unincludable script
+                if [[ "$file" != "pwb_browser" ]]; then
+                    gs_list+=( "$file" )
+                fi
+            fi
+        fi
+    done
+}
 
 script_exists()   { [ -f "${SOURCE_PATH}/$1" ]; }
 function_loaded() { [[ $( type -f "$1" 2>/dev/null ) == "function" ]]; }
@@ -31,15 +52,22 @@ Display this usage message:
 Display a browsable list of all available sources:
    $sname
 
-The final format returns a code fragment that will load and
-of the listed sources that haven't already been loaded:
+Display man page for a source:
+   $sname man ${APP_PREFIX}_exit_on_error
 
-Use this form in a script like this, omitting the '...'
-or replacing it with a continuing list of sources:
-   $sname ${APP_PREFIX}_exit_on_error ...
+Sourcing files
+   Include the following line in your Bash script:
+      source <( $sname ${APP_PREFIX}_exit_on_error )
 
-An example of using the final form in a script:
-   source <( $sname ${APP_PREFIX}_exit_on_error )
+   Any number of sources can be added after $sname.
+   Sources will not be loaded twice, and dependencies
+   will be automatically loaded.
+
+Sourcing all available files
+   source <( $sname all )
+
+   This will load all of the available sources in the
+   script
 EOF
     }
 
@@ -47,7 +75,7 @@ return_source_name()
 {
     if ! function_loaded "$1"; then
         local prefix="${1%%_*}"
-        local path="${PREFIX}/lib/${prefix}_sources/$1"
+        local path="$SOURCES_PATH/$1"
         if [ -f "$path" ]; then
             echo -n "$path"
         fi
@@ -59,7 +87,7 @@ return_sources_script()
     for func in "$@"; do
         if ! function_loaded "$func"; then
             local prefix="${func%%_*}"
-            local path="${PREFIX}/lib/${prefix}_sources/$func"
+            local path="$SOURCES_PATH/$func"
             if [ -f "$path" ]; then
                 echo "if ! declare -f $func >/dev/null; then source $path; fi"
             fi
@@ -92,8 +120,6 @@ show_func_doc()
     done
 }
 
-declare SOURCES_PATH="${PREFIX}/lib/${APP_PREFIX}_sources"
-
 if [ "$#" -eq 0 ]; then
     "${SOURCES_PATH}/pwb_browser"
 elif [[ "$1" == "help" ]]; then
@@ -111,6 +137,21 @@ elif [[ "$1" == "help" ]]; then
             printf $'Unrecognized scriptlet "\e[32;1m%s\e[m"\n' "$func"
         fi
     fi
+elif [[ "$1" == "man" ]]; then
+    declare path_manfile="${SOURCES_PATH}/${2}.7"
+    if ! [ -f "$path_manfile" ]; then
+        path_manfile="${SOURCES_PATH}/pwb_${2}.7"
+    fi
+    if [ -f "$path_manfile" ]; then
+        man -l "$path_manfile"
+    else
+        printf "Can't find man page for '%s'.\n" "$2"
+        read -sn1
+    fi
+elif [[ "$1" == "all" ]]; then
+    declare -a SOURCES_INVENTORY
+    get_scripts_inventory SOURCES_INVENTORY
+    return_sources_script "${SOURCES_INVENTORY[@]}"
 else
     return_sources_script "$@"
 fi

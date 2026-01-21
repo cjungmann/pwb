@@ -11,6 +11,7 @@
 #include "pwb_errors.h"
 #include "pwb_argeater.h"
 #include "pwb_keymap.h"
+#include "pwb_utilities.h"
 
 void print_the_word_list(WORD_LIST *wl)
 {
@@ -192,10 +193,8 @@ PWB_RESULT pwb_action_measure_string(PWBH *handle, ACLONE *args)
 
          // Don't attempt log10 on a zero value, but
          // make sure there's room for a '0'
-         int num_length = count==0?1:(floor(log10(count))+1);
+         int num_length = (count==0?1:(floor(log10(count))+1)) + 1;
 
-         // Room for \0 terminator
-         ++num_length;
          char *buff = xmalloc(num_length);
          if (buff)
          {
@@ -257,6 +256,86 @@ PWB_RESULT pwb_action_get_keystroke(PWBH *handle, ACLONE *args)
 
    return result;
 }
+
+PWB_RESULT pwb_action_audit_var(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_SUCCESS;
+
+   const char *var_name = NULL;
+   const char *var_output = "PWB_VALUE";
+   bool include_context = false;
+   bool include_attributes = false;
+
+   AE_ITEM items[] = {
+      { &var_name, "name", '\0', AET_ARGUMENT,
+        "name of variable whose attributes are to be revealed" },
+      { &var_output, "var", 'v', AET_VALUE_OPTION,
+        "Alternate to 'PWB_VALUE' for reporting result" },
+      { (const char**)&include_attributes, "attributes", 'a', AET_FLAG_OPTION,
+        "Include variable attributes", NULL, argeater_bool_setter },
+      { (const char **)&include_context, "context", 'c', AET_FLAG_OPTION,
+        "Include variable context number", NULL, argeater_bool_setter }
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      SHELL_VAR *sv_out = find_variable(var_output);
+      if (!sv_out)
+         sv_out = bind_variable(var_output, "", 0);
+
+      if (!sv_out)
+      {
+         (*error_sink)("unable to secure variable '%s'", var_output);
+         result = PWB_FAILURE;
+      }
+      else
+      {
+         // Remove residual value
+         pwb_dispose_variable_value(sv_out);
+
+         SHELL_VAR *sv = find_variable(var_name);
+         if (sv)
+         {
+            // Collect and report important attributes:
+            int bufflen = get_var_parameters(NULL,
+                                             0,
+                                             sv,
+                                             include_context,
+                                             include_attributes);
+            char *buff = xmalloc(bufflen);
+
+            if (bufflen == get_var_parameters(buff,
+                                              bufflen,
+                                              sv,
+                                              include_context,
+                                              include_attributes))
+            {
+               // Attach report to output variable:
+               sv_out->value = buff;
+               if (invisible_p(sv_out))
+                  VUNSETATTR(sv_out, att_invisible);
+               result = PWB_SUCCESS;
+            }
+            else
+            {
+               sv_out->value = savestring("error");
+               (*error_sink)("Miscalculated memory requirements for '%s'", var_name);
+               result = PWB_FAILURE;
+            }
+         }
+         else
+         {
+            sv_out->value = savestring("error");
+            (*error_sink)("variable '%s' is unavailable", var_name);
+            result = PWB_FAILURE;
+         }
+      }
+   }
+
+   return result;
+}
+
 
 PWB_RESULT pwb_action_init(PWBH *handle, ACLONE *args)
 {
@@ -546,7 +625,7 @@ PWB_RESULT pwb_action_plot_line(PWBH *handle, ACLONE *args)
    {
       if (row >= 0)
       {
-         // pager_plot_row() calls function 
+         // pager_plot_row() calls function
          pager_plot_row(&handle->dparms, row);
          result = ARV_CONTINUE;
       }
@@ -599,7 +678,7 @@ PWB_RESULT pwb_action_get_data_count(PWBH *handle, ACLONE *args)
 
    int count = handle->dparms.row_count;
    // +1 for count of digits, +1 for terminating /0
-   int num_length = count==0?1:(floor(log10(count))+1) + 1;
+   int num_length = (count==0?1:(floor(log10(count))+1)) + 1;
    char *buff = alloca(num_length);
    snprintf(buff, num_length, "%d", count);
 
@@ -630,7 +709,7 @@ PWB_RESULT pwb_action_get_data_count(PWBH *handle, ACLONE *args)
    return result;
 }
 
-PWB_RESULT pwb_action_update_data_count(PWBH *handle, ACLONE *args)
+PWB_RESULT pwb_action_set_data_count(PWBH *handle, ACLONE *args)
 {
    PWB_RESULT result = PWB_SUCCESS;
 
@@ -649,3 +728,112 @@ PWB_RESULT pwb_action_update_data_count(PWBH *handle, ACLONE *args)
    return result;
 }
 
+PWB_RESULT pwb_action_get_top_row(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_SUCCESS;
+
+   int value = handle->dparms.index_row_top;
+   // +1 for count of digits, +1 for terminating /0
+   int num_length = (value==0?1:(floor(log10(value))+1)) + 1;
+   char *buff = alloca(num_length);
+   snprintf(buff, num_length, "%d", value);
+
+   const char *var_name="PWB_VALUE";
+   AE_ITEM items[] = {
+      { &var_name, "var", 'v', AET_VALUE_OPTION,
+        "Alternate to 'PWB_VALUE' for reporting result" }
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      SHELL_VAR *sv = find_variable(var_name);
+      if (!sv)
+         sv = bind_variable(var_name, "", 0);
+
+      if (sv)
+      {
+         pwb_dispose_variable_value(sv);
+         sv->value = savestring(buff);
+
+         if (invisible_p(sv))
+            VUNSETATTR(sv, att_invisible);
+         result = PWB_SUCCESS;
+      }
+   }
+
+   return result;
+}
+
+PWB_RESULT pwb_action_get_focus_row(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_SUCCESS;
+
+   int value = handle->dparms.index_row_focus;
+   // +1 for count of digits, +1 for terminating /0
+   int num_length = (value==0?1:(floor(log10(value))+1)) + 1;
+   char *buff = alloca(num_length);
+   snprintf(buff, num_length, "%d", value);
+
+   const char *var_name="PWB_VALUE";
+   AE_ITEM items[] = {
+      { &var_name, "var", 'v', AET_VALUE_OPTION,
+        "Alternate to 'PWB_VALUE' for reporting result" }
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      SHELL_VAR *sv = find_variable(var_name);
+      if (!sv)
+         sv = bind_variable(var_name, "", 0);
+
+      if (sv)
+      {
+         pwb_dispose_variable_value(sv);
+         sv->value = savestring(buff);
+
+         if (invisible_p(sv))
+            VUNSETATTR(sv, att_invisible);
+         result = PWB_SUCCESS;
+      }
+   }
+
+   return result;
+}
+
+PWB_RESULT pwb_action_set_focus_row(PWBH *handle, ACLONE *args)
+{
+   PWB_RESULT result = PWB_SUCCESS;
+
+   int index_focus = -1;
+   int index_top = -1;
+
+   AE_ITEM items[] = {
+      { (const char **)&index_focus, "focus", 'f', AET_ARGUMENT,
+        "index of desired focus row", NULL, pwb_argeater_int_setter },
+      { (const char **)&index_top, "top", 't', AET_ARGUMENT,
+        "index of desired top row", NULL, pwb_argeater_int_setter },
+   };
+
+   AE_MAP map = INIT_MAP(items);
+   if (argeater_process(args, &map))
+   {
+      if ( index_focus >  handle->dparms.row_count )
+      {
+         (*error_sink)("Requested focus index %d is out of range of %d rows.",
+                       index_focus, handle->dparms.row_count );
+         result = PWB_FAILURE;
+      }
+      if ( index_top >  handle->dparms.row_count )
+      {
+         (*error_sink)("Requested top index %d is out of range of %d rows.",
+                       index_top, handle->dparms.row_count );
+         result = PWB_FAILURE;
+      }
+
+      pager_set_focus(&handle->dparms, index_focus, index_top);
+   }
+
+   return result;
+}

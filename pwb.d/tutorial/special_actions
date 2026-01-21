@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+enable pwb
+
+declare -a colored_words=(
+    $'\e[31;1mThis\e[39;22m'
+    $'\e[32;1msentence\e[39;22m'
+    $'\e[33;1mcontains\e[39;22m'
+    $'\e[34;1mmany\e[39;22m'
+    $'\e[35;1mcharacters\e[39;22m',
+    $'\e[36;1monly\e[39;22m'
+    $'\e[31;1msome\e[39;22m'
+    $'\e[32;1mof\e[39;22m'
+    $'\e[33;1mwhich\e[39;22m'
+    $'\e[34;1mmove\e[39;22m'
+    $'\e[35;1mthe\e[39;22m'
+    $'\e[36;1mcursor\e[39;22m.'
+)
+
+declare line_of_many_colors="${colored_words[*]}"
+
+echo "$line_of_many_colors"
+
+declare -i full_len="${#line_of_many_colors}"
+declare -i print_len
+pwb measure_string -v print_len "$line_of_many_colors"
+
+echo
+printf "The string has %d characters, only %d are printable.\n" "$full_len" "$print_len"
+
+
+
+
+## BEGIN_DOC
+## PWB provides four special actions that do not require a
+## PWB handle.  While all could be implemented in native
+## Bash code, they would require non-obvious Bash code that
+## would run slower than C.
+##
+## These functions are;
+## - get_dimensions
+## - get_keystroke
+## - measure_string
+## - limit_print
+## 

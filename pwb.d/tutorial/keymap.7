@@ -1,0 +1,98 @@
+.TH keymap 7
+.SH NAME
+.PP
+.BR keymap :
+introduction to the
+.B keymap
+and custom key handling.
+.SH INTRODUCTION
+.PP
+Keymaps activate a
+.B pwb
+application.  They link keystrokes with navigation, execution,
+and exit actions to enable users to control the application.
+.PP
+This document is a supplement to the main
+.B pwb(1)
+man page.
+Refer to the
+.B KEYMAP
+section of the man page for details about the
+.BR "default keymap" " and the " "action indexes" .
+.SS BASIC CONCEPTS
+.TP
+.B Keymap Description
+A keymap is a list of associations between keystroke and action.
+.TP
+.B Base Keymap
+A default keymap serves as the initial base keymap.  This
+keymap binds up- and down-arrow, PgUp, PgDn, Home, and End
+keys to navigation by line, screen or collection, as well as
+\(aqq\(aq to quit the application.
+See the
+.B KEYMAP
+section of
+.B pwb(1)
+to see the default keymap.
+.TP
+.B Alternate Keymap
+An alternate keymap can add a set of new recognized keys to the
+keys handled in the base keymap, allowing the developer to
+preserve the default key bindings in the base keymap  while
+adding features to the application.
+.TP
+.B Creating Keymaps
+A new keymap is created when a keymap definition array (an array
+of paired elements consisting of a keystroke and an integer action
+index) is compiled using the
+.B pwb declare_keymap
+action.
+.TP
+.B Installing Keymaps
+Keymaps are installed with the
+.B pwb start
+action.  The
+.B -b
+option installs a primary keymap and the
+.B -a
+option installs an auxiliary keymap.
+In many cases, an application will simply use an auxiliary keymap to
+add keys to the base, but the base keymap might be replaced in order
+to define different navigation keybindings.
+.TP
+.B Resolving Multiple Keymaps
+The best way to think of
+.B pwb
+keybindings is that the recognized keys will be a union of the
+two keymaps, with duplicates in the alternate keymap having
+priority over the same key in the base keymap.
+.SH SCRIPT
+.PP
+The
+.B keymap
+script introduces a few new ideas.
+.TP
+.B Establishing a Keymap
+The associated script adds a single keystroke,
+.RB \(aq s \(sq,
+to the application.  The new keybinding opens a small
+message box with a set of file stat values.
+Look at the
+.B exec_line
+function, the definition array, and
+.B pwb declare_keymap
+action immediately following the function for an example
+of preparing a keymap.
+.TP
+.B Simple Message Box
+Look at function
+.B simple_message
+to see a method for displaying an array of text lines in the
+center of the screen.
+Function
+.B show_file
+creates an array of text lines from the
+.B stat
+command to be displayed by
+.BR simple_message .
+

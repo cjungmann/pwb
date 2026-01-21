@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+get_samples_list()
+{
+    local -n gsl_return="$1"
+    gsl_return=()
+
+    local gsl_odir="$PWD"
+    cd "$PWB_SAMPLES_PATH"
+
+    for file in *; do
+        case "$file" in
+            bash     ) ;;
+            bash_src ) ;;
+            *.d      ) ;;      # exclude script's resource directory
+            *.[[:digit:]] ) ;; # exclude script's man page
+            * )
+                gsl_return+=( "$file" )
+                ;;
+        esac
+    done
+
+    cd "$gsl_odir"
+}
+
+check_for_sample()
+{
+    local candidate="$1"
+    for script in "${SLIST[@]}"; do
+        if [[ "$candidate" == "$script" ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+name_is_eligible()
+{
+    local name="$1"
+    for sample in "${SLIST[@]}"; do
+        if [[ "$name" == "${sample:4}" ]]; then
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+show_samples()
+{
+    for sample in "${SLIST[@]}"; do
+        if ! [[ "$sample" =~ emplate ]]; then
+            echo "${sample:4}"
+        fi
+    done
+}
+
+announce_missing_script()
+{
+    local ams_script="$1"
+    local -a ams_lines=(
+        "Unknown script name"
+        ""
+    )
+    printf -v ams_lines[${#ams_lines[*]}] \
+           $'Script \e[31;1m%s\e[39;22m not found.' "$ams_script"
+
+    
+}
+
+show_help()
+{
+    cat <<EOF
+This script access installed PWB sample scripts.
+
+Without any parameters, it runs a script browser that gives
+a summary and access to running the script, to script-specific
+man pages, and to the actual script (as a learning exercise).
+
+A sample script can be run directly by typing script name,
+minus the 'pwb_' prefix, after pwb_samples.  For example, run
+the 'pwb_fm' script directly with the following prompt at the
+command line:
+
+pwb_samples fm
+
+Get a list of names (without the pwb_ prefix) to access
+direct-run scripts with:
+
+pwb_samples -l
+
+If you find one of the scripts useful, you can create an
+alias to run with with fewer keystrokes.
+
+EOF
+}
+
+show_man_page()
+{
+    local spath="${PWB_SAMPLES_PATH}/pwb_${1}.7"
+    man -l "$spath"
+}
+
+run_sample_with_args()
+{
+    local sample_name="pwb_$1"
+    if check_for_sample "$sample_name"; then
+        local -a rswa_args=( "${@:2}" )
+        local spath="${PWB_SAMPLES_PATH}/$sample_name"
+        if [ "${#rswa_args[*]}" -gt 0 ]; then
+            "$spath" "${rswa_args[@]}"
+        else
+            "$spath"
+        fi
+    fi
+}
+
+# Extract original PREFIX value from script path:
+# (Mainly so I can run this as a link in /usr/local/bin)
+if [[ "${BASH_SOURCE[0]}" =~ ^(.*)/bin/pwb_samples$ ]]; then
+    declare PREFIX="${BASH_REMATCH[1]}"
+else
+    declare PREFIX="/usr/local"
+fi
+
+declare PWB_SAMPLES_PATH="${PREFIX}/share/pwb/samples"
+declare OG_PATH="$PWD"
+
+declare -a SLIST
+get_samples_list SLIST
+
+
+if [[ "$1" =~ "-l" ]]; then
+    show_samples
+elif [[ "$1" =~ "-h" ]]; then
+    show_help
+elif [[ "$1" =~ "-m" ]]  && name_is_eligible "$2" ; then
+    show_man_page "$2"
+else
+    enable pwb
+    source <( pwb_sources pwb_scripts_browser )
+
+    exit_trap() { printf $'\e[39;49;22m\e[H\e[2J'; pwb restore; }
+    trap exit_trap EXIT SIGINT SIGABRT
+
+    pwb init
+
+    if [ "$#" -eq 0 ]; then
+        pwb_scripts_browser SLIST "$PWB_SAMPLES_PATH"
+    elif name_is_eligible "$1"; then
+        run_sample_with_args "$@"
+    else
+        announce_missing_script "$2"
+    fi
+fi
