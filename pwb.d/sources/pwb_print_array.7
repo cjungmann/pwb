@@ -83,6 +83,7 @@ print_top()
 {
    local -i index=\(dq\(Do1\(dq
    local -n pt_array=\(dq\(Do2\(dq
+   local -i width=\(dq\(Do3\(dq
    local pwb_handle=\(dq\(Do5\(dq
 
    local -a pt_lines=(
@@ -90,17 +91,41 @@ print_top()
       \(dqRecord number \(Doindex\(dq
    )
 
-   local -A MAA
-   pwb_get_regions MAA \(dq\(Dopwb_handle\(dq
+   \fBpwb get_dimensions\fP \(dq\(Dopwb_handle\(dq
+   local -a regargs=(
+      -t 1
+      -l \(Do(( PWB_ASSOC[margin_left] + 1 ))
+      -w \(dq\(Dowidth\(dq
+      -c \(dq\(Do{PWB_ASSOC[margin_top]}\(dq
+   )
 
-   pwb_print_array pt_lines  \(rs
-       -t \(dq\(Do{MAA[TM_TOP]}\(dq   \(rs
-       -l \(dq\(Do{MAA[TM_LEFT]}\(dq  \(rs
-       -w \(dq\(Do{MAA[TM_WIDE]}\(dq  \(rs
-       -c \(dq\(Do{MAA[TM_LINES]}\(dq
+   \fBpwb_print_array\fP pt_lines \(dq\(Do{regargs[@]}\(dq
 }
-
 .EE
+.PP
+.B Alternate Global Method
+.PP
+The example above calculates the message area for each call to
+.BR print_top .
+.PP
+Since the margins are typically stable, it would be reasonable to
+calculate the region once for a global array that would be reused by
+.B pwb_print_array
+in place of the
+.B regargs
+array used in the example above:
+.PP
+.EX
+set_margins PHANDLE
+\fBpwb_get_regions\fP PHANDLE
+declare -a HEAD_REGION=(
+   -t \(dq\(Do{PWB_ASSOC[TM_TOP]}\(dq
+   -l \(dq\(Do{PWB_ASSOC[TM_LEFT]}\(dq
+   -w \(dq\(Do{PWB_ASSOC[TM_WIDE]}\(dq
+   -c \(dq\(Do{PWB_ASSOC[TM_LINES]}\(dq
+)
+.EE
+
 .SH SEE ALSO
 .PP
 Look at
