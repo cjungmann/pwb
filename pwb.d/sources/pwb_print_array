@@ -95,6 +95,7 @@ pwb_print_array()
 
     local array_name justified=c
     local -i top_line=1 line_count=0 left_start=1 wide_count=-1
+    local -i force_width=0
     local -i maxlen plotlen
 
     local -a ppa_cmd_args=( "$@" )
@@ -105,6 +106,7 @@ pwb_print_array()
         l+ left_start
         w+ wide_count
         j+ justified
+        f  force_width
     )
 
     if pwb_read_args ppa_cmd_args ppa_arg_names ppa_opts_list; then
@@ -127,9 +129,14 @@ pwb_print_array()
 
             # Don't print if no room to print
             if [ "$plotlen" -gt 0 ]; then
-                # Calculate length of content, adjust to fit in plotlen if necessary
                 measure_lines maxlen len_array "$array_name" "$line_count"
-                (( maxlen = ( plotlen < maxlen ? plotlen : maxlen ) ))
+
+                # Calculate length of content, adjust to fit in plotlen if necessary
+                if [ "$force_width" -ne 0 ]; then
+                    maxlen="$plotlen"
+                else
+                    (( maxlen = ( plotlen < maxlen ? plotlen : maxlen ) ))
+                fi
 
                 # Reference point for left- and right-justified output:
                 local -i static_left=$(( left_start + ( plotlen - maxlen ) / 2 ))
