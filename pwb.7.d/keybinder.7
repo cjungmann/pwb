@@ -51,7 +51,7 @@ exec_edit()
    emacs \(dq\(Dofname\(dq
 }
 
-exec_line()
+delegate_execution()
 {
    local keyp=\(dq\(Do1\(dq
    local pwb_handle=\(dq\(Do4\(dq
@@ -79,7 +79,13 @@ declare KEYMAP
 declare -a KEYFUNCS
 \fBpwb_keybinder prep\fP KEYBINDINGS -v KEYMAP -f KEYFUNCS
 
-DECLARE_ARGS+=( -e exec_line )
+if ! declare -p START_ARGS &>/dev/null; then
+   echo \(dqIn the absence of START_ARGS code mechanism, adding\(dq
+   echo \(dqarguments to declare and start must be addressed.\(dq
+   exit
+fi
+
+DECLARE_ARGS+=( -e delegate_execution )
 START_ARGS+=( -a KEYMAP )
 
 \&\fB# END OF KEYBINDER FRAGMENT\fP
