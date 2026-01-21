@@ -12,6 +12,7 @@ declare -a slist=(
     template_divided
     template_actions
     template_table
+    template_ls
     template_filter
 )
 
