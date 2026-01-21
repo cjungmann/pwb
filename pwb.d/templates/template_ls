@@ -116,6 +116,69 @@ get_type_color()
     gtc_return="${DIR_COLORS[$type]}"
 }
 
+prepare_file_type_refs()
+{
+    local -n pftr_colors="$1"
+    local -n pftr_agents="$2"
+    local -n pftr_tests="$3"
+
+    pwb audit_var "$1" 
+
+    # - file type token: two-character string identifying
+    #        a file type.  'dircolors' defines a standard
+    #        set, we will add custom tokens.
+    #
+    # - test operator: The builtin 'test' function recognizes
+    #        several operators that identify file characteristics.
+    #        We will add operators to identify new file types.
+
+    # 'dircolors' returns a list of strings linked to colors,
+    # some strings are file type tokens (see above), and others
+    # are globs.  We use a subset of what 'dircolors' returns,
+    # then add custom tokens with new colors.
+    catalog_dircolors "pftr_colors"
+    pftr_colors+=(
+        "md" "48;5;21"      # markdown token/color
+        "mp" "38;5;208"     # manpage token/color
+    )
+
+    # This lookup table associates each custom test operator,
+    # which must begin with a non-hyphen character, with a
+    # function that identifies the file type.
+    pftr_agents+=(
+        "^m"   test_markdown
+        "^M"   test_manpage
+    )
+
+    # Populate table linking builtin operators that begin with
+    # a hyphen (-) and that work directly with the 'test' command,
+    # then adding custom tokens that DO NOT start with hyphen.
+    #
+    # It's not a lookup table, but a list that will be read
+    # sequentially by 'get_file_type' to tag files with their file
+    # type token.
+    pftr_tests
+        "-d"  "di"   # directory
+        "-x"  "ex"   # executable (or searchable, like -d?)
+        "-h"  "ln"   # symbolic link
+        "-b"  "bd"   # block special
+        "-c"  "cd"   # char special
+        "-g"  "sg"   # set group-id
+        "-k"  "st"   # sticky
+        "-p"  "pi"   # named pipe
+        "-S"  "so"   # socket
+        "-u"  "su"   # set user-id
+
+        # custom test operators begin with non-hyphen character:
+        "^m"  "md"   # markdown
+        "^M"  "mp"   # man page
+    )
+
+
+    # The tests array is used sequentially by function get_file_type
+    # to assign the file type 
+}
+
 
 ##################################
 ###   PWB CALLBACK FUNCTIONS   ###
@@ -454,6 +517,16 @@ enable pwb
 
 declare DELIM="|"
 
+declare -A DIR_COLORS
+declare -A TYPE_TEST_AGENTS
+declare -a FILE_TYPE_TESTS
+
+prepare_file_type_refs "DIR_COLORS" "TYPE_TEST_AGENTS" "FILE_TYPE_TESTS"
+
+
+# Standard test operators begin with '-' and 
+
+# Correlate custom test operator with function that identifies it:
 declare -A TYPE_TEST_AGENTS=(
     "^m"   test_markdown
     "^M"   test_manpage
@@ -462,8 +535,6 @@ declare -A TYPE_TEST_AGENTS=(
 # Paired entries, file test operators and file category label:
 declare -a FILE_TYPE_TESTS=(
     "-d"  "di"   # directory
-    "^m"  "md"   # markdown
-    "^M"  "mp"   # man page
     "-x"  "ex"   # executable (or searchable, like -d?)
     "-h"  "ln"   # symbolic link
     "-b"  "bd"   # block special
@@ -473,6 +544,10 @@ declare -a FILE_TYPE_TESTS=(
     "-p"  "pi"   # named pipe
     "-S"  "so"   # socket
     "-u"  "su"   # set user-id
+
+    # custom test operators begin with non-hyphen character:
+    "^m"  "md"   # markdown
+    "^M"  "mp"   # man page
 )
 
 declare -A DIR_COLORS
