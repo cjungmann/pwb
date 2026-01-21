@@ -3,6 +3,20 @@
 .SH NAME
 .B pwb_print_array
 \- safely displays array contents to a region
+.SH SYNOPSIS
+.PP
+enable pwb
+.br
+source <( pwb_sources pwb_print_array )
+
+.B pwb_print_array
+.cli_prototype @array_name \
+   !-t:top_line    \
+   !-l:left_column \
+   !-w:wide_count  \
+   !-c:line_count  \
+   ?!-j:c|l|r      \
+   ?!-f
 .SH DESCRIPTION
 .PP
 Given an array whose elements constitute text lines to be
@@ -18,19 +32,6 @@ blank lines to ensure the entire region is filled.
 The function is designed to work as part of a margin
 callback function, and the full-fill guarantee ensure that
 any existing content in the region will be erased.
-.SH SYNOPSIS
-.PP
-enable pwb
-.br
-source <( pwb_sources pwb_print_array )
-
-.B pwb_print_array
-.cli_prototype @array_name \
-   !-t:top_line    \
-   !-l:left_column \
-   !-w:wide_count  \
-   !-c:line_count  \
-   ?!-j:c|l|r
 .SH OPTIONS
 .TP
 .I array_name
@@ -53,6 +54,9 @@ describes the number of lines in the region.
 for
 .BR l "eft-justified, " r "ight-justified, or " c "entered."
 The default is centered.
+.TP
+.B "-f "
+forces justified text to edge (left or right) of the defined area.
 .SH NOTES
 .PP
 The
@@ -87,7 +91,7 @@ print_top()
    )
 
    local -A MAA
-   pwb_get_regions MAA \(dq\Dopwb_handle\(dq
+   pwb_get_regions MAA \(dq\(Dopwb_handle\(dq
 
    pwb_print_array pt_lines  \(rs
        -t \(dq\(Do{MAA[TM_TOP]}\(dq   \(rs
