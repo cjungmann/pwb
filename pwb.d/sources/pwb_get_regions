@@ -51,7 +51,7 @@ pwb_get_regions()
         if [ -n "$assoc_array_name" ]; then
             local pline
             if pwb audit_var "$assoc_array_name"; then
-                if [[ "$PWB_VALUE" == "associative" ]]; then
+                if [[ "$PWB_VALUE" == "hash" ]]; then
                     good_array=1
                 fi
             fi
