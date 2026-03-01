@@ -193,8 +193,6 @@ mime_app_not_blacklisted()
 {
     local regex
     for regex in "${MIME_APP_BLACKLIST[@]}"; do
-        printf $'Comparing app \e[34;1m%s\e[39;22m to regex \e[34;1m%s\e[39;22m\n' \
-               "$1" "$regex"
         if [[ "$1" =~ $regex ]]; then
             return 1
         fi
@@ -237,7 +235,15 @@ get_launch_args()
         gla_args=( thorium-browser --new-window "$gla_file" )
     else
         local mtype mapp
-        if mtype=$( xdg-mime query filetype "$gla_file" ); then
+
+        # old way:
+        # if mtype=$( xdg-mime query filetype "$gla_file" ); then
+        # new way:
+        if temptype=$( mimetype "$gla_file" ); then
+            mtype="${temptype##*: }"
+        fi
+        if [ "$mtype" ]; then
+        # new way end
             if mime_type_not_blacklisted "$mtype"; then
                 if mapp=$( xdg-mime query default "$mtype" ); then
                     if [ -n "$mapp" ] && mime_app_not_blacklisted "$mapp"; then
